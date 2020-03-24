@@ -302,3 +302,6 @@ void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
   waitKey(0);
 #endif
 }
+
+// vector<pair<int, int> > NISwGSP_Stitching::getFeaturePairs(const pair<int, int> &_match_pair) {
+// }

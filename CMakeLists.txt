@@ -18,13 +18,10 @@ add_executable(
   entry
 
   common.h
-  Transform.h
   Transform.cpp
-  MultiImages.h
+  FeatureController.cpp
   MultiImages.cpp
-  APAP_Stitching.h
   APAP_Stitching.cpp
-  NISwGSP_Stitching.h
   NISwGSP_Stitching.cpp
   entry.cpp )
 target_link_libraries(
