@@ -3,7 +3,6 @@
 #endif
 
 #include "NISwGSP_Stitching.h"
-#include "../../../../../../opencv/build_dir/4_1_0_android/OpenCV-android-sdk/sdk/native/jni/include/opencv2/core/mat.hpp"
 
 using namespace std;
 
@@ -11,14 +10,11 @@ using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
 
-extern "C" JNIEXPORT int JNICALL
-Java_com_example_niswgsp_11_MainActivity_main_1test(
-    JNIEnv* env,
-    jobject thiz,
-    jstring appPath,
-    jlong matBGR);
-
-
+#if defined(UBUNTU)
+int main() {
+  LOG("fuck");
+}
+#else
 extern "C" JNIEXPORT int JNICALL
 Java_com_example_niswgsp_11_MainActivity_main_1test(
     JNIEnv* env,
@@ -48,3 +44,4 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
 
   return 0;
 }
+#endif
