@@ -7,23 +7,25 @@ NISwGSP_Stitching::NISwGSP_Stitching(MultiImages &multiImages) {
 
 void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
   Ptr<SIFT> my_sift = SIFT::create();
-  vector<KeyPoint> key_points_1, key_points_2;
+  vector<vector<KeyPoint> > key_points(2);
 
   // 检测特征点
-  my_sift->detect(img1, key_points_1);
-  my_sift->detect(img2, key_points_2);
-  multiImages->key_points.push_back(key_points_1);
-  multiImages->key_points.push_back(key_points_2);
+  my_sift->detect(img1, key_points[0]);
+  my_sift->detect(img2, key_points[1]);
+  multiImages->key_points.push_back(key_points[0]);
+  multiImages->key_points.push_back(key_points[1]);
 
   LOG("sift finished");
 
   // TODO 匹配类型转换
-  Mat descrip_1, descrip_2;
-  my_sift->compute(img1, key_points_1, descrip_1);
-  my_sift->compute(img2, key_points_2, descrip_2);
-  if (descrip_1.type() != CV_32F || descrip_2.type() != CV_32F) {
-      descrip_1.convertTo(descrip_1, CV_32F);
-      descrip_2.convertTo(descrip_2, CV_32F);
+  vector<Mat> descrip(2);
+  my_sift->compute(img1, key_points[0], descrip[0]);
+  my_sift->compute(img2, key_points[1], descrip[1]);
+  if (false) {
+    if (descrip[0].type() != CV_32F || descrip[1].type() != CV_32F) {
+      descrip[0].convertTo(descrip[0], CV_32F);
+      descrip[1].convertTo(descrip[1], CV_32F);
+    }
   }
 
   LOG("compute finished");
@@ -31,24 +33,32 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
   // 特征点匹配
   Ptr<DescriptorMatcher> descriptor_matcher = DescriptorMatcher::create("BruteForce");
   vector<DMatch> feature_matches;// 存储配对信息
-  descriptor_matcher->match(descrip_1, descrip_2, feature_matches);// 进行匹配
-  multiImages->descriptor.push_back(descrip_1);
-  multiImages->descriptor.push_back(descrip_2);
+  descriptor_matcher->match(descrip[0], descrip[1], feature_matches);// 进行匹配
+  multiImages->descriptor.push_back(descrip[0]);
+  multiImages->descriptor.push_back(descrip[1]);
 
   LOG("match finished");
 
   // 过滤bad特征匹配
   double max_dis = 0;// 最大的匹配距离
-  for (int i = 0; i < descrip_1.rows; i ++) {
+  for (int i = 0; i < descrip[0].rows; i ++) {
     double tmp_dis = feature_matches[i].distance;
     if (tmp_dis > max_dis) {
       max_dis = tmp_dis;
     }
   }
-  for (int i = 0; i < descrip_1.rows; i ++) {
+
+  LOG("max dis: %lf", max_dis);
+
+  multiImages->feature_points.resize(2);
+  for (int i = 0; i < feature_matches.size(); i ++) {
     double tmp_dis = feature_matches[i].distance;
-    if (tmp_dis < max_dis * 0.5) {
+    if (tmp_dis < max_dis * 0.25) {
       multiImages->feature_matches.push_back(feature_matches[i]);// 存储好的特征匹配
+      int src  = feature_matches[i].queryIdx;
+      int dest = feature_matches[i].trainIdx;
+      multiImages->feature_points[0].push_back(key_points[0][src].pt);
+      multiImages->feature_points[1].push_back(key_points[1][dest].pt);
     }
   }
 
@@ -248,4 +258,12 @@ Mat NISwGSP_Stitching::get_matching_pts() {
   LOG("match finished");
 
   return result_1;
+}
+
+void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
+#if defined(UBUNTU)
+  namedWindow(window_name, WINDOW_AUTOSIZE);
+  imshow(window_name, img);
+  waitKey(0);
+#endif
 }

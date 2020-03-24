@@ -31,12 +31,8 @@ int main() {
   Mat result_2 = niswgsp.get_matching_pts().clone();// 匹配点
 
   // 显示图片
-  namedWindow("1", WINDOW_AUTOSIZE);
-  imshow("1", result_1);
-  namedWindow("2", WINDOW_AUTOSIZE);
-  imshow("2", result_2);
-
-  waitKey(0);
+  niswgsp.show_img("1", result_1);
+  niswgsp.show_img("2", result_2);
 }
 
 #else

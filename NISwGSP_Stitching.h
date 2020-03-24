@@ -20,4 +20,5 @@ public:
 
   void sift_1(Mat img1, Mat img2);
   void sift_2(Mat img1, Mat img2);
+  void show_img(const char *window_name, Mat img);
 };

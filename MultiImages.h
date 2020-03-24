@@ -19,6 +19,6 @@ public:
   vector<vector<Mat> > homographies;// 单应矩阵 要记得初始化
 
   vector<vector<pair<int, int> > > matching_pairs;// 匹配点配对信息
-  vector<vector<Mat> > descriptor;
+  vector<Mat> descriptor;
   vector<DMatch> feature_matches;
 };
