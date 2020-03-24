@@ -107,7 +107,7 @@ void NISwGSP_Stitching::sift_2(Mat img1, Mat img2) {
 
 Mat NISwGSP_Stitching::draw_matches() {
   // 匹配特征点
-  sift_2(multiImages->imgs[0], multiImages->imgs[1]);// 特征点匹配
+  sift_1(multiImages->imgs[0], multiImages->imgs[1]);// 特征点匹配
 
   // 描绘特征点
   Mat result_1;// 存储结果
@@ -131,21 +131,21 @@ Mat NISwGSP_Stitching::draw_matches() {
 
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
-      circle(result_1, src_p, 10, color, -1);
+      circle(result_1, src_p, CIRCLE_SIZE, color, -1);
       line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, 2, LINE_AA);
-      circle(result_1, dest_p + Point2f(img1.cols, 0), 10, color, -1);
+      circle(result_1, dest_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   } else {
     // 描绘所有关键点
     for (int i = 0; i < multiImages->key_points[0].size(); i ++) {
       Point2f src_p = multiImages->key_points[0][i].pt;
       Scalar color(255, 0, 0);
-      circle(result_1, src_p, 10, color, -1);
+      circle(result_1, src_p, CIRCLE_SIZE, color, -1);
     }
     for (int i = 0; i < multiImages->key_points[1].size(); i ++) {
       Point2f src_p = multiImages->key_points[1][i].pt;
       Scalar color(255, 0, 0);
-      circle(result_1, src_p + Point2f(img1.cols, 0), 10, color, -1);
+      circle(result_1, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   }
 
@@ -225,9 +225,9 @@ Mat NISwGSP_Stitching::get_matching_pts() {
 
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
-      circle(result_1, src_p, 10, color, -1);
+      circle(result_1, src_p, CIRCLE_SIZE, color, -1);
       line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, 3, LINE_AA);
-      circle(result_1, dest_p + Point2f(img1.cols, 0), 10, color, -1);
+      circle(result_1, dest_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   } else {
     // 描绘所有匹配点
@@ -239,9 +239,9 @@ Mat NISwGSP_Stitching::get_matching_pts() {
 
       // 描绘
       Scalar color1(255, 0, 0);
-      circle(result_1, src_p, 10, color1, -1);
+      circle(result_1, src_p, CIRCLE_SIZE, color1, -1);
       Scalar color2(0, 0, 255);
-      circle(result_1, dest_p + Point2f(img1.cols, 0), 10, color2, -1);
+      circle(result_1, dest_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
     }
   }
 

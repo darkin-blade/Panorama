@@ -9,6 +9,7 @@ find_package(OpenCV REQUIRED)
 include_directories(/home/lynx/fuck_mount/opencv/build_dir/4_1_0_android/OpenCV-android-sdk/sdk/native/jni/include)
 
 # vlfeat
+include_directories(/home/lynx/fuck_mount/vlfeat/vlfeat-0.9.21)
 set(VLFEAT_LIB "/home/lynx/fuck_mount/vlfeat/vlfeat-0.9.21/bin/glnxa64/libvl.so")
 
 set(CMAKE_CXX_COMPILER /usr/bin/g++)
