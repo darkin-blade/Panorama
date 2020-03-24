@@ -10,8 +10,42 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
   vector<vector<KeyPoint> > key_points(2);
 
   // 检测特征点
-  my_sift->detect(img1, key_points[0]);
-  my_sift->detect(img2, key_points[1]);
+  vl_sift_pix *sift_img1 = new vl_sift_pix[img1.cols * img1.rows];
+  for (int i = 0, k = 0; i < img1.rows; i ++) {
+    uint8_t *p = img1.ptr<uint8_t>(i);
+    for (int j = 0; j < img1.cols; j ++) {
+      sift_img1[k + j] = p[j];
+    }
+    k += img1.cols;
+  }
+
+  if (false) {
+    for (int i = 0; i < 2; i ++) {
+      VlSiftFilt *SiftFilt = NULL;
+      SiftFilt = vl_sift_new(img1.cols, img1.rows,
+          4,// noctaves
+          2,// nlevels
+          0);// o_min
+      if (vl_sift_process_first_octave(SiftFilt, sift_img1) != VL_ERR_EOF) {
+        do {
+          vl_sift_detect(SiftFilt);
+          LOG("cur key points %d", SiftFilt->nkeys);
+
+          // 描绘特征点
+          VlSiftKeypoint *point_p = SiftFilt->keys;
+          for (int j = 0; j < SiftFilt->nkeys; j ++) {
+            VlSiftKeypoint cur_point = *point_p;
+            point_p ++;
+            key_points[i].push_back(KeyPoint(cur_point.x, cur_point.y, cur_point.s));
+          }
+        } while (vl_sift_process_next_octave(SiftFilt) != VL_ERR_EOF);
+      }
+      vl_sift_delete(SiftFilt);
+    }
+  } else {
+    my_sift->detect(img1, key_points[0]);
+    my_sift->detect(img2, key_points[1]);
+  }
   multiImages->key_points.push_back(key_points[0]);
   multiImages->key_points.push_back(key_points[1]);
 
@@ -53,7 +87,7 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
   multiImages->feature_points.resize(2);
   for (int i = 0; i < feature_matches.size(); i ++) {
     double tmp_dis = feature_matches[i].distance;
-    if (tmp_dis < max_dis * 0.25) {
+    if (tmp_dis < max_dis * 0.15) {
       multiImages->feature_matches.push_back(feature_matches[i]);// 存储好的特征匹配
       int src  = feature_matches[i].queryIdx;
       int dest = feature_matches[i].trainIdx;
@@ -131,7 +165,7 @@ Mat NISwGSP_Stitching::draw_matches() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  if (false) {
+  if (true) {
     // 匹配所有特征点
     for (int i = 0; i < multiImages->feature_points[0].size(); i++) {
       // 获取特征点
@@ -142,7 +176,7 @@ Mat NISwGSP_Stitching::draw_matches() {
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
-      line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, 2, LINE_AA);
+      line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
       circle(result_1, dest_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   } else {
@@ -236,7 +270,7 @@ Mat NISwGSP_Stitching::get_matching_pts() {
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
-      line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, 3, LINE_AA);
+      line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
       circle(result_1, dest_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   } else {

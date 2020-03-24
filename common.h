@@ -50,6 +50,8 @@ const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 /* draw image */
 #if defined(UBUNTU)
 const int CIRCLE_SIZE = 3;
+const int LINE_SIZE = 1;
 #else
 const int CIRCLE_SIZE = 10;
+const int LINE_SIZE = 3;
 #endif
