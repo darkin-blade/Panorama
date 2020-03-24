@@ -72,6 +72,8 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
     _dst.emplace_back(applyTransform3x3(_src[i].x, _src[i].y, H));// 对应 apap 的 apply_mdlt_transform
     _homographies.emplace_back(H);
 
+#if !defined(UBUNTU)
     LOG("process: [%d/%d]", i, (int) _src.size());
+#endif
   }
 }

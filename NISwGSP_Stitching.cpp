@@ -19,7 +19,7 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
     k += img1.cols;
   }
 
-  if (false) {
+  if (true) {
     for (int i = 0; i < 2; i ++) {
       VlSiftFilt *SiftFilt = NULL;
       SiftFilt = vl_sift_new(img1.cols, img1.rows,
@@ -36,7 +36,8 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
           for (int j = 0; j < SiftFilt->nkeys; j ++) {
             VlSiftKeypoint cur_point = *point_p;
             point_p ++;
-            key_points[i].push_back(KeyPoint(cur_point.x, cur_point.y, cur_point.s));
+            key_points[i].push_back(KeyPoint(cur_point.x, cur_point.y, cur_point.s,
+                  -1, 0, cur_point.o, -1));
           }
         } while (vl_sift_process_next_octave(SiftFilt) != VL_ERR_EOF);
       }
@@ -87,7 +88,7 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
   multiImages->feature_points.resize(2);
   for (int i = 0; i < feature_matches.size(); i ++) {
     double tmp_dis = feature_matches[i].distance;
-    if (tmp_dis < max_dis * 0.15) {
+    if (tmp_dis < max_dis * 0.1) {
       multiImages->feature_matches.push_back(feature_matches[i]);// 存储好的特征匹配
       int src  = feature_matches[i].queryIdx;
       int dest = feature_matches[i].trainIdx;
@@ -96,7 +97,7 @@ void NISwGSP_Stitching::sift_1(Mat img1, Mat img2) {
     }
   }
 
-  LOG("get good mathces");
+  LOG("get good mathces %ld", multiImages->feature_points[0].size());
 }
 
 void NISwGSP_Stitching::sift_2(Mat img1, Mat img2) {
@@ -165,7 +166,7 @@ Mat NISwGSP_Stitching::draw_matches() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  if (true) {
+  if (1) {
     // 匹配所有特征点
     for (int i = 0; i < multiImages->feature_points[0].size(); i++) {
       // 获取特征点

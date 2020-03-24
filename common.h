@@ -47,11 +47,17 @@ const double APAP_SIGMA = 8.5;
 const int DIMENSION_2D = 2;
 const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
+/*** vlfeat sift ***/
+const    int SIFT_LEVEL_COUNT          = 3;
+const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;
+const double SIFT_PEAK_THRESH = 0.;
+const double SIFT_EDGE_THRESH = 10.;
+
 /* draw image */
 #if defined(UBUNTU)
 const int CIRCLE_SIZE = 3;
-const int LINE_SIZE = 1;
+const int LINE_SIZE   = 1;
 #else
 const int CIRCLE_SIZE = 10;
-const int LINE_SIZE = 3;
+const int LINE_SIZE   = 3;
 #endif
