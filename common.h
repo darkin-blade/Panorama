@@ -49,7 +49,11 @@ const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
 /*** vlfeat sift ***/
 const    int SIFT_LEVEL_COUNT          = 3;// nlevels
+#if defined(UBUNTU)
 const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;// o_min
+#else
+const    int SIFT_MINIMUM_OCTAVE_INDEX = 2;// o_min
+#endif
 const double SIFT_PEAK_THRESH = 0.;
 const double SIFT_EDGE_THRESH = 10.;
 
