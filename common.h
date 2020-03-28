@@ -48,8 +48,8 @@ const int DIMENSION_2D = 2;
 const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
 /*** vlfeat sift ***/
-const    int SIFT_LEVEL_COUNT          = 3;
-const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;
+const    int SIFT_LEVEL_COUNT          = 3;// nlevels
+const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;// o_min
 const double SIFT_PEAK_THRESH = 0.;
 const double SIFT_EDGE_THRESH = 10.;
 

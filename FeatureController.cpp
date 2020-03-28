@@ -37,15 +37,19 @@ void FeatureController::detect(
   const int height = _grey_img.rows;
 
   VlSiftFilt * vlSift = vl_sift_new(width, height,
-      log2(min(width, height)),
-      SIFT_LEVEL_COUNT,
-      SIFT_MINIMUM_OCTAVE_INDEX);
+      log2(min(width, height)),  // noctaves
+      SIFT_LEVEL_COUNT,          // nlevels
+      SIFT_MINIMUM_OCTAVE_INDEX);// o_min
+
+  LOG("sift args: [%lf %d %d]", log2(min(width, height)), SIFT_LEVEL_COUNT, SIFT_MINIMUM_OCTAVE_INDEX);
+
   vl_sift_set_peak_thresh(vlSift, SIFT_PEAK_THRESH);
   vl_sift_set_edge_thresh(vlSift, SIFT_EDGE_THRESH);
 
   if(vl_sift_process_first_octave(vlSift, (vl_sift_pix const *) grey_img_float.data) != VL_ERR_EOF) {
     do {
-      vl_sift_detect(vlSift);
+      vl_sift_detect(vlSift);// 特征点检测
+      LOG("feature points: [%d]", vlSift->nkeys);
       for(int i = 0; i < vlSift->nkeys; i ++) {
         double angles[4];
         _feature_points.emplace_back(vlSift->keys[i].x, vlSift->keys[i].y);

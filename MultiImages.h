@@ -8,17 +8,28 @@ using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
 
+class ImageData {
+public:
+  Mat data;// 原始数据
+  vector<vector<Mat> > descriptors;// TODO
+  vector<Point2f> mesh_points;// 网格点
+  vector<Point2f> feature_points;// 特征点(全部)
+  vector<KeyPoint> key_points;// 关键点(全部)(包含特征点)
+
+  // [i],以目前图片为目标,第i个图片为参照
+  vector<vector<Point2f> > matching_points;// 第i个图片在此图片的匹配点
+  vector<vector<Mat> > homographies;// 第i个图片在此图片的单应矩阵
+};
+
 class MultiImages {// 注意reserve与resize的区别
 public:
-  int img_num;
-  vector<Mat> imgs;
-  vector<vector<Point2f> > img_mesh;// 划分图像
-  vector<vector<KeyPoint> > key_points;// 关键点
-  vector<vector<Point2f> > feature_points;// 特征点
-  vector<vector<Point2f> > matching_points;// 匹配点 要记得初始化
-  vector<vector<Mat> > homographies;// 单应矩阵 要记得初始化
+  MultiImages();
 
-  vector<vector<pair<int, int> > > matching_pairs;// 匹配点配对信息
-  vector<Mat> descriptor;
-  vector<DMatch> feature_matches;
+  int img_num;
+  vector<ImageData *> imgs;
+
+  // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
+  vector<vector<pair<int, int> > > matching_pairs;// 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
+
+  void read_img(const char *img_path);
 };
