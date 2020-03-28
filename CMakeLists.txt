@@ -11,7 +11,7 @@ include_directories(/home/lynx/fuck_mount/opencv/build_dir/4_1_0_android/OpenCV-
 # vlfeat
 set(vlfeat_dir /home/lynx/fuck_mount/vlfeat/vlfeat_android)
 include_directories(${vlfeat_dir})
-include_directories(${CMAKE_CURRENT_SOURCCE_DIR})
+# include_directories(${CMAKE_CURRENT_SOURCCE_DIR})
 # set(vlfeat_lib "${vlfeat_dir}/build/libvl.so")
 
 aux_source_directory(/home/lynx/fuck_mount/vlfeat/vlfeat_android/src vl_src)
