@@ -1,24 +1,29 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+set(ubuntu true)
+
 # eigen
 include_directories(/home/lynx/fuck_mount/eigen/eigen_323c052e1731)
 
 # opencv
-set(OpenCV_DIR /home/lynx/fuck_mount/opencv/install_dir/4_1_0/lib/cmake/opencv4)
-find_package(OpenCV REQUIRED)
-include_directories(/home/lynx/fuck_mount/opencv/build_dir/4_1_0_android/OpenCV-android-sdk/sdk/native/jni/include)
+if(ubuntu)
+  set(OpenCV_DIR /home/lynx/fuck_mount/opencv/install_dir/4_1_0/lib/cmake/opencv4)
+  include_directories(/home/lynx/fuck_mount/opencv/build_dir/4_1_0_android/OpenCV-android-sdk/sdk/native/jni/include)
+  find_package(OpenCV REQUIRED)
+else()
+  set(sdk_dir /home/lynx/fuck_mount/opencv/build_dir/4_1_0_shared)
+  set(OpenCV_DIR ${sdk_dir}/OpenCV-android-sdk/sdk/native/jni)
+  include_directories(${sdk_dir}/OpenCV-android-sdk/sdk/native/jni/include)
+  find_package(OpenCV REQUIRED)
+endif()
 
 # vlfeat
 set(vlfeat_dir /home/lynx/fuck_mount/vlfeat/vlfeat_android)
 include_directories(${vlfeat_dir})
 # include_directories(${CMAKE_CURRENT_SOURCCE_DIR})
 # set(vlfeat_lib "${vlfeat_dir}/build/libvl.so")
-
 aux_source_directory(/home/lynx/fuck_mount/vlfeat/vlfeat_android/src vl_src)
 aux_source_directory(/home/lynx/fuck_mount/vlfeat/vlfeat_android/vl vl_head)
-
-set(CMAKE_CXX_COMPILER /usr/bin/g++)
-
 add_library(
   vlfeat_lib
 
@@ -28,21 +33,59 @@ add_library(
   ${vl_head}
 )
 
-add_executable(
-  entry
+if(ubuntu)
+  set(CMAKE_CXX_COMPILER /usr/bin/g++)
+endif()
 
-  common.h
-  Transform.cpp
-  FeatureController.cpp
-  MultiImages.cpp
-  APAP_Stitching.cpp
-  NISwGSP_Stitching.cpp
-  entry.cpp )
+# 添加目标文件/目标库
+if(ubuntu)
+  add_executable(
+    entry
 
-target_link_libraries(
-  entry
+    common.h
+    Transform.cpp
+    FeatureController.cpp
+    MultiImages.cpp
+    APAP_Stitching.cpp
+    NISwGSP_Stitching.cpp
+    entry.cpp )
+else()
+  add_library(
+          entry
 
-  ${OpenCV_LIBS}
-  # ${vlfeat_lib}
-  vlfeat_lib
-)
+          SHARED
+
+          common.h
+          Transform.cpp
+          FeatureController.cpp
+          MultiImages.cpp
+          APAP_Stitching.cpp
+          NISwGSP_Stitching.cpp
+          entry.cpp )
+endif()
+
+# 连接库文件
+if(ubuntu)
+  target_link_libraries(
+    entry
+
+    ${OpenCV_LIBS}
+    # ${vlfeat_lib}
+    vlfeat_lib
+  )
+else()
+  find_library( # Sets the name of the path variable.
+                log-lib
+                log )
+
+  target_link_libraries( # Specifies the target library.
+          entry
+
+          ${OpenCV_LIBS}
+          # ${vlfeat_lib}
+          vlfeat_lib
+
+          # TODO 解决 AndroidBitmap 报错, 使本机代码安全地访问Java对象的像素缓冲区的位图
+          jnigraphics
+          ${log-lib} )
+endif()
