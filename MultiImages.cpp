@@ -15,13 +15,57 @@ void MultiImages::read_img(const char *img_path) {
   assert(img_num == imgs.size());
 }
 
-vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const int m2) {
+vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const int m2) {
+  Ptr<SIFT> opencv_sift = SIFT::create();
+  vector<KeyPoint> key_points[2];
+  vector<Mat> gray_imgs[2];
+
+  // 计算灰色图
+  cvtColor(imgs[m1]->data, gray_imgs[0], CV_BGR2GRAY);
+  cvtColor(imgs[m2]->data, gray_imgs[1], CV_BGR2GRAY);
+  LOG("shit");
+
+  // 检测特征点
+  opencv_sift->detect(gray_imgs[0], key_points[0]);
+  opencv_sift->detect(gray_imgs[1], key_points[1]);
+  // 保存特征点
+  for (int i = 0; i < key_points[0].size(); i ++) {
+    imgs[m1]->feature_points.push_back(key_points[0][i].pt);
+  }
+  for (int i = 0; i < key_points[1].size(); i ++) {
+    imgs[m2]->feature_points.push_back(key_points[1][i].pt);
+  }
+
+  LOG("opencv detect finish");
+
+  vector<Mat> descriptors[2];
+  vector<DMatch> feature_pairs_result;// 存储配对信息
+  opencv_sift->compute(gray_imgs[0], key_points[0], descriptors[0]);
+  opencv_sift->compute(gray_imgs[1], key_points[1], descriptors[1]);
+
+  LOG("opencv compute finish");
+
+  // 特征点匹配
+  Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("FLANNBASED");
+  matcher->match(descriptors[0], descriptors[1], feature_pairs_result);
+
+  LOG("opencv match finish");
+
+  vector<pair<int, int> > initial_indices;
+  for (int i = 0; i < feature_pairs_result.size(); i ++) {
+    initial_indices.push_back(make_pair(feature_pairs_result[i].queryIdx, feature_pairs_result[i].trainIdx));
+  }
+
+  return initial_indices;
+}
+
+vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {
   const int nearest_size = 2;
   const bool ratio_test = true;
 
   int size_1 = imgs[m1]->feature_points.size();
   int size_2 = imgs[m2]->feature_points.size();
-  const int feature_size[2] = {size_1, size_2};
+  const int feature_size[2] = { size_1, size_2 };
   const int pair_match[2] = { m1, m2 };
 
   const int another_feature_size = feature_size[1];
@@ -29,14 +73,15 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
   const vector<vector<Mat> > &feature_descriptors_1 = imgs[pair_match[0]]->descriptors;
   const vector<vector<Mat> > &feature_descriptors_2 = imgs[pair_match[1]]->descriptors;
 
+  // 对每个点计算最相近的特征点
   vector<FeatureDistance> feature_pairs_result;
   for (int f1 = 0; f1 < feature_size[0]; f1 ++) {
     set<FeatureDistance> feature_distance_set;// set 中每个元素都唯一, 降序
     feature_distance_set.insert(FeatureDistance(MAXFLOAT, 0, -1, -1));// TODO 存放计算结果
     for (int f2 = 0; f2 < feature_size[1]; f2 ++) {
       const double dist = FeatureController::getDistance(feature_descriptors_1[f1],
-                                                          feature_descriptors_2[f2],
-                                                          feature_distance_set.begin()->distance);
+                                                         feature_descriptors_2[f2],
+                                                         feature_distance_set.begin()->distance);
       if (dist < feature_distance_set.begin()->distance) {// 如果比最大值小
         if (feature_distance_set.size() == nearest_k) {// 如果容器满了, 删掉最大值
           feature_distance_set.erase(feature_distance_set.begin());
@@ -54,7 +99,8 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
       }
       it = it2;// 否则向后迭代一次
     }
-    feature_pairs_result.insert(feature_pairs_result.end(), it, feature_distance_set.end());// 向pairs的尾部添加it及其之后的所有feature_distance的元素
+    // 向pairs的尾部添加it及其之后的[it, end)的元素, 个数为0或1
+    feature_pairs_result.insert(feature_pairs_result.end(), it, feature_distance_set.end());
   }
 
   // 计算平均值和标准差
@@ -83,9 +129,6 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
     const vector<Point2f> & _X,
     const vector<Point2f> & _Y,
     const vector<pair<int, int> > & _initial_indices) {
-  const int HOMOGRAPHY_MODEL_MIN_POINTS = 4;
-  const int GLOBAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(GLOBAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
-
   vector<char> final_mask(_initial_indices.size(), 0);
   findHomography(_X, _Y, CV_RANSAC, GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST, final_mask, GLOBAL_MAX_ITERATION);
 
@@ -142,7 +185,6 @@ void MultiImages::getFeaturePairs() {
   feature_pairs.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     feature_pairs[i].resize(img_num);
-  // LOG("match feature [%d, %d] size: %ld", i, j, feature_pairs[i][j].size());
   }
 
   for (int i = 0; i < img_num; i ++) {
@@ -152,7 +194,7 @@ void MultiImages::getFeaturePairs() {
       // 先计算两张图的原始配对
       int m1 = i;
       int m2 = j;
-      vector<pair<int, int> > initial_indices = getInitialFeaturePairs(m1, m2);
+      vector<pair<int, int> > initial_indices = getOpencvFeaturePairs(m1, m2);
 
       // 将所有成功配对的特征点进行筛选
       const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;

@@ -58,7 +58,8 @@ public:
   vector<vector<vector<pair<int, int> > > > matching_pairs;// 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   void read_img(const char *img_path);
-  vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
+  vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);
+  vector<pair<int, int> > getOpencvFeaturePairs(const int m1, const int m2);
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
                                                             const vector<Point2f> & _Y,
                                                             const vector<pair<int, int> > & _initial_indices);
