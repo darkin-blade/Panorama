@@ -58,5 +58,8 @@ public:
 
   void read_img(const char *img_path);
   vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
+  vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
+                                                            const vector<Point2f> & _Y,
+                                                            const vector<pair<int, int> > & _initial_indices);
   void getFeaturePairs();
 };

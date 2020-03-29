@@ -19,6 +19,8 @@
 #include <Eigen/Core>
 #include <Eigen/SVD>
 #include <Eigen/IterativeLinearSolvers>
+#include <opencv2/calib3d/calib3d_c.h> /* CV_RANSAC */
+#include <opencv2/calib3d.hpp> /* findHomography */
 #include <opencv2/core.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/features2d.hpp>
@@ -71,6 +73,11 @@ const double SIFT_EDGE_THRESH = 10.;
 
 /*** init feature ***/
 const double INLIER_TOLERANT_STD_DISTANCE = 4.25; /* mean + 4.25 * std */
+
+/*** sRANSAC ***/
+const double GLOBAL_TRUE_PROBABILITY = 0.225;
+const double LOCAL_TRUE_PROBABILITY = 0.2;
+const double OPENCV_DEFAULT_CONFIDENCE = 0.995;
 
 /* draw image */
 #if defined(UBUNTU)

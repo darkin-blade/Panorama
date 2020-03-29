@@ -80,6 +80,63 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
   return initial_indices;
 }
 
+vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
+    const vector<Point2f> & _X,
+    const vector<Point2f> & _Y,
+    const vector<pair<int, int> > & _initial_indices) {
+  const int HOMOGRAPHY_MODEL_MIN_POINTS = 4;
+  const int GLOBAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(GLOBAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
+
+  vector<char> final_mask(_initial_indices.size(), 0);
+  findHomography(_X, _Y, CV_RANSAC, GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST, final_mask, GLOBAL_MAX_ITERATION);
+
+  vector<Point2f> tmp_X = _X, tmp_Y = _Y;
+
+  vector<int> mask_indices(_initial_indices.size(), 0);
+  for (int i = 0; i < mask_indices.size(); i ++) {
+    mask_indices[i] = i;
+  }
+
+  while (tmp_X.size() >= HOMOGRAPHY_MODEL_MIN_POINTS &&
+      LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST < GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST) {
+    const int LOCAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(LOCAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
+    vector<Point2f> next_X, next_Y;
+    vector<char> mask(tmp_X.size(), 0);
+    findHomography(tmp_X, tmp_Y, CV_RANSAC, LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST, mask, LOCAL_MAX_ITERATION);
+
+    int inliers_count = 0;
+    for (int i = 0; i < mask.size(); i ++) {
+      if (mask[i]) { inliers_count ++; }
+    }
+    if (inliers_count < LOCAL_HOMOGRAPHY_MIN_FEATURES_COUNT) {
+      break;
+    }
+    for (int i = 0, shift = -1; i < mask.size(); i ++) {
+      if (mask[i]) {
+        final_mask[mask_indices[i]] = 1;
+      } else {
+        next_X.emplace_back(tmp_X[i]);
+        next_Y.emplace_back(tmp_Y[i]);
+        mask_indices[++shift] = mask_indices[i];
+      }
+    }
+
+    LOG("Local true Probabiltiy = %lf", next_X.size() / (float)tmp_X.size());
+
+    tmp_X = next_X;
+    tmp_Y = next_Y;
+  }
+  vector<pair<int, int> > result;
+  for (int i = 0; i < final_mask.size(); i ++) {
+    if (final_mask[i]) {
+      result.emplace_back(_initial_indices[i]);
+    }
+  }
+
+  LOG("Global true Probabiltiy = %lf", result.size() / (float)_initial_indices.size());
+
+  return result;
+}
 
 void MultiImages::getFeaturePairs() {
   // 初始化vector大小
@@ -99,19 +156,19 @@ void MultiImages::getFeaturePairs() {
       vector<pair<int, int> > initial_indices = getInitialFeaturePairs(m1, m2);
 
       // 将所有成功配对的特征点进行筛选
-      // const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
-      // const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
-      // vector<Point2f> X, Y;
-      // X.reserve(initial_indices.size());
-      // Y.reserve(initial_indices.size());
-      // for (int j = 0; j < initial_indices.size(); j +) {
-      //   const pair<int, int> it = initial_indices[j];
-      //   X.emplace_back(m1_fpts[it.first ]);
-      //   Y.emplace_back(m2_fpts[it.second]);
-      // }
-      // feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(match_pair, X, Y, initial_indices);
+      const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
+      const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
+      vector<Point2f> X, Y;
+      X.reserve(initial_indices.size());
+      Y.reserve(initial_indices.size());
+      for (int j = 0; j < initial_indices.size(); j ++) {
+        const pair<int, int> it = initial_indices[j];
+        X.emplace_back(m1_fpts[it.first ]);
+        Y.emplace_back(m2_fpts[it.second]);
+      }
+      feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
+      // feature_pairs[m1][m2] = initial_indices;
       
-      feature_pairs[m1][m2] = initial_indices;
       assert(feature_pairs[m1][m2].empty() == false);
     }
   }
