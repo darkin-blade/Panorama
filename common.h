@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <cmath>
+#include <set>
 #include <string>
 #include <vector>
 

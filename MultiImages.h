@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include "FeatureController.h"
+
 using namespace std;
 
 using namespace cv;
@@ -21,8 +23,8 @@ public:
                   const int _feature_index_1,
                   const int _feature_index_2) {// 有参构造函数
     distance = _distance;
-    _feature_index_1[    _p] = _feature_index_1;
-    _feature_index_1[1 - _p] = _feature_index_2;
+    feature_index[    _p] = _feature_index_1;
+    feature_index[1 - _p] = _feature_index_2;
   }
 
   bool operator < (const FeatureDistance &fd) const {

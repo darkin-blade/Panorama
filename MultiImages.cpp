@@ -21,15 +21,14 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
   const int nearest_size = 2;
   const bool ratio_test = true;
 
-  const int feature_size[2];
-  feature_size[0] = imgs[m1]->feature_points.size();
-  feature_size[1] = imgs[m2]->feature_points.size();
+  const int feature_size[2] = { imgs[m1]->feature_points.size(),
+                                imgs[m2]->feature_points.size() };
   const int pair_match[2] = { m1, m2 };
 
   const int another_feature_size = feature_size[1];
   const int nearest_k = min(nearest_size, another_feature_size);// 只可能为0, 1, 2
-  const vector<vector<Mat> > &feature_descriptors_1 = imgs[pair_match[0]]->descirptors;
-  const vector<vector<Mat> > &feature_descriptors_2 = imgs[pair_match[1]]->descirptors;
+  const vector<vector<Mat> > &feature_descriptors_1 = imgs[pair_match[0]]->descriptors;
+  const vector<vector<Mat> > &feature_descriptors_2 = imgs[pair_match[1]]->descriptors;
 
   vector<FeatureDistance> feature_pairs_result;
   for (int f1 = 0; f1 < feature_size[0]; f1 ++) {

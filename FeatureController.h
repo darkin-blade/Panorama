@@ -1,3 +1,6 @@
+#if !defined(FeatureController_H)
+#define FeatureController_H
+
 #include "common.h"
 
 using namespace std;
@@ -17,3 +20,5 @@ public:
     vector<Point2f> & _feature_points,
     vector<vector<Mat> > & _feature_descriptors);
 };
+
+#endif

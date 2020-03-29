@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+using namespace std;
+
 class Statistics {
 public:
     template <typename T>

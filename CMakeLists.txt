@@ -48,6 +48,7 @@ if(ubuntu)
     MultiImages.cpp
     APAP_Stitching.cpp
     NISwGSP_Stitching.cpp
+    Statistics.cpp
     entry.cpp )
 else()
   add_library(
