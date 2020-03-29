@@ -128,7 +128,7 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
     const vector<Point2f> & _X,
     const vector<Point2f> & _Y,
     const vector<pair<int, int> > & _initial_indices) {
-  vector<char> final_mask(_initial_indices.size(), 0);
+  vector<char> final_mask(_initial_indices.size(), 0);// 存储最终的结果
   findHomography(_X, _Y, CV_RANSAC, GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST, final_mask, GLOBAL_MAX_ITERATION);
 
   vector<Point2f> tmp_X = _X, tmp_Y = _Y;
@@ -138,9 +138,14 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
     mask_indices[i] = i;
   }
 
-  while (tmp_X.size() >= HOMOGRAPHY_MODEL_MIN_POINTS &&
-      LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST < GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST) {
-    const int LOCAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(LOCAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
+  // while (tmp_X.size() >= HOMOGRAPHY_MODEL_MIN_POINTS && // 4
+  //     LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST < GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST) 
+  while (true) {
+    if (tmp_X.size() >= HOMOGRAPHY_MODEL_MIN_POINTS) {
+      LOG("break: homography points");
+      break;
+    }
+
     vector<Point2f> next_X, next_Y;
     vector<char> mask(tmp_X.size(), 0);
     findHomography(tmp_X, tmp_Y, CV_RANSAC, LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST, mask, LOCAL_MAX_ITERATION);
@@ -149,16 +154,20 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
     for (int i = 0; i < mask.size(); i ++) {
       if (mask[i]) { inliers_count ++; }
     }
-    if (inliers_count < LOCAL_HOMOGRAPHY_MIN_FEATURES_COUNT) {
+
+    if (inliers_count < LOCAL_HOMOGRAPHY_MIN_FEATURES_COUNT) {// 40
+      LOG("break: feature count");
       break;
     }
+    
     for (int i = 0, shift = -1; i < mask.size(); i ++) {
       if (mask[i]) {
         final_mask[mask_indices[i]] = 1;
       } else {
         next_X.emplace_back(tmp_X[i]);
         next_Y.emplace_back(tmp_Y[i]);
-        mask_indices[++shift] = mask_indices[i];
+        shift ++;
+        mask_indices[shift] = mask_indices[i];
       }
     }
 

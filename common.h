@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#define using_opencv
+// #define using_opencv
 #define UBUNTU
 #if !defined(UBUNTU)
 
@@ -81,7 +81,9 @@ const double LOCAL_TRUE_PROBABILITY = 0.2;
 const double OPENCV_DEFAULT_CONFIDENCE = 0.995;
 const int HOMOGRAPHY_MODEL_MIN_POINTS = 4;
 // const int GLOBAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(GLOBAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
-const int GLOBAL_MAX_ITERATION = 200;
+const int GLOBAL_MAX_ITERATION = 200;// 2000+
+// const int LOCAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(LOCAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
+const int LOCAL_MAX_ITERATION = 1000;// 16000+
 
 /* draw image */
 #if defined(UBUNTU)
