@@ -6,11 +6,26 @@ NISwGSP_Stitching::NISwGSP_Stitching(MultiImages &multiImages) {
 }
 
 Mat NISwGSP_Stitching::feature_match() {
+  int img_num = multiImages->img_num;
+
   // 检测特征点
-  for (int i = 0; i < multiImages->img_num; i ++) {
+  for (int i = 0; i < img_num; i ++) {
     FeatureController::detect(multiImages->imgs[i]->data,
                               multiImages->imgs[i]->feature_points,
                               multiImages->imgs[i]->descriptors);
+    LOG("[picture %d] feature points: %ld", i, multiImages->imgs[i]->feature_points.size());
+  }
+
+
+  // 特征点匹配
+  multiImages->feature_pairs.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    multiImages->feature_pairs[i].resize(img_num);
+    for (int j = 0; j < img_num; j ++) {
+      if (i == j) continue;// size([i][j]) == 0
+      multiImages->feature_pairs[i][j] = multiImages->getInitialFeaturePairs(i, j);
+      LOG("match feature [%d, %d] size: %ld", i, j, multiImages->feature_pairs[i][j].size());
+    }
   }
 
   // 描绘特征点
@@ -25,13 +40,17 @@ Mat NISwGSP_Stitching::feature_match() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  if (0) {
+  if (1) {
     // 匹配所有特征点
-    for (int i = 0; i < multiImages->imgs[0]->feature_points.size(); i++) {
+    for (int i = 0; i < multiImages->feature_pairs[0][1].size(); i ++) {
+      // 计算索引
+      int src  = multiImages->feature_pairs[0][1][i].first;
+      int dest = multiImages->feature_pairs[0][1][i].second;
+
       // 获取特征点
       Point2f src_p, dest_p;
-      src_p  = multiImages->imgs[0]->feature_points[i];
-      dest_p = multiImages->imgs[0]->feature_points[i];
+      src_p  = multiImages->imgs[0]->feature_points[src];
+      dest_p = multiImages->imgs[1]->feature_points[dest];
 
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
