@@ -75,8 +75,8 @@ Mat NISwGSP_Stitching::matching_match() {
 
   // 划分图像mesh
   for (int i = 0; i < img_num; i ++) {
-    int cols = multiImages->imgs[i].cols;
-    int rows = multiImages->imgs[i].rows;
+    int cols = multiImages->imgs[i]->data.cols;
+    int rows = multiImages->imgs[i]->data.rows;
     
     // 计算间距
     double ratio = ((double) cols) / rows;
@@ -111,8 +111,8 @@ Mat NISwGSP_Stitching::matching_match() {
       int m2 = j;
 
       // 筛选成功匹配的特征点
-      const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
-      const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
+      const vector<Point2f> & m1_fpts = multiImages->imgs[m1]->feature_points;
+      const vector<Point2f> & m2_fpts = multiImages->imgs[m2]->feature_points;
       vector<Point2f> X, Y;
       for (int k = 0; k < multiImages->feature_pairs[m1][m2].size(); k ++) {
         const pair<int, int> it = multiImages->feature_pairs[m1][m2][k];
@@ -132,7 +132,7 @@ Mat NISwGSP_Stitching::matching_match() {
   // 记录匹配信息
   multiImages->matching_pairs.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
-    multiImages->matching_pairs.resize(img_num);
+    multiImages->matching_pairs[i].resize(img_num);
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
@@ -167,7 +167,7 @@ Mat NISwGSP_Stitching::matching_match() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  if (true) {
+  if (0) {
     // 描绘匹配点配对
     for (int i = 0; i < multiImages->matching_pairs[0][1].size(); i ++) {
       int index = multiImages->matching_pairs[0][1][i].first;// first == second

@@ -24,11 +24,11 @@ int main() {
 
   NISwGSP_Stitching niswgsp(multiImages);
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
-  // Mat result_2 = niswgsp.matching_match().clone();// 匹配点
+  Mat result_2 = niswgsp.matching_match().clone();// 匹配点
 
   // 显示图片
   niswgsp.show_img("1", result_1);
-  // niswgsp.show_img("2", result_2);
+  niswgsp.show_img("2", result_2);
 }
 
 #else
