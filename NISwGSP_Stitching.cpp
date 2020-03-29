@@ -18,15 +18,6 @@ Mat NISwGSP_Stitching::feature_match() {
 
 
   // 特征点匹配
-  multiImages->feature_pairs.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    multiImages->feature_pairs[i].resize(img_num);
-    for (int j = 0; j < img_num; j ++) {
-      if (i == j) continue;// size([i][j]) == 0
-      multiImages->feature_pairs[i][j] = multiImages->getInitialFeaturePairs(i, j);
-      LOG("match feature [%d, %d] size: %ld", i, j, multiImages->feature_pairs[i][j].size());
-    }
-  }
 
   // 描绘特征点
   Mat result_1;// 存储结果

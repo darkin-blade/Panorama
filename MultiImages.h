@@ -58,4 +58,5 @@ public:
 
   void read_img(const char *img_path);
   vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
+  void getFeaturePairs(const int m1, const int m2);
 };
