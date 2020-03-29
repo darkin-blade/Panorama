@@ -96,20 +96,22 @@ void MultiImages::getFeaturePairs() {
       // 先计算两张图的原始配对
       int m1 = i;
       int m2 = j;
-      const vector<pair<int, int> > &initial_indices = getInitialFeaturePairs(m1, m2);
+      vector<pair<int, int> > initial_indices = getInitialFeaturePairs(m1, m2);
 
       // 将所有成功配对的特征点进行筛选
-      const vector<Point2> & m1_fpts = imgs[m1]->feature_points;
-      const vector<Point2> & m2_fpts = imgs[m2]->feature_points;
-      vector<Point2> X, Y;
-      X.reserve(initial_indices.size());
-      Y.reserve(initial_indices.size());
-      for (int j = 0; j < initial_indices.size(); j +) {
-        const pair<int, int> it = initial_indices[j];
-        X.emplace_back(m1_fpts[it.first ]);
-        Y.emplace_back(m2_fpts[it.second]);
-      }
-      feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(match_pair, X, Y, initial_indices);
+      // const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
+      // const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
+      // vector<Point2f> X, Y;
+      // X.reserve(initial_indices.size());
+      // Y.reserve(initial_indices.size());
+      // for (int j = 0; j < initial_indices.size(); j +) {
+      //   const pair<int, int> it = initial_indices[j];
+      //   X.emplace_back(m1_fpts[it.first ]);
+      //   Y.emplace_back(m2_fpts[it.second]);
+      // }
+      // feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(match_pair, X, Y, initial_indices);
+      
+      feature_pairs[m1][m2] = initial_indices;
       assert(feature_pairs[m1][m2].empty() == false);
     }
   }

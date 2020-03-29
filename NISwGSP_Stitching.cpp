@@ -10,14 +10,16 @@ Mat NISwGSP_Stitching::feature_match() {
 
   // 检测特征点
   for (int i = 0; i < img_num; i ++) {
-    FeatureController::detect(multiImages->imgs[i]->data,
+    Mat grey_img;
+    cvtColor(multiImages->imgs[i]->data, grey_img, CV_BGR2GRAY);
+    FeatureController::detect(grey_img,
                               multiImages->imgs[i]->feature_points,
                               multiImages->imgs[i]->descriptors);
     LOG("[picture %d] feature points: %ld", i, multiImages->imgs[i]->feature_points.size());
   }
 
-
   // 特征点匹配
+  multiImages->getFeaturePairs();
 
   // 描绘特征点
   Mat result_1;// 存储结果
