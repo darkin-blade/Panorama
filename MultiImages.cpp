@@ -1,7 +1,5 @@
 #include "MultiImages.h"
 
-#include "Statistics.h"
-
 MultiImages::MultiImages() {
   img_num = 0;
 }
@@ -21,8 +19,9 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
   const int nearest_size = 2;
   const bool ratio_test = true;
 
-  const int feature_size[2] = { imgs[m1]->feature_points.size(),
-                                imgs[m2]->feature_points.size() };
+  int size_1 = imgs[m1]->feature_points.size();
+  int size_2 = imgs[m2]->feature_points.size();
+  const int feature_size[2] = {size_1, size_2};
   const int pair_match[2] = { m1, m2 };
 
   const int another_feature_size = feature_size[1];

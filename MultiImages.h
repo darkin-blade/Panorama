@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include "FeatureController.h"
+#include "Statistics.h"
 
 using namespace std;
 
