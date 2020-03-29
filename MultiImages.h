@@ -8,6 +8,26 @@ using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
 
+class FeatureDistance {
+public:
+  double distance;
+  int feature_index[2];
+
+  FeatureDistance() {// 无参初始化
+    feature_index[0] = feature_index[1] = -1;
+    distance = MAXFLOAT;
+  }
+
+  FeatureDistance(const double _distance,
+                  const int ,
+                  const int _feature_index_1,
+                  const int _feature_index_2) {
+    distance = _distance;
+    _feature_index_1[]
+    _feature_index_1[]
+  }
+}
+
 class ImageData {
 public:
   Mat data;// 原始数据
@@ -32,4 +52,6 @@ public:
   vector<vector<pair<int, int> > > matching_pairs;// 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   void read_img(const char *img_path);
+  bool compareFeaturePair(const FeatureDistance &fd_1, const FeatureDistance &fd_2);
+  vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
 };
