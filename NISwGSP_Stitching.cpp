@@ -70,49 +70,96 @@ Mat NISwGSP_Stitching::feature_match() {
   return result_1;
 }
 
-    /*
 Mat NISwGSP_Stitching::matching_match() {
-  int img_num = 2;
+  int img_num = multiImages->img_num;
+
   // 划分图像mesh
-  multiImages->img_mesh.resize(2);
   for (int i = 0; i < img_num; i ++) {
     int cols = multiImages->imgs[i].cols;
     int rows = multiImages->imgs[i].rows;
+    
     // 计算间距
     double ratio = ((double) cols) / rows;
     int row_num = 20;
     int col_num = (int) (ratio * 20);
     double col_step = ((double) cols) / col_num;
     double row_step = ((double) rows) / row_num;
+
     // 添加mesh
     for (int j = 0; j <= col_num; j ++) {
       for (int k = 0; k <= row_num; k ++) {
-        multiImages->img_mesh[i].push_back(Point2f(j * col_step, k * row_step));
+        multiImages->imgs[i]->mesh_points.push_back(Point2f(j * col_step, k * row_step));
       }
     }
   }
 
   LOG("get mesh");
 
-  // 计算单应矩阵
-  multiImages->matching_points.resize(img_num);
-  multiImages->homographies.resize(img_num);
+  // 初始化匹配点信息
+  for (int i = 0; i < img_num; i ++) {
+    multiImages->imgs[i]->matching_points.resize(img_num);
+    multiImages->imgs[i]->homographies.resize(img_num);
+  }
 
   LOG("starting apap");
 
-  APAP_Stitching::apap_project(multiImages->feature_points[0],
-                               multiImages->feature_points[1],
-                               multiImages->img_mesh[0],
-                               multiImages->matching_points[0],
-                               multiImages->homographies[0]);
-
-  LOG("apap finished");
-
   // 计算匹配点
+  for (int i = 0; i < img_num; i ++) {
+    for (int j = 0; j < img_num; j ++) {
+      if (i == j) continue;
+      int m1 = i;
+      int m2 = j;
+
+      // 筛选成功匹配的特征点
+      const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
+      const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
+      vector<Point2f> X, Y;
+      for (int k = 0; k < multiImages->feature_pairs[m1][m2].size(); k ++) {
+        const pair<int, int> it = multiImages->feature_pairs[m1][m2][k];
+        X.emplace_back(m1_fpts[it.first ]);
+        Y.emplace_back(m2_fpts[it.second]);
+      }
+
+      APAP_Stitching::apap_project(X,
+                                   Y,
+                                   multiImages->imgs[m1]->mesh_points,
+                                   multiImages->imgs[m1]->matching_points[m2],
+                                   multiImages->imgs[m1]->homographies[m2]);
+      LOG("apap [%d, %d] finish", m1, m2);
+    }
+  }
+
+  // 记录匹配信息
+  multiImages->matching_pairs.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    multiImages->matching_pairs.resize(img_num);
+
+    for (int j = 0; j < img_num; j ++) {
+      if (i == j) continue;
+      int m1 = i;
+      int m2 = j;
+      Mat another_img = multiImages->imgs[m2]->data;
+
+      // 剔除出界点
+      vector<pair<int, int> > &matching_pairs = multiImages->matching_pairs[m1][m2];// 配对信息
+      const vector<Point2f> *tmp_p = &multiImages->imgs[m1]->matching_points[m2];// 匹配点位置
+      for (int k = 0; k < tmp_p->size(); k ++) {
+        if ((*tmp_p)[k].x >= 0
+          && (*tmp_p)[k].y >= 0
+          && (*tmp_p)[k].x <= another_img.cols
+          && (*tmp_p)[k].y <= another_img.rows) {// x对应cols, y对应rows
+          // 如果对应的匹配点没有出界
+          matching_pairs.push_back(pair<int, int>(k, k));
+        }
+      }
+    }
+  }
+  
+  // 描绘匹配点
   Mat result_1;// 存储结果
   Mat left_1, right_1;// 分割矩阵
-  Mat img1 = multiImages->imgs[0];
-  Mat img2 = multiImages->imgs[1];
+  Mat img1 = multiImages->imgs[0]->data;
+  Mat img2 = multiImages->imgs[1]->data;
   result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
   left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
   right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
@@ -120,27 +167,14 @@ Mat NISwGSP_Stitching::matching_match() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  // 剔除出界点
-  multiImages->matching_pairs.resize(2);
-  vector<pair<int, int> > &matching_pairs = multiImages->matching_pairs[0];// 配对信息
-  const vector<Point2f> *tmp_p = &multiImages->matching_points[0];// 匹配点位置
-  for (int i = 0; i < tmp_p->size(); i ++) {
-    if ((*tmp_p)[i].x >= 0 && (*tmp_p)[i].y >= 0 && (*tmp_p)[i].x <= img2.cols && (*tmp_p)[i].y <= img2.rows) {// x对应cols, y对应rows
-      matching_pairs.push_back(pair<int, int>(i, i));
-    }
-  }
+  if (true) {
+    // 描绘匹配点配对
+    for (int i = 0; i < multiImages->matching_pairs[0][1].size(); i ++) {
+      int index = multiImages->matching_pairs[0][1][i].first;// first == second
+      Point2f src_p, dest_p;
+      src_p  = multiImages->imgs[0]->mesh_points[index];
+      dest_p = multiImages->imgs[0]->matching_points[1][index];
 
-  // 描绘匹配点
-  if (1 == 2) {
-    // 匹配点配对
-    for (int i = 0; i < multiImages->matching_pairs[0].size(); i ++) {
-      // 获取mesh
-      int index = multiImages->matching_pairs[0][i].first;
-      Point2f src_p, dest_p;// TODO
-      src_p = multiImages->img_mesh[0][index];
-      dest_p = multiImages->matching_points[0][index];
-
-      // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
       line(result_1, src_p, dest_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
@@ -148,13 +182,11 @@ Mat NISwGSP_Stitching::matching_match() {
     }
   } else {
     // 描绘所有匹配点
-    for (int i = 0; i < multiImages->img_mesh[0].size(); i ++) {
-      // 获取mesh
-      Point2f src_p, dest_p;// TODO
-      src_p = multiImages->img_mesh[0][i];
-      dest_p = multiImages->matching_points[0][i];
+    for (int i = 0; i < multiImages->imgs[0]->mesh_points.size(); i ++) {
+      Point2f src_p, dest_p;
+      src_p  = multiImages->imgs[0]->mesh_points[i];
+      dest_p = multiImages->imgs[0]->matching_points[1][i];
 
-      // 描绘
       Scalar color1(255, 0, 0);
       circle(result_1, src_p, CIRCLE_SIZE, color1, -1);
       Scalar color2(0, 0, 255);
@@ -166,7 +198,6 @@ Mat NISwGSP_Stitching::matching_match() {
 
   return result_1;
 }
-     */
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
 #if defined(UBUNTU)

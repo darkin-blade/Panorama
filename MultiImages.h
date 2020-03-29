@@ -41,8 +41,8 @@ public:
   vector<KeyPoint> key_points;// 关键点(全部)(包含特征点)
 
   // [i],以目前图片为目标,第i个图片为参照
-  vector<vector<Point2f> > matching_points;// 第i个图片在此图片的匹配点
-  vector<vector<Mat> > homographies;// 第i个图片在此图片的单应矩阵
+  vector<vector<Point2f> > matching_points;// 此图片在第i个图片的匹配点
+  vector<vector<Mat> > homographies;// 此图片的单应矩阵在第i张图片的单应矩阵
 };
 
 class MultiImages {// 注意reserve与resize的区别
