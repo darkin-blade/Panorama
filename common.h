@@ -1,6 +1,8 @@
+#if !defined(COMMON_H)
 #define COMMON_H
 
 #include <assert.h>
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -75,4 +77,6 @@ const int LINE_SIZE   = 1;
 #else
 const int CIRCLE_SIZE = 10;
 const int LINE_SIZE   = 3;
+#endif
+
 #endif

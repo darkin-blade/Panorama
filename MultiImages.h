@@ -1,6 +1,4 @@
-#if !defined(COMMON_H)
 #include "common.h"
-#endif
 
 using namespace std;
 
@@ -56,6 +54,5 @@ public:
   vector<vector<pair<int, int> > > matching_pairs;// 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   void read_img(const char *img_path);
-  bool compareFeaturePair(const FeatureDistance &fd_1, const FeatureDistance &fd_2);
   vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
 };
