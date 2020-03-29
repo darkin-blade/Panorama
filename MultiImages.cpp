@@ -16,18 +16,17 @@ void MultiImages::read_img(const char *img_path) {
 }
 
 vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const int m2) {
-  Ptr<SIFT> opencv_sift = SIFT::create();
+  Ptr<SIFT> core = SIFT::create();
   vector<KeyPoint> key_points[2];
-  vector<Mat> gray_imgs[2];
+  Mat gray_imgs[2];
 
   // 计算灰色图
   cvtColor(imgs[m1]->data, gray_imgs[0], CV_BGR2GRAY);
   cvtColor(imgs[m2]->data, gray_imgs[1], CV_BGR2GRAY);
-  LOG("shit");
 
   // 检测特征点
-  opencv_sift->detect(gray_imgs[0], key_points[0]);
-  opencv_sift->detect(gray_imgs[1], key_points[1]);
+  core->detect(gray_imgs[0], key_points[0]);
+  core->detect(gray_imgs[1], key_points[1]);
   // 保存特征点
   for (int i = 0; i < key_points[0].size(); i ++) {
     imgs[m1]->feature_points.push_back(key_points[0][i].pt);
@@ -38,15 +37,15 @@ vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const i
 
   LOG("opencv detect finish");
 
-  vector<Mat> descriptors[2];
-  vector<DMatch> feature_pairs_result;// 存储配对信息
-  opencv_sift->compute(gray_imgs[0], key_points[0], descriptors[0]);
-  opencv_sift->compute(gray_imgs[1], key_points[1], descriptors[1]);
+  Mat descriptors[2];
+  core->compute(gray_imgs[0], key_points[0], descriptors[0]);
+  core->compute(gray_imgs[1], key_points[1], descriptors[1]);
 
   LOG("opencv compute finish");
 
   // 特征点匹配
-  Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("FLANNBASED");
+  vector<DMatch> feature_pairs_result;// 存储配对信息
+  Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("FlannBased");
   matcher->match(descriptors[0], descriptors[1], feature_pairs_result);
 
   LOG("opencv match finish");
@@ -194,7 +193,11 @@ void MultiImages::getFeaturePairs() {
       // 先计算两张图的原始配对
       int m1 = i;
       int m2 = j;
+#if defined(using_opencv)
       vector<pair<int, int> > initial_indices = getOpencvFeaturePairs(m1, m2);
+#else
+      vector<pair<int, int> > initial_indices = getVlfeatFeaturePairs(m1, m2);
+#endif
 
       // 将所有成功配对的特征点进行筛选
       const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;

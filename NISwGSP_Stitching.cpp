@@ -9,14 +9,16 @@ Mat NISwGSP_Stitching::feature_match() {
   int img_num = multiImages->img_num;
 
   // 检测特征点
-  // for (int i = 0; i < img_num; i ++) {
-  //   Mat grey_img;
-  //   cvtColor(multiImages->imgs[i]->data, grey_img, CV_BGR2GRAY);
-  //   FeatureController::detect(grey_img,
-  //                             multiImages->imgs[i]->feature_points,
-  //                             multiImages->imgs[i]->descriptors);
-  //   LOG("[picture %d] feature points: %ld", i, multiImages->imgs[i]->feature_points.size());
-  // }
+#if !defined(using_opencv)
+  for (int i = 0; i < img_num; i ++) {
+    Mat grey_img;
+    cvtColor(multiImages->imgs[i]->data, grey_img, CV_BGR2GRAY);
+    FeatureController::detect(grey_img,
+                              multiImages->imgs[i]->feature_points,
+                              multiImages->imgs[i]->descriptors);
+    LOG("[picture %d] feature points: %ld", i, multiImages->imgs[i]->feature_points.size());
+  }
+#endif
 
   // 特征点匹配
   multiImages->getFeaturePairs();
@@ -33,7 +35,7 @@ Mat NISwGSP_Stitching::feature_match() {
   img1.copyTo(left_1);
   img2.copyTo(right_1);
 
-  if (1) {
+  if (0) {
     // 匹配所有特征点
     for (int i = 0; i < multiImages->feature_pairs[0][1].size(); i ++) {
       // 计算索引
@@ -204,5 +206,17 @@ void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, img);
   waitKey(0);
+
+  // 保存图片
+  char img_name[100];
+  char full_name[128];
+  LOG("input file name:");
+  scanf("%s", img_name);
+  sprintf(full_name, "../../%s.jpg", img_name);
+  if (strlen(full_name) > 12) {
+    imwrite(full_name, img);
+  } else {
+    LOG("invalid name");
+  }
 #endif
 }

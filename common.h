@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#define using_opencv
 #define UBUNTU
 #if !defined(UBUNTU)
 
