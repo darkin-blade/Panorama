@@ -43,6 +43,14 @@ extern "C" {
 const double APAP_GAMMA = 0.0015;
 const double APAP_SIGMA = 8.5;
 
+/*** matching method ***/
+const double FEATURE_RATIO_TEST_THRESHOLD = 1.5;// atof("15e-1");
+
+/*** homography based ***/
+const double GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 5.;
+const double  LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 3.;
+const    int  LOCAL_HOMOGRAPHY_MIN_FEATURES_COUNT = 40;
+
 /* type */
 const int DIMENSION_2D = 2;
 const int HOMOGRAPHY_VARIABLES_COUNT = 9;
@@ -56,6 +64,9 @@ const    int SIFT_MINIMUM_OCTAVE_INDEX = 2;// o_min
 #endif
 const double SIFT_PEAK_THRESH = 0.;
 const double SIFT_EDGE_THRESH = 10.;
+
+/*** init feature ***/
+const double INLIER_TOLERANT_STD_DISTANCE = 4.25; /* mean + 4.25 * std */
 
 /* draw image */
 #if defined(UBUNTU)

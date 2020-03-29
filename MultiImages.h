@@ -19,19 +19,23 @@ public:
   }
 
   FeatureDistance(const double _distance,
-                  const int ,
+                  const int _p,
                   const int _feature_index_1,
-                  const int _feature_index_2) {
+                  const int _feature_index_2) {// 有参构造函数
     distance = _distance;
-    _feature_index_1[]
-    _feature_index_1[]
+    _feature_index_1[    _p] = _feature_index_1;
+    _feature_index_1[1 - _p] = _feature_index_2;
   }
-}
+
+  bool operator < (const FeatureDistance &fd) const {
+      return distance > fd.distance;
+  }
+};
 
 class ImageData {
 public:
   Mat data;// 原始数据
-  vector<vector<Mat> > descriptors;// TODO
+  vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
   vector<Point2f> mesh_points;// 网格点
   vector<Point2f> feature_points;// 特征点(全部)
   vector<KeyPoint> key_points;// 关键点(全部)(包含特征点)
