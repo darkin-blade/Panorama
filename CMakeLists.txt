@@ -6,6 +6,7 @@ set(ubuntu true)
 set(niswgsp_source
     common.h
     Transform.cpp
+    Blending.cpp
     FeatureController.cpp
     MultiImages.cpp
     APAP_Stitching.cpp

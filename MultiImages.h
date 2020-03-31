@@ -52,6 +52,7 @@ public:
 
   int img_num;
   vector<ImageData *> imgs;
+  vector<int> triangulation_indices[2];// TODO 用于纹理映射
 
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
@@ -63,5 +64,7 @@ public:
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
                                                             const vector<Point2f> & _Y,
                                                             const vector<pair<int, int> > & _initial_indices);
+  Mat textureMapping(const vector<vector<Point2f> > &_vertices,
+                     const Size2f &_target_size);
   void getFeaturePairs();
 };
