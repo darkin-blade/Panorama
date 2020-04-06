@@ -232,13 +232,19 @@ void MultiImages::getFeaturePairs() {
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应所有图片的匹配点
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
+  vector<Mat> _warp_images;// 存放wrap后的Mat
 
   LOG("normalized vertices");
 
-  vector<Mat> _warp_images;// 存放wrap后的Mat
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
   vector<Rect2f> rects = getVerticesRects<float>(_vertices);// TODO 获取所有匹配点的rect
+
+  vector<Mat> tmp_imgs;
+  for (int i = 0; i < img_num; i ++) {
+    tmp_imgs.push_back(imgs[i]->data);
+  }
+  weight_mask = getMatsLinearBlendWeight(tmp_imgs);
 
   // for (int i = 0; i < rects.size(); i ++) {
   //   cout << imgs[i]->file_name << " rect = " << rects[i] << endl;
@@ -251,9 +257,9 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应�
   const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
   const int SCALE = pow(2, PRECISION);
 
-  LOG("debug");
-
   for (int i = 0; i < img_num; i ++) {
+    LOG("start %d", i);
+
     const vector<Point2f> & src_vertices = imgs[i]->mesh_points;// 所有mesh点
     const vector<vector<int> > & polygons_indices = imgs[i]->polygons_indices;// TODO
     const Point2f origin(rects[i].x, rects[i].y);
@@ -291,7 +297,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应�
       }
     }
 
-    LOG("%d affine");
+    LOG("%d affine", i);
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
     Mat w_mask = Mat::zeros(image.size(), CV_32FC1);// TODO
@@ -302,14 +308,13 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应�
         if (polygon_index != NO_GRID) {
           Point2f p_f = applyTransform2x3<float>(x, y,
               affine_transforms[polygon_index]);
-    LOG("debug");
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->data.cols &&
               p_f.y <= imgs[i]->data.rows) {
             Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
-            w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
+            w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);// TODO segmentation fault
             // if (_blend_method != BLEND_AVERAGE) {// TODO
             //   w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             // }
@@ -318,14 +323,14 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应�
       }
     }
 
-    LOG("debug")l
-
     _warp_images.emplace_back(image);
     origins.emplace_back(rects[i].x, rects[i].y);
     new_weight_mask.emplace_back(w_mask);
     // if (_blend_method != BLEND_AVERAGE) {// TODO
     //   new_weight_mask.emplace_back(w_mask);
     // }
+
+    LOG("%d finish", i);
   }
 
   LOG("%ld", _warp_images.size());
