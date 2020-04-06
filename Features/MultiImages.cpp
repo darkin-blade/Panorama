@@ -232,16 +232,6 @@ void MultiImages::getFeaturePairs() {
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
                                 int _blend_method) {// 对应所有图片的匹配点
 
-  // for (int i = 0; i < img_num; i ++) {
-  //   vector<vector<int> > tmp_indices = imgs[i]->triangulation_indices;
-  //   for (int j = 0; j < tmp_indices.size(); j ++) {
-  //     for (int k = 0; k < tmp_indices[j].size(); k ++) {
-  //       LOG("%d %d %d %d", i, j, k, tmp_indices[j][k]);
-  //     }
-  //   }
-  // }
-  // assert(0);
-
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
   vector<Mat> _warp_images;// 存放wrap后的Mat
 
@@ -300,9 +290,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
         };
         affine_transforms.emplace_back(getAffineTransform(src, dst));
         label ++;
-        // LOG("%d / %ld", k, imgs[i]->triangulation_indices.size());
       }
-      // LOG("%d / %ld", j, polygons_indices.size());
     }
 
     LOG("%d affine", i);
