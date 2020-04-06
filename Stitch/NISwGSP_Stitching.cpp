@@ -187,6 +187,9 @@ Mat NISwGSP_Stitching::texture_mapping() {
     Point2f tmp_mesh = multiImages->imgs[1]->mesh_points[i];
     result_1[1].push_back(tmp_mesh + Point2f(multiImages->imgs[0]->data.cols, 0));
   }
+
+  LOG("get vertices");
+
   return multiImages->textureMapping(result_1);
 }
 

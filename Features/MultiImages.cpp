@@ -229,9 +229,11 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// 对应所有图片的匹配点
+Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices) {// 对应所有图片的匹配点
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
+
+  LOG("normalized vertices");
 
   vector<Mat> _warp_images;// 存放wrap后的Mat
   vector<Mat> weight_mask, new_weight_mask;
@@ -248,6 +250,8 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// �
 
   const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
   const int SCALE = pow(2, PRECISION);
+
+  LOG("debug");
 
   for (int i = 0; i < img_num; i ++) {
     const vector<Point2f> & src_vertices = imgs[i]->mesh_points;// 所有mesh点
@@ -286,6 +290,9 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// �
         label ++;
       }
     }
+
+    LOG("%d affine");
+
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
     Mat w_mask = Mat::zeros(image.size(), CV_32FC1);// TODO
     // Mat w_mask = (_blend_method != BLEND_AVERAGE) ? Mat::zeros(image.size(), CV_32FC1) : Mat();// TODO
@@ -295,6 +302,7 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// �
         if (polygon_index != NO_GRID) {
           Point2f p_f = applyTransform2x3<float>(x, y,
               affine_transforms[polygon_index]);
+    LOG("debug");
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->data.cols &&
               p_f.y <= imgs[i]->data.rows) {
@@ -309,6 +317,9 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// �
         }
       }
     }
+
+    LOG("debug")l
+
     _warp_images.emplace_back(image);
     origins.emplace_back(rects[i].x, rects[i].y);
     new_weight_mask.emplace_back(w_mask);

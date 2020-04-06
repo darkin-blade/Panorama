@@ -49,6 +49,6 @@ public:
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
                                                             const vector<Point2f> & _Y,
                                                             const vector<pair<int, int> > & _initial_indices);
-  Mat textureMapping(const vector<vector<Point2f> > &_vertices);
+  Mat textureMapping(vector<vector<Point2f> > &_vertices);
   void getFeaturePairs();
 };
