@@ -1,7 +1,8 @@
 #include "../common.h"
 
-#include "../Utils/Statistics.h"
 #include "../Utils/Blending.h"
+#include "../Utils/Statistics.h"
+#include "../Utils/Transform.h"
 
 #include "../Features/FeatureController.h"
 #include "../Features/ImageData.h"

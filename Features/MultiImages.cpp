@@ -8,7 +8,7 @@ void MultiImages::read_img(const char *img_path) {
   // 读取图片Mat
   ImageData *imageData = new ImageData();
   imageData->data = imread(img_path);
-  ImageData->init_data();
+  imageData->init_data();
 
   // 检查图片数量
   imgs.push_back(imageData);
@@ -231,12 +231,13 @@ void MultiImages::getFeaturePairs() {
 }
 
 Mat textureMapping(const vector<vector<Point2f> > &_vertices,
-                    const Size2f &_target_size) {
+                   const Size2f &_target_size
+                   vector<Mat> & _warp_images) {
 
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
-  vector<Rect2f> rects = getVerticesRects<FLOAT_TYPE>(_vertices);
+  vector<Rect2f> rects = getVerticesRects<float>(_vertices);
 
   // for (int i = 0; i < rects.size(); i ++) {
   //   cout << imgs[i]->file_name << " rect = " << rects[i] << endl;
@@ -292,7 +293,7 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
         if (polygon_index != NO_GRID) {
-          Point2f p_f = applyTransform2x3<FLOAT_TYPE>(x, y,
+          Point2f p_f = applyTransform2x3<float>(x, y,
               affine_transforms[polygon_index]);
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->img.cols &&
