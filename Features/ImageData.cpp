@@ -2,7 +2,11 @@
 
 void ImageData::init_data() {
   get_mesh2d_points();
+  get_triangulation_indices();
   get_polygons_indices();
+  assert(mesh_points.empty() == false);
+  assert(polygons_indices.empty() == false);
+  assert(triangulation_indices.empty() == false);
 }
 
 void ImageData::get_mesh2d_points() {

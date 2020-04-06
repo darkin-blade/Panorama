@@ -230,9 +230,9 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-Mat textureMapping(const vector<vector<Point2f> > &_vertices,
-                   const Size2f &_target_size
-                   vector<Mat> & _warp_images) {
+Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices,
+                                const Size2f &_target_size,
+                                vector<Mat> & _warp_images) {
 
 
   vector<Mat> weight_mask, new_weight_mask;
@@ -250,9 +250,9 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
   const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
   const int SCALE = pow(2, PRECISION);
 
-  for (int i = 0; i < images_data.size(); i ++) {
+  for (int i = 0; i < img_num; i ++) {
     const vector<Point2f> & src_vertices = imgs[i]->mesh_points;
-    const vector<vector<int> > & polygons_indices = imgs[i]->polygon_indices;// TODO
+    const vector<vector<int> > & polygons_indices = imgs[i]->polygons_indices;// TODO
     const Point2f origin(rects[i].x, rects[i].y);
     const Point2f shift(0.5, 0.5);
     vector<Mat> affine_transforms;
@@ -263,9 +263,9 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
       for (int k = 0; k < imgs[i]->triangulation_indices.size(); k ++) {// TODO
         const vector<int> & index = imgs[i]->triangulation_indices[k];// TODO
         const Point2i contour[] = {
-          (_vertices[i][polygons_indices[j].indices[index.indices[0]]] - origin) * SCALE,
-          (_vertices[i][polygons_indices[j].indices[index.indices[1]]] - origin) * SCALE,
-          (_vertices[i][polygons_indices[j].indices[index.indices[2]]] - origin) * SCALE,
+          (_vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
+          (_vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
+          (_vertices[i][polygons_indices[j][index[2]]] - origin) * SCALE,
         };
         fillConvexPoly(polygon_index_mask, // img
                        contour,            // pts
@@ -274,21 +274,22 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
                        LINE_AA,            // lineType = LINE_8
                        PRECISION);         // shift = 0
         Point2f src[] = {
-          _vertices[i][polygons_indices[j].indices[index.indices[0]]] - origin,
-          _vertices[i][polygons_indices[j].indices[index.indices[1]]] - origin,
-          _vertices[i][polygons_indices[j].indices[index.indices[2]]] - origin
+          _vertices[i][polygons_indices[j][index[0]]] - origin,
+          _vertices[i][polygons_indices[j][index[1]]] - origin,
+          _vertices[i][polygons_indices[j][index[2]]] - origin
         };
         Point2f dst[] = {
-          src_vertices[polygons_indices[j].indices[index.indices[0]]],
-          src_vertices[polygons_indices[j].indices[index.indices[1]]],
-          src_vertices[polygons_indices[j].indices[index.indices[2]]]
+          src_vertices[polygons_indices[j][index[0]]],
+          src_vertices[polygons_indices[j][index[1]]],
+          src_vertices[polygons_indices[j][index[2]]]
         };
         affine_transforms.emplace_back(getAffineTransform(src, dst));
         label ++;
       }
     }
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
-    Mat w_mask = (_blend_method != BLEND_AVERAGE) ? Mat::zeros(image.size(), CV_32FC1) : Mat();// TODO
+    Mat w_mask = Mat::zeros(image.size(), CV_32FC1);// TODO
+    // Mat w_mask = (_blend_method != BLEND_AVERAGE) ? Mat::zeros(image.size(), CV_32FC1) : Mat();// TODO
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
@@ -296,23 +297,25 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
           Point2f p_f = applyTransform2x3<float>(x, y,
               affine_transforms[polygon_index]);
           if (p_f.x >= 0 && p_f.y >= 0 &&
-              p_f.x <= imgs[i]->img.cols &&
-              p_f.y <= imgs[i]->img.rows) {
-            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);
-            Vec3b c = getSubpix<uchar, 3>(imgs[i]->img, p_f);
+              p_f.x <= imgs[i]->data.cols &&
+              p_f.y <= imgs[i]->data.rows) {
+            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
+            Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
-            if (_blend_method != BLEND_AVERAGE) {// TODO
-              w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
-            }
+            w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
+            // if (_blend_method != BLEND_AVERAGE) {// TODO
+            //   w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
+            // }
           }
         }
       }
     }
     _warp_images.emplace_back(image);
     origins.emplace_back(rects[i].x, rects[i].y);
-    if (_blend_method != BLEND_AVERAGE) {// TODO
-      new_weight_mask.emplace_back(w_mask);
-    }
+    new_weight_mask.emplace_back(w_mask);
+    // if (_blend_method != BLEND_AVERAGE) {// TODO
+    //   new_weight_mask.emplace_back(w_mask);
+    // }
   }
 
   return Blending(_warp_images, origins, _target_size, new_weight_mask, false);// TODO
