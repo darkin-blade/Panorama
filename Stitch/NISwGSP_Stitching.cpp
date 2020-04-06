@@ -190,7 +190,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
 
   LOG("get vertices");
 
-  return multiImages->textureMapping(result_1);
+  return multiImages->textureMapping(result_1, 1);
 }
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
