@@ -75,28 +75,6 @@ Mat NISwGSP_Stitching::feature_match() {
 Mat NISwGSP_Stitching::matching_match() {
   int img_num = multiImages->img_num;
 
-  // 划分图像mesh
-  for (int i = 0; i < img_num; i ++) {
-    int cols = multiImages->imgs[i]->data.cols;
-    int rows = multiImages->imgs[i]->data.rows;
-    
-    // 计算间距
-    double ratio = ((double) cols) / rows;
-    int row_num = 20;
-    int col_num = (int) (ratio * 20);
-    double col_step = ((double) cols) / col_num;
-    double row_step = ((double) rows) / row_num;
-
-    // 添加mesh
-    for (int j = 0; j <= col_num; j ++) {
-      for (int k = 0; k <= row_num; k ++) {
-        multiImages->imgs[i]->mesh_points.push_back(Point2f(j * col_step, k * row_step));
-      }
-    }
-  }
-
-  LOG("get mesh");
-
   // 初始化匹配点信息
   for (int i = 0; i < img_num; i ++) {
     multiImages->imgs[i]->matching_points.resize(img_num);

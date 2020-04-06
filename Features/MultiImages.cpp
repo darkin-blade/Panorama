@@ -5,9 +5,25 @@ MultiImages::MultiImages() {
 }
 
 void MultiImages::read_img(const char *img_path) {
-  // 读取图片
+  // 读取图片Mat
   ImageData *imageData = new ImageData();
   imageData->data = imread(img_path);
+
+  // 划分图像mesh
+  int cols = ImageData->data.cols;
+  int rows = ImageData->data.rows;
+  // 计算间距
+  double ratio = ((double) cols) / rows;
+  int row_num = 20;
+  int col_num = (int) (ratio * 20);
+  double col_step = ((double) cols) / col_num;
+  double row_step = ((double) rows) / row_num;
+  // 添加mesh
+  for (int j = 0; j <= col_num; j ++) {
+    for (int k = 0; k <= row_num; k ++) {
+      ImageData->mesh_points.push_back(Point2f(j * col_step, k * row_step));
+    }
+  }
 
   // 检查图片数量
   imgs.push_back(imageData);
@@ -238,7 +254,7 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
   vector<Rect2f> rects = getVerticesRects<FLOAT_TYPE>(_vertices);
 
   // for (int i = 0; i < rects.size(); i ++) {
-  //   cout << images_data[i].file_name << " rect = " << rects[i] << endl;
+  //   cout << imgs[i]->file_name << " rect = " << rects[i] << endl;
   // }
 
   _warp_images.reserve(_vertices.size());
@@ -249,17 +265,17 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < images_data.size(); i ++) {
-    const vector<Point2f> & src_vertices = images_data[i].mesh_2d->getVertices();
-    const vector<Indices> & polygons_indices = images_data[i].mesh_2d->getPolygonsIndices();// TODO
+    const vector<Point2f> & src_vertices = imgs[i]->mesh_2d->getVertices();
+    const vector<Indices> & polygons_indices = imgs[i]->mesh_2d->getPolygonsIndices();// TODO
     const Point2f origin(rects[i].x, rects[i].y);
     const Point2f shift(0.5, 0.5);
     vector<Mat> affine_transforms;
-    affine_transforms.reserve(polygons_indices.size() * (images_data[i].mesh_2d->getTriangulationIndices().size()));// TODO
+    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->mesh_2d->getTriangulationIndices().size()));// TODO
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {
-      for (int k = 0; k < images_data[i].mesh_2d->getTriangulationIndices().size(); k ++) {// TODO
-        const Indices & index = images_data[i].mesh_2d->getTriangulationIndices()[k];// TODO
+      for (int k = 0; k < imgs[i]->mesh_2d->getTriangulationIndices().size(); k ++) {// TODO
+        const Indices & index = imgs[i]->mesh_2d->getTriangulationIndices()[k];// TODO
         const Point2i contour[] = {
           (_vertices[i][polygons_indices[j].indices[index.indices[0]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j].indices[index.indices[1]]] - origin) * SCALE,
@@ -294,10 +310,10 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
           Point2f p_f = applyTransform2x3<FLOAT_TYPE>(x, y,
               affine_transforms[polygon_index]);
           if (p_f.x >= 0 && p_f.y >= 0 &&
-              p_f.x <= images_data[i].img.cols &&
-              p_f.y <= images_data[i].img.rows) {
-            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(images_data[i].alpha_mask, p_f);
-            Vec3b c = getSubpix<uchar, 3>(images_data[i].img, p_f);
+              p_f.x <= imgs[i]->img.cols &&
+              p_f.y <= imgs[i]->img.rows) {
+            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);
+            Vec3b c = getSubpix<uchar, 3>(imgs[i]->img, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
             if (_blend_method != BLEND_AVERAGE) {// TODO
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
