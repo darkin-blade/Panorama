@@ -233,7 +233,6 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices,
                                 const Size2f &_target_size,
                                 vector<Mat> & _warp_images) {
 
-
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
   vector<Rect2f> rects = getVerticesRects<float>(_vertices);

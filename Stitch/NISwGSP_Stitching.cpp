@@ -179,6 +179,10 @@ Mat NISwGSP_Stitching::matching_match() {
   return result_1;
 }
 
+Mat NISwGSP_Stitching::texture_mapping() {
+  ;
+}
+
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
 #if defined(UBUNTU)
   namedWindow(window_name, WINDOW_AUTOSIZE);

@@ -10,6 +10,7 @@ public:
   MultiImages *multiImages;
   Mat feature_match();
   Mat matching_match();
+  Mat texture_mapping();
 
   void show_img(const char *window_name, Mat img);
 };
