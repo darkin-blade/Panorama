@@ -8,7 +8,8 @@ public:
 
   // mesh相关参数
   vector<Point2f> mesh_points;// 网格点
-  vector<int> polygons_indices;// TODO Indices
+  vector<vector<int> > polygons_indices;// TODO Indices
+  vector<vector<int> > triangulation_indices;// TODO Indices
 
   vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
   vector<Point2f> feature_points;// 特征点(全部)
@@ -21,4 +22,5 @@ public:
   void init_data();
   void get_mesh2d_points();
   void get_polygons_indices();
+  void get_triangulation_indices();
 };

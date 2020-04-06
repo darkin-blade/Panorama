@@ -1,7 +1,8 @@
 #include "ImageData.h"
 
 void ImageData::init_data() {
-  ;
+  get_mesh2d_points();
+  get_polygons_indices();
 }
 
 void ImageData::get_mesh2d_points() {
@@ -22,6 +23,33 @@ void ImageData::get_mesh2d_points() {
   }
 }
 
+void ImageData::get_triangulation_indices() {
+  triangulation_indices.resize(2);
+  triangulation_indices[0].emplace_back(0);
+  triangulation_indices[0].emplace_back(1);
+  triangulation_indices[0].emplace_back(2);
+  triangulation_indices[1].emplace_back(0);
+  triangulation_indices[1].emplace_back(2);
+  triangulation_indices[1].emplace_back(3);
+}
+
 void ImageData::get_polygons_indices() {
-  ;
+  const Point2i nexts[GRID_VERTEX_SIZE] = {
+      Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
+  };
+  const int memory = nh * nw;// TODO
+  polygons_indices.resize(memory);
+  int index = 0;
+  for (int h = 0; h < nh; h ++) {// TODO
+      for (int w = 0; w < nw; w ++) {// TODO
+          const Point2i p1(w, h);
+          polygons_indices[index].indices.reserve(GRID_VERTEX_SIZE);
+          for (int n = 0; n < GRID_VERTEX_SIZE; n ++) {
+              const Point2i p2 = p1 + nexts[n];
+              polygons_indices[index].indices.emplace_back(p2.x + p2.y * (nw + 1));
+          }
+          index ++;
+      }
+  }
+  assert(memory == polygons_indices.size());
 }

@@ -54,6 +54,13 @@ using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
 
+/*****************************************************************************************/
+
+/** MeshGrid.cpp **/
+const int GRID_VERTEX_SIZE = 4;
+
+/*****************************************************************************************/
+
 /*** APAP ***/
 const double APAP_GAMMA = 0.0015;
 const double APAP_SIGMA = 8.5;

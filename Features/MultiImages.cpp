@@ -10,7 +10,6 @@ void MultiImages::read_img(const char *img_path) {
   imageData->data = imread(img_path);
   ImageData->init_data();
 
-
   // 检查图片数量
   imgs.push_back(imageData);
   img_num ++;
@@ -252,16 +251,16 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
 
   for (int i = 0; i < images_data.size(); i ++) {
     const vector<Point2f> & src_vertices = imgs[i]->mesh_points;
-    const vector<Indices> & polygons_indices = imgs[i]->mesh_2d->getPolygonsIndices();// TODO
+    const vector<vector<int> > & polygons_indices = imgs[i]->polygon_indices;// TODO
     const Point2f origin(rects[i].x, rects[i].y);
     const Point2f shift(0.5, 0.5);
     vector<Mat> affine_transforms;
-    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->mesh_2d->getTriangulationIndices().size()));// TODO
+    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->triangulation_indices.size()));// TODO
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {
-      for (int k = 0; k < imgs[i]->mesh_2d->getTriangulationIndices().size(); k ++) {// TODO
-        const Indices & index = imgs[i]->mesh_2d->getTriangulationIndices()[k];// TODO
+      for (int k = 0; k < imgs[i]->triangulation_indices.size(); k ++) {// TODO
+        const vector<int> & index = imgs[i]->triangulation_indices[k];// TODO
         const Point2i contour[] = {
           (_vertices[i][polygons_indices[j].indices[index.indices[0]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j].indices[index.indices[1]]] - origin) * SCALE,
