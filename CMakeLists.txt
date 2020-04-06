@@ -3,15 +3,14 @@ cmake_minimum_required(VERSION 3.4.1)
 set(ubuntu true)
 
 # source files
+aux_source_directory(./Features features_src)
+aux_source_directory(./Utils utils_src)
+aux_source_directory(./Stitch stitch_src)
 set(niswgsp_source
+    ${features_src}
+    ${utils_src}
+    ${stitch_src}
     common.h
-    Transform.cpp
-    Blending.cpp
-    FeatureController.cpp
-    MultiImages.cpp
-    APAP_Stitching.cpp
-    NISwGSP_Stitching.cpp
-    Statistics.cpp
     entry.cpp )
 
 # eigen
