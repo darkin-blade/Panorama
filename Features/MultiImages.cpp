@@ -232,6 +232,16 @@ void MultiImages::getFeaturePairs() {
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
                                 int _blend_method) {// 对应所有图片的匹配点
 
+  for (int i = 0; i < img_num; i ++) {
+    vector<vector<int> > tmp_indices = imgs[i]->polygons_indices;
+    for (int j = 0; j < tmp_indices.size(); j ++) {
+      for (int k = 0; k < tmp_indices.size(); k ++) {
+        LOG("%d %d %d %d", i, j, k, tmp_indices[j][k]);
+      }
+    }
+  }
+  assert(0);
+
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
   vector<Mat> _warp_images;// 存放wrap后的Mat
 
@@ -290,16 +300,18 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
         };
         affine_transforms.emplace_back(getAffineTransform(src, dst));
         label ++;
-        LOG("%d / %ld", k, imgs[i]->triangulation_indices.size());
+        // LOG("%d / %ld", k, imgs[i]->triangulation_indices.size());
       }
-      LOG("%d / %ld", j, polygons_indices.size());
+      // LOG("%d / %ld", j, polygons_indices.size());
     }
 
     LOG("%d affine", i);
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
-    Mat w_mask = Mat::zeros(image.size(), CV_32FC1);// TODO
-    // Mat w_mask = (_blend_method != BLEND_AVERAGE) ? Mat::zeros(image.size(), CV_32FC1) : Mat();// TODO
+    Mat w_mask = Mat();
+    if (_blend_method) {// linear
+      w_mask = Mat::zeros(image.size(), CV_32FC1);
+    }
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
@@ -312,10 +324,9 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
             Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
-            w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);// TODO segmentation fault
-            // if (_blend_method != BLEND_AVERAGE) {// TODO
-            //   w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
-            // }
+            if (_blend_method) {// linear
+              w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
+            }
           }
         }
       }
@@ -323,12 +334,9 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
 
     _warp_images.emplace_back(image);
     origins.emplace_back(rects[i].x, rects[i].y);
-    new_weight_mask.emplace_back(w_mask);
-    // if (_blend_method != BLEND_AVERAGE) {// TODO
-    //   new_weight_mask.emplace_back(w_mask);
-    // }
-
-    LOG("%d finish", i);
+    if (_blend_method) {// linear
+      new_weight_mask.emplace_back(w_mask);
+    }
   }
 
   LOG("%ld", _warp_images.size());
@@ -337,5 +345,5 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
                   origins,
                   target_size,
                   new_weight_mask,
-                  false);// TODO
+                  1 - _blend_method);// TODO
 }
