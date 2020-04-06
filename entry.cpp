@@ -1,6 +1,6 @@
 #include "common.h"
 
-#include "NISwGSP_Stitching.h"
+#include "Stitch/NISwGSP_Stitching.h"
 
 #if defined(UBUNTU)
 

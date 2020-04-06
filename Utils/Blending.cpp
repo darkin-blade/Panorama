@@ -22,13 +22,13 @@ vector<Mat> getMatsLinearBlendWeight(const vector<Mat> & images) {
 
 Mat Blending(const vector<Mat> & images,
              const vector<Point2f> & origins,
-             const Size2 target_size,
+             const Size2f target_size,
              const vector<Mat> & weight_mask,
              const bool ignore_weight_mask) {
     
     Mat result = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
     
-    vector<Rect2> rects;
+    vector<Rect2f> rects;
     rects.reserve(origins.size());
     for(int i = 0; i < origins.size(); ++i) {
         rects.emplace_back(origins[i], images[i].size());
