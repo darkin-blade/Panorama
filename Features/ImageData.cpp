@@ -48,21 +48,14 @@ void ImageData::get_size() {
 /****************************************/
 
 void ImageData::get_mesh2d_points() {
-  // 划分图像mesh
-  int cols = data.cols;
-  int rows = data.rows;
-  // 计算间距
-  double ratio = ((double) cols) / rows;
-  int row_num = 20;
-  int col_num = (int) (ratio * 20);
-  double col_step = ((double) cols) / col_num;
-  double row_step = ((double) rows) / row_num;
-  // 添加mesh
-  for (int j = 0; j <= col_num; j ++) {
-    for (int k = 0; k <= row_num; k ++) {
-      mesh_points.push_back(Point2f(j * col_step, k * row_step));
-    }
+  const int memory = (nh + 1) * (nw + 1);
+  mesh_points.reserve(memory);
+  for(int h = 0; h <= nh; ++h) {
+      for(int w = 0; w <= nw; ++w) {
+          mesh_points.emplace_back(w * lw, h * lh);
+      }
   }
+  assert(memory == mesh_points.size());
 }
 
 void ImageData::get_triangulation_indices() {

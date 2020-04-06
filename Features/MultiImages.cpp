@@ -58,18 +58,7 @@ vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const i
   return initial_indices;
 }
 
-vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {
-
-  for (int i = 0; i < img_num; i ++) {
-    vector<vector<int> > tmp_indices = imgs[i]->polygons_indices;
-    for (int j = 0; j < tmp_indices.size(); j ++) {
-      for (int k = 0; k < tmp_indices.size(); k ++) {
-        LOG("%d %d %d %d", i, j, k, tmp_indices[j][k]);
-      }
-    }
-  }
-  assert(0);
-  
+vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
 
@@ -242,6 +231,16 @@ void MultiImages::getFeaturePairs() {
 
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
                                 int _blend_method) {// 对应所有图片的匹配点
+
+  // for (int i = 0; i < img_num; i ++) {
+  //   vector<vector<int> > tmp_indices = imgs[i]->triangulation_indices;
+  //   for (int j = 0; j < tmp_indices.size(); j ++) {
+  //     for (int k = 0; k < tmp_indices[j].size(); k ++) {
+  //       LOG("%d %d %d %d", i, j, k, tmp_indices[j][k]);
+  //     }
+  //   }
+  // }
+  // assert(0);
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
   vector<Mat> _warp_images;// 存放wrap后的Mat
