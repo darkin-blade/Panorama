@@ -1,7 +1,7 @@
 #if !defined(FeatureController_H)
 #define FeatureController_H
 
-#include "common.h"
+#include "../common.h"
 
 const int SIFT_DESCRIPTOR_DIM = 128;
 

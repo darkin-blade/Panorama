@@ -1,7 +1,7 @@
-#include "common.h"
+#include "../common.h"
 
-#include "FeatureController.h"
-#include "MultiImages.h"
+#include "../Features/FeatureController.h"
+#include "../Features/MultiImages.h"
 
 class NISwGSP_Stitching {
 public:

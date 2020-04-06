@@ -1,7 +1,8 @@
-#include "common.h"
+#include "../common.h"
 
-#include "FeatureController.h"
-#include "Statistics.h"
+#include "../Utils/Statistics.h"
+
+#include "../Features/FeatureController.h"
 
 class FeatureDistance {
 public:

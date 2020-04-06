@@ -1,7 +1,7 @@
-#include "../common.h"
-
 #if !defined(Transform_H)
 #define Transform_H
+
+#include "../common.h"
 
 Mat getConditionerFromPts(const vector<Point2f> & pts);
 

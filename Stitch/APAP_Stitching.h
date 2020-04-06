@@ -1,6 +1,6 @@
 #include "../common.h"
 
-#include "Utils/Transform.h"
+#include "../Utils/Transform.h"
 
 class APAP_Stitching {
 public:
