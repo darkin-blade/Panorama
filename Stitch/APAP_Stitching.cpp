@@ -1,9 +1,5 @@
 #include "APAP_Stitching.h"
 
-using namespace std;
-
-using namespace Eigen;
-
 void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
                                   const vector<Point2f> & _p_dst,
                                   const vector<Point2f> & _src,

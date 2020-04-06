@@ -2,12 +2,6 @@
 
 #include "NISwGSP_Stitching.h"
 
-using namespace std;
-
-using namespace cv;
-using namespace cv::detail;
-using namespace cv::xfeatures2d;
-
 #if defined(UBUNTU)
 
 int main() {

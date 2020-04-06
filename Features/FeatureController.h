@@ -3,10 +3,6 @@
 
 #include "common.h"
 
-using namespace std;
-
-using namespace cv;
-
 const int SIFT_DESCRIPTOR_DIM = 128;
 
 class FeatureController {

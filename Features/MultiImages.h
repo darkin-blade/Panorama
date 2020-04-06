@@ -3,12 +3,6 @@
 #include "FeatureController.h"
 #include "Statistics.h"
 
-using namespace std;
-
-using namespace cv;
-using namespace cv::detail;
-using namespace cv::xfeatures2d;
-
 class FeatureDistance {
 public:
   double distance;

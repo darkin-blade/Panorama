@@ -1,10 +1,7 @@
-#include "common.h"
+#include "../common.h"
 
 #if !defined(Transform_H)
 #define Transform_H
-
-using namespace cv;
-using namespace std;
 
 Mat getConditionerFromPts(const vector<Point2f> & pts);
 

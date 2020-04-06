@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#define using_opencv
+// #define using_opencv
 #define UBUNTU
 #if !defined(UBUNTU)
 
@@ -45,6 +45,14 @@ extern "C" {
 #include <vl/generic.h>
 #include <vl/sift.h>
 }
+
+using namespace std;
+
+using namespace Eigen;
+
+using namespace cv;
+using namespace cv::detail;
+using namespace cv::xfeatures2d;
 
 /*** APAP ***/
 const double APAP_GAMMA = 0.0015;

@@ -1,9 +1,7 @@
 #if !defined(Satistics_H)
 #define Satistics_H
 
-#include "common.h"
-
-using namespace std;
+#include "../common.h"
 
 class Statistics {
 public:
