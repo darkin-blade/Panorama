@@ -1,12 +1,39 @@
 #include "ImageData.h"
 
-void ImageData::init_data() {
+void ImageData::init_data(const char *img_path) {
+  get_img_data(img_path);
   get_mesh2d_points();
   get_triangulation_indices();
   get_polygons_indices();
+  assert(data.empty() == false);
+  assert(alpha_mask.empty() == false);
   assert(mesh_points.empty() == false);
   assert(polygons_indices.empty() == false);
   assert(triangulation_indices.empty() == false);
+}
+
+void ImageData::get_img_data(const char *img_path) {
+  data = imread(img_path);
+  rgba_data = imread(img_path, IMREAD_UNCHANGED);
+  gray_data = Mat();// 灰色图
+  cvtColor(data, gray_data, CV_BGR2GRAY);
+    
+  float original_img_size = img.rows * img.cols;
+  
+  if(original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
+      float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
+      resize(img, img, Size(), scale, scale);
+      resize(rgba_img, rgba_img, Size(), scale, scale);
+  }
+  
+  assert(rgba_img.channels() >= 3);
+  if(rgba_img.channels() == 3) {
+      cvtColor(rgba_img, rgba_img, CV_BGR2BGRA);
+  }
+  vector<Mat> channels;
+  split(rgba_img, channels);
+  alpha_mask = channels[3];
+  mesh_2d = make_unique<MeshGrid>(img.cols, img.rows);
 }
 
 void ImageData::get_mesh2d_points() {

@@ -4,6 +4,9 @@ class ImageData {
 public:
   // 原始数据
   Mat data;
+  Mat grey_data;
+  Mat rgba_data;
+  Mat alpha_mask;// TODO
   char *name;
 
   // mesh相关参数
@@ -19,7 +22,8 @@ public:
   vector<vector<Point2f> > matching_points;// 此图片在第i个图片的匹配点
   vector<vector<Mat> > homographies;// 此图片的单应矩阵在第i张图片的单应矩阵
 
-  void init_data();
+  void init_data(const char *img_path);
+  void get_img_data(const char *img_path);
   void get_mesh2d_points();
   void get_polygons_indices();
   void get_triangulation_indices();

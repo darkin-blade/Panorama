@@ -7,8 +7,7 @@ MultiImages::MultiImages() {
 void MultiImages::read_img(const char *img_path) {
   // 读取图片Mat
   ImageData *imageData = new ImageData();
-  imageData->data = imread(img_path);
-  imageData->init_data();
+  imageData->init_data(img_path);
 
   // 检查图片数量
   imgs.push_back(imageData);
@@ -22,7 +21,7 @@ vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const i
   Mat gray_imgs[2];
 
   // 计算灰色图
-  cvtColor(imgs[m1]->data, gray_imgs[0], CV_BGR2GRAY);
+  cvtColor(imgs[m1]->data, gray_imgs[0], CV_BGR2GRAY);// TODO TODO TODO
   cvtColor(imgs[m2]->data, gray_imgs[1], CV_BGR2GRAY);
 
   // 检测特征点

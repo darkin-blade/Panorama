@@ -61,6 +61,10 @@ const int GRID_VERTEX_SIZE = 4;
 
 /*****************************************************************************************/
 
+/*** data setting ***/
+const int GRID_SIZE = 40;
+const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 600;
+
 /*** APAP ***/
 const double APAP_GAMMA = 0.0015;
 const double APAP_SIGMA = 8.5;
