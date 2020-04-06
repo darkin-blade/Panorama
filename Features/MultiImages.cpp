@@ -229,11 +229,11 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {
+Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {// 对应所有图片的匹配点
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
 
-  vector<Mat> & _warp_images;// 存放wrap后的Mat
+  vector<Mat> _warp_images;// 存放wrap后的Mat
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
   vector<Rect2f> rects = getVerticesRects<float>(_vertices);// TODO 获取所有匹配点的rect
@@ -316,6 +316,8 @@ Mat MultiImages::textureMapping(const vector<vector<Point2f> > &_vertices) {
     //   new_weight_mask.emplace_back(w_mask);
     // }
   }
+
+  LOG("%ld", _warp_images.size());
 
   return Blending(_warp_images,
                   origins,

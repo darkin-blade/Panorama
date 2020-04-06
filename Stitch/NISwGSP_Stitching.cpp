@@ -180,7 +180,14 @@ Mat NISwGSP_Stitching::matching_match() {
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
-  ;
+  vector<vector<Point2f> > result_1;
+  result_1.resize(2);
+  result_1[0] = multiImages->imgs[0]->mesh_points;
+  for (int i = 0; i < multiImages->imgs[1]->mesh_points.size(); i ++) {
+    Point2f tmp_mesh = multiImages->imgs[1]->mesh_points[i];
+    result_1[1].push_back(tmp_mesh + Point2f(multiImages->imgs[0]->data.cols, 0));
+  }
+  return multiImages->textureMapping(result_1);
 }
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
