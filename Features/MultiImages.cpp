@@ -8,22 +8,8 @@ void MultiImages::read_img(const char *img_path) {
   // 读取图片Mat
   ImageData *imageData = new ImageData();
   imageData->data = imread(img_path);
+  ImageData->init_data();
 
-  // 划分图像mesh
-  int cols = ImageData->data.cols;
-  int rows = ImageData->data.rows;
-  // 计算间距
-  double ratio = ((double) cols) / rows;
-  int row_num = 20;
-  int col_num = (int) (ratio * 20);
-  double col_step = ((double) cols) / col_num;
-  double row_step = ((double) rows) / row_num;
-  // 添加mesh
-  for (int j = 0; j <= col_num; j ++) {
-    for (int k = 0; k <= row_num; k ++) {
-      ImageData->mesh_points.push_back(Point2f(j * col_step, k * row_step));
-    }
-  }
 
   // 检查图片数量
   imgs.push_back(imageData);
@@ -265,7 +251,7 @@ Mat textureMapping(const vector<vector<Point2f> > &_vertices,
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < images_data.size(); i ++) {
-    const vector<Point2f> & src_vertices = imgs[i]->mesh_2d->getVertices();
+    const vector<Point2f> & src_vertices = imgs[i]->mesh_points;
     const vector<Indices> & polygons_indices = imgs[i]->mesh_2d->getPolygonsIndices();// TODO
     const Point2f origin(rects[i].x, rects[i].y);
     const Point2f shift(0.5, 0.5);
