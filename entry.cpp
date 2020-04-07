@@ -17,13 +17,13 @@ int main() {
   multiImages.read_img(img_path);
 
   NISwGSP_Stitching niswgsp(multiImages);
+
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
-  Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
-
-  // 显示图片
   niswgsp.show_img("1", result_1);
   niswgsp.show_img("2", result_2);
+
+  Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
   niswgsp.show_img("3", result_3);
 }
 
@@ -47,9 +47,11 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   multiImages.read_img(img_path);
 
   NISwGSP_Stitching niswgsp(multiImages);
-  *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
-//  niswgsp.feature_match();// 特征点
-//  *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
+  // *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
+  // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
+  niswgsp.feature_match();// 特征点
+  niswgsp.matching_match();// 匹配点
+  *(Mat *)matBGR = niswgsp.texture_mapping().clone();// 图像拼接
 
   //    sprintf(img_path, "%s/3.jpg", app_path);
   //    imwrite(img_path, *(Mat *)matBGR);

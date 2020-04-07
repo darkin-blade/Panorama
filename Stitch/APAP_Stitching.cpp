@@ -18,7 +18,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
 
   LOG("normalize and condition finished");
 
-  for(int i = 0; i < nf1.size(); ++i) {
+  for (int i = 0; i < nf1.size(); i ++) {
     cf1.emplace_back(nf1[i].x * C1.at<double>(0, 0) + C1.at<double>(0, 2),
         nf1[i].y * C1.at<double>(1, 1) + C1.at<double>(1, 2));
 
@@ -31,10 +31,10 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
   _dst.reserve(_src.size());
   _homographies.reserve(_src.size());
 
-  LOG("computing A");
+  LOG("%ld %ld", A.rows(), A.cols());
 
-  for(int i = 0; i < _src.size(); ++i) {
-    for(int j = 0; j < _p_src.size(); ++j) {
+  for (int i = 0; i < _src.size(); i ++) {
+    for (int j = 0; j < _p_src.size(); j ++) {
       Point2f d = _src[i] - _p_src[j];
       double www = max(gamma, exp(-sqrt(d.x * d.x + d.y * d.y) * sigma_inv_2));
       A(2*j  , 0) = www * cf1[j].x;
@@ -55,9 +55,11 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
     JacobiSVD<MatrixXd, HouseholderQRPreconditioner> jacobi_svd(A, ComputeThinV);
     MatrixXd V = jacobi_svd.matrixV();
     Mat H(3, 3, CV_64FC1);
-    for(int j = 0; j < V.rows(); ++j) {// 0 to 8
+    // (row, col)
+    // LOG("%ld %ld", V.rows(), V.cols());
+    for (int j = 0; j < V.rows(); j ++) {// 0 to 8
       // [0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]
-      H.at<double>(j / 3, j % 3) = V(j, V.rows() - 1);
+      H.at<double>(j / 3, j % 3) = V(j, V.rows() - 1);// TODO
     }
 
     // decondition

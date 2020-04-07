@@ -297,9 +297,11 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
     Mat w_mask = Mat();
+
     if (_blend_method) {// linear
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
+
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
@@ -312,6 +314,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
             Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
+
             if (_blend_method) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             }
@@ -328,6 +331,8 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
   }
 
   LOG("%ld", _warp_images.size());
+
+  // return _warp_images[1];
 
   return Blending(_warp_images,
                   origins,
