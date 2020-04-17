@@ -237,11 +237,6 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
-  for (int i = 0; i < _vertices.size(); i ++) {
-    for (int j = 0; j < _vertices[i].size(); j ++) {
-      LOG("%d %f %f", i, _vertices[i][j].x, _vertices[i][j].y);
-    }
-  }
   vector<Rect2f> rects = getVerticesRects<float>(_vertices);// 获取每幅图片的矩形大小(height, width, x, y)
 
 
