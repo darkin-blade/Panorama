@@ -237,7 +237,13 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
+  for (int i = 0; i < _vertices.size(); i ++) {
+    for (int j = 0; j < _vertices[i].size(); j ++) {
+      LOG("%d %f %f", i, _vertices[i][j].x, _vertices[i][j].y);
+    }
+  }
   vector<Rect2f> rects = getVerticesRects<float>(_vertices);// 获取每幅图片的矩形大小(height, width, x, y)
+
 
   vector<Mat> tmp_imgs;
   for (int i = 0; i < img_num; i ++) {
@@ -262,6 +268,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
     const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用
     vector<Mat> affine_transforms;
     affine_transforms.reserve(polygons_indices.size() * (imgs[i]->triangulation_indices.size()));// TODO
+    LOG("%f %f", rects[i].height + shift.y, rects[i].width + shift.x);
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {

@@ -193,6 +193,12 @@ Mat NISwGSP_Stitching::texture_mapping() {
     result_1[0].push_back(tmp_mesh);
   }
 
+  for (int i = 0; i < result_1.size(); i ++) {
+    for (int j = 0; j < result_1[i].size(); j ++) {
+      LOG("%d %f %f", i, result_1[i][j].x, result_1[i][j].y);
+    }
+  }
+
   LOG("get vertices");
 
   return multiImages->textureMapping(result_1, 1);

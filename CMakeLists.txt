@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set(ubuntu true)
 
+# 编译选项
+set(CMAKE_CXX_FLAGS "-g")
+
 # source files
 aux_source_directory(./Features features_src)
 aux_source_directory(./Utils utils_src)
