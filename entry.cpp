@@ -4,7 +4,7 @@
 
 #if defined(UBUNTU)
 
-int main() {
+int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 

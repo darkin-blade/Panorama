@@ -229,15 +229,15 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
-                                int _blend_method) {// 对应所有图片的匹配点
+Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
+                                int _blend_method) {
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
   vector<Mat> warp_images;// 存放wrap后的Mat
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
-  vector<Rect2f> rects = getVerticesRects<float>(_vertices);// TODO 获取所有匹配点的rect
+  vector<Rect2f> rects = getVerticesRects<float>(_vertices);// 获取每幅图片的矩形大小(height, width, x, y)
 
   vector<Mat> tmp_imgs;
   for (int i = 0; i < img_num; i ++) {
@@ -245,7 +245,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
   }
 
   if (_blend_method) {// linear
-    weight_mask = getMatsLinearBlendWeight(tmp_imgs);// 获取所有图片的线性权重
+    weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
   warp_images.reserve(_vertices.size());
@@ -257,23 +257,24 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
 
   for (int i = 0; i < img_num; i ++) {
     const vector<Point2f> & src_vertices = imgs[i]->mesh_points;// 所有mesh点
-    const vector<vector<int> > & polygons_indices = imgs[i]->polygons_indices;// TODO
-    const Point2f origin(rects[i].x, rects[i].y);
-    const Point2f shift(0.5, 0.5);
+    const vector<vector<int> > & polygons_indices = imgs[i]->polygons_indices;// TODO mesh点的线性索引
+    const Point2f origin(rects[i].x, rects[i].y);// 矩形坐标(左上角)
+    const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用
     vector<Mat> affine_transforms;
     affine_transforms.reserve(polygons_indices.size() * (imgs[i]->triangulation_indices.size()));// TODO
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {
-      for (int k = 0; k < imgs[i]->triangulation_indices.size(); k ++) {// TODO
-        const vector<int> & index = imgs[i]->triangulation_indices[k];// TODO
+      for (int k = 0; k < imgs[i]->triangulation_indices.size(); k ++) {// 分两次填充矩形区域
+        const vector<int> & index = imgs[i]->triangulation_indices[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
         const Point2i contour[] = {
           (_vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j][index[2]]] - origin) * SCALE,
         };
-        fillConvexPoly(polygon_index_mask, // img
-                       contour,            // pts
+        // 多边形填充
+        fillConvexPoly(polygon_index_mask, // img 绘制后的图像Mat
+                       contour,            // pts 三角形区域
                        TRIANGLE_COUNT,     // npts
                        label,              // color
                        LINE_AA,            // lineType = LINE_8
@@ -282,12 +283,12 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
           _vertices[i][polygons_indices[j][index[0]]] - origin,
           _vertices[i][polygons_indices[j][index[1]]] - origin,
           _vertices[i][polygons_indices[j][index[2]]] - origin
-        };
+        };// mesh点经过单应变换后的坐标
         Point2f dst[] = {
           src_vertices[polygons_indices[j][index[0]]],
           src_vertices[polygons_indices[j][index[1]]],
           src_vertices[polygons_indices[j][index[2]]]
-        };
+        };// mesh点原始坐标
         affine_transforms.emplace_back(getAffineTransform(src, dst));
         label ++;
       }
@@ -295,7 +296,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
 
     LOG("%d affine", i);
 
-    Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);
+    Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);// 新建空图
     Mat w_mask = Mat();
 
     if (_blend_method) {// linear
@@ -305,9 +306,8 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
-        if (polygon_index != NO_GRID) {
-          Point2f p_f = applyTransform2x3<float>(x, y,
-              affine_transforms[polygon_index]);
+        if (polygon_index != NO_GRID) {// -1
+          Point2f p_f = applyTransform2x3<float>(x, y, affine_transforms[polygon_index]);
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->data.cols &&
               p_f.y <= imgs[i]->data.rows) {

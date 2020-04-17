@@ -59,17 +59,18 @@ void ImageData::get_mesh2d_points() {
 }
 
 void ImageData::get_triangulation_indices() {
+  // 三角填充区域, 原值[[0, 1, 2], [0, 2, 3]], 即用两个三角形填满[0, 1, 2, 3](顺时针)的矩形区域
   triangulation_indices.resize(2);
-  triangulation_indices[0].emplace_back(0);
   triangulation_indices[0].emplace_back(1);
+  triangulation_indices[0].emplace_back(3);
   triangulation_indices[0].emplace_back(2);
-  triangulation_indices[1].emplace_back(0);
-  triangulation_indices[1].emplace_back(2);
   triangulation_indices[1].emplace_back(3);
+  triangulation_indices[1].emplace_back(0);
+  triangulation_indices[1].emplace_back(1);
 }
 
 void ImageData::get_polygons_indices() {
-  const Point2i nexts[GRID_VERTEX_SIZE] = {
+  const Point2i nexts[GRID_VERTEX_SIZE] = {// 左上, 右上, 右下, 左下
       Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
   };
   const int memory = nh * nw;// mesh点数目

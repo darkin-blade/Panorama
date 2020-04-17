@@ -205,15 +205,19 @@ void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
   waitKey(0);
 
   // 保存图片
-  char img_name[100];
-  char full_name[128];
-  LOG("input file name:");
-  scanf("%s", img_name);
-  sprintf(full_name, "../../%s.jpg", img_name);
-  if (strlen(full_name) > 12) {
-    imwrite(full_name, img);
+  char img_name[128];
+  int savable = 0;
+  for (int i = 0; i < 100; i ++) {
+    sprintf(img_name, "../../result_%d.jpg", i);
+    if (fopen(img_name, "r") == NULL) {
+      savable = 1;
+      break;
+    }
+  }
+  if (savable) {
+    imwrite(img_name, img);
   } else {
-    LOG("invalid name");
+    LOG("can't save img");
   }
 #endif
 }
