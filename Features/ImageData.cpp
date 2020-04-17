@@ -50,8 +50,8 @@ void ImageData::get_size() {
 void ImageData::get_mesh2d_points() {
   const int memory = (nh + 1) * (nw + 1);
   mesh_points.reserve(memory);
-  for(int h = 0; h <= nh; ++h) {
-      for(int w = 0; w <= nw; ++w) {
+  for (int h = 0; h <= nh; h ++) {
+      for (int w = 0; w <= nw; w ++) {
           mesh_points.emplace_back(w * lw, h * lh);
       }
   }
@@ -72,16 +72,16 @@ void ImageData::get_polygons_indices() {
   const Point2i nexts[GRID_VERTEX_SIZE] = {
       Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
   };
-  const int memory = nh * nw;// TODO
+  const int memory = nh * nw;// mesh点数目
   polygons_indices.resize(memory);
   int index = 0;
-  for (int h = 0; h < nh; h ++) {// TODO
-      for (int w = 0; w < nw; w ++) {// TODO
+  for (int h = 0; h < nh; h ++) {// 从上到下
+      for (int w = 0; w < nw; w ++) {// 从左到右
           const Point2i p1(w, h);
           polygons_indices[index].reserve(GRID_VERTEX_SIZE);
           for (int n = 0; n < GRID_VERTEX_SIZE; n ++) {
               const Point2i p2 = p1 + nexts[n];
-              polygons_indices[index].emplace_back(p2.x + p2.y * (nw + 1));
+              polygons_indices[index].emplace_back(p2.x + p2.y * (nw + 1));// 横向索引 + 纵向索引 * (横向mesh数目)
           }
           index ++;
       }

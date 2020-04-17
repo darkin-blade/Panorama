@@ -233,7 +233,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
                                 int _blend_method) {// 对应所有图片的匹配点
 
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
-  vector<Mat> _warp_images;// 存放wrap后的Mat
+  vector<Mat> warp_images;// 存放wrap后的Mat
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
@@ -245,10 +245,10 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
   }
 
   if (_blend_method) {// linear
-    weight_mask = getMatsLinearBlendWeight(tmp_imgs);
+    weight_mask = getMatsLinearBlendWeight(tmp_imgs);// 获取所有图片的线性权重
   }
 
-  _warp_images.reserve(_vertices.size());
+  warp_images.reserve(_vertices.size());
   origins.reserve(_vertices.size());
   new_weight_mask.reserve(_vertices.size());
 
@@ -323,18 +323,18 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,
       }
     }
 
-    _warp_images.emplace_back(image);
+    warp_images.emplace_back(image);
     origins.emplace_back(rects[i].x, rects[i].y);
     if (_blend_method) {// linear
       new_weight_mask.emplace_back(w_mask);
     }
   }
 
-  LOG("%ld", _warp_images.size());
+  LOG("%ld", warp_images.size());
 
-  // return _warp_images[1];
+  // return warp_images[1];
 
-  return Blending(_warp_images,
+  return Blending(warp_images,
                   origins,
                   target_size,
                   new_weight_mask,

@@ -2,11 +2,13 @@
 
 class ImageData {
 public:
-  // mesh2d 数据
-  int nw, nh;
-  double lw, lh;
+  // mesh数据
+  int nw;// 横向mesh数目
+  int nh;// 纵向mesh数目
+  double lw;// mesh宽度
+  double lh;// mesh高度
 
-  // 原始数据
+  // 图像数据
   Mat data;
   Mat grey_data;
   Mat rgba_data;
