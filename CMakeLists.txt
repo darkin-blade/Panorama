@@ -7,12 +7,14 @@ set(CMAKE_CXX_FLAGS "-g")
 
 # source files
 aux_source_directory(./Features features_src)
-aux_source_directory(./Utils utils_src)
+aux_source_directory(./Mesh mesh_src)
 aux_source_directory(./Stitch stitch_src)
+aux_source_directory(./Utils utils_src)
 set(niswgsp_source
     ${features_src}
-    ${utils_src}
+    ${mesh_src}
     ${stitch_src}
+    ${utils_src}
     common.h
     entry.cpp )
 
