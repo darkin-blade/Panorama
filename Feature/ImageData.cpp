@@ -6,11 +6,16 @@ void ImageData::init_data(const char *img_path) {
   getMesh2dPoints();
   getTriangulationIndices();
   getPolygonsIndices();
+  getEdges();
+  getVertexStructures();
+
   assert(data.empty() == false);
   assert(alpha_mask.empty() == false);
   assert(mesh_points.empty() == false);
   assert(polygons_indices.empty() == false);
   assert(triangulation_indices.empty() == false);
+  assert(edges.empty() == false);
+  assert(vertex_structures.empty() == false);
 }
 
 void ImageData::get_img(const char *img_path) {

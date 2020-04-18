@@ -9,14 +9,14 @@ int main(int argc, char *argv[]) {
   char img_path[128];// 图片路径
 
   // 读取图片
-  MultiImages multiImages;
+  MultiImages multi_images;
   Mat img_read;
   sprintf(img_path, "%s/1.jpg", app_path);
-  multiImages.read_img(img_path);
+  multi_images.read_img(img_path);
   sprintf(img_path, "%s/2.jpg", app_path);
-  multiImages.read_img(img_path);
+  multi_images.read_img(img_path);
 
-  NISwGSP_Stitching niswgsp(multiImages);
+  NISwGSP_Stitching niswgsp(multi_images);
 
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
@@ -39,14 +39,14 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   char img_path[128];// 图片路径
 
   // 读取图片
-  MultiImages multiImages;
+  MultiImages multi_images;
   Mat img_read;
   sprintf(img_path, "%s/1.jpg", app_path);
-  multiImages.read_img(img_path);
+  multi_images.read_img(img_path);
   sprintf(img_path, "%s/2.jpg", app_path);
-  multiImages.read_img(img_path);
+  multi_images.read_img(img_path);
 
-  NISwGSP_Stitching niswgsp(multiImages);
+  NISwGSP_Stitching niswgsp(multi_images);
   // *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
   // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
   niswgsp.feature_match();// 特征点

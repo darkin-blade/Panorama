@@ -9,7 +9,7 @@ public:
   MeshOptimization(MultiImages & _multi_images);
 
   vector<vector<Point2f> > solution;// 最优解
-  MultiImages *multiImages;
+  MultiImages *multi_images;
   
   double alignment_weight;
   double local_similarity_weight;
@@ -24,6 +24,7 @@ public:
   void reserveData(vector<Triplet<double> > & _triplets,
                     vector<pair<int, double> > & _b_vector,
                     const int _start_index);
+  int getAlignmentTermEquationsCount();
 };
 
 #endif

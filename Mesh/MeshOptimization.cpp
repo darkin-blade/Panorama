@@ -1,7 +1,7 @@
 #include "MeshOptimization.h"
 
 MeshOptimization::MeshOptimization(MultiImages & _multi_images) {
-  multiImages = & _multi_images;
+  multi_images = & _multi_images;
 
   alignment_weight = 0;
   local_similarity_weight = 0;
@@ -14,17 +14,17 @@ MeshOptimization::MeshOptimization(MultiImages & _multi_images) {
 
 int MeshOptimization::getEdgesCount() {
   int result = 0;
-  for (int i = 0; i < multiImages->img_num; i ++) {
-    result += multiImages->imgs[i]->edges.size();
+  for (int i = 0; i < multi_images->img_num; i ++) {
+    result += multi_images->imgs[i]->edges.size();
   }
   return result;
 }
 
 int MeshOptimization::getEdgeNeighborVerticesCount() {
   int result = 0;
-  for (int i = 0; i < multiImages->img_num; i ++) {
-    const vector<Edge> & edges = multiImages->imgs[i]->edges;
-    const vector<vector<int> > & v_neighbors = multiImages->imgs[i]->vertex_structures;
+  for (int i = 0; i < multi_images->img_num; i ++) {
+    const vector<Edge> & edges = multi_images->imgs[i]->edges;
+    const vector<vector<int> > & v_neighbors = multi_images->imgs[i]->vertex_structures;
     for (int j = 0; j < edges.size(); j ++) {
       for (int e = 0; e < EDGE_VERTEX_SIZE; e ++) {
         result += v_neighbors[edges[j].indices[e]].size();// TODO Indices
@@ -46,9 +46,9 @@ void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
   int similarity_equation_count = (edge_count) ? edge_count * DIMENSION_2D : 0;
   int edge_neighbor_vertices_count = (similarity_equation_count) ? getEdgeNeighborVerticesCount() : 0;
 
-  // alignment_equation.first = equation;
-  // alignment_equation.second = (alignment_term) ? getAlignmentTermEquationsCount() : 0;
-  // equation += alignment_equation.second;
+  alignment_equation.first = equation;
+  alignment_equation.second = (alignment_term) ? getAlignmentTermEquationsCount() : 0;
+  equation += alignment_equation.second;
 
   // local_similarity_equation.first = equation;
   // local_similarity_equation.second = (local_similarity_term) ? similarity_equation_count : 0;
@@ -63,4 +63,11 @@ void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
   //     _start_index);
   // _b_vector.reserve((global_similarity_term) * edge_neighbor_vertices_count * 4 +
   //     _start_index);
+}
+
+int MeshOptimization::getAlignmentTermEquationsCount() {
+  int result = 0;
+  vector<pair<int, int> > images_match_graph_pair_list;
+  assert(0);
+  return 0;
 }

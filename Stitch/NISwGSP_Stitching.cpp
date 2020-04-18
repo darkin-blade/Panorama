@@ -4,28 +4,28 @@ NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimiza
 }
 
 Mat NISwGSP_Stitching::feature_match() {
-  int img_num = multiImages->img_num;
+  int img_num = multi_images->img_num;
 
   // 检测特征点
 #if !defined(using_opencv)
   for (int i = 0; i < img_num; i ++) {
     Mat grey_img;
-    cvtColor(multiImages->imgs[i]->data, grey_img, CV_BGR2GRAY);
+    cvtColor(multi_images->imgs[i]->data, grey_img, CV_BGR2GRAY);
     FeatureController::detect(grey_img,
-                              multiImages->imgs[i]->feature_points,
-                              multiImages->imgs[i]->descriptors);
-    LOG("[picture %d] feature points: %ld", i, multiImages->imgs[i]->feature_points.size());
+                              multi_images->imgs[i]->feature_points,
+                              multi_images->imgs[i]->descriptors);
+    LOG("[picture %d] feature points: %ld", i, multi_images->imgs[i]->feature_points.size());
   }
 #endif
 
   // 特征点匹配
-  multiImages->getFeaturePairs();
+  multi_images->getFeaturePairs();
 
   // 描绘特征点
   Mat result_1;// 存储结果
   Mat left_1, right_1;// 分割矩阵
-  Mat img1 = multiImages->imgs[0]->data;
-  Mat img2 = multiImages->imgs[1]->data;
+  Mat img1 = multi_images->imgs[0]->data;
+  Mat img2 = multi_images->imgs[1]->data;
   result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
   left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
   right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
@@ -35,15 +35,15 @@ Mat NISwGSP_Stitching::feature_match() {
 
   if (0) {
     // 匹配所有特征点
-    for (int i = 0; i < multiImages->feature_pairs[0][1].size(); i ++) {
+    for (int i = 0; i < multi_images->feature_pairs[0][1].size(); i ++) {
       // 计算索引
-      int src  = multiImages->feature_pairs[0][1][i].first;
-      int dest = multiImages->feature_pairs[0][1][i].second;
+      int src  = multi_images->feature_pairs[0][1][i].first;
+      int dest = multi_images->feature_pairs[0][1][i].second;
 
       // 获取特征点
       Point2f src_p, dest_p;
-      src_p  = multiImages->imgs[0]->feature_points[src];
-      dest_p = multiImages->imgs[1]->feature_points[dest];
+      src_p  = multi_images->imgs[0]->feature_points[src];
+      dest_p = multi_images->imgs[1]->feature_points[dest];
 
       // 描绘
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
@@ -53,13 +53,13 @@ Mat NISwGSP_Stitching::feature_match() {
     }
   } else {
     // 描绘所有特征点
-    for (int i = 0; i < multiImages->imgs[0]->feature_points.size(); i ++) {
-      Point2f src_p = multiImages->imgs[0]->feature_points[i];
+    for (int i = 0; i < multi_images->imgs[0]->feature_points.size(); i ++) {
+      Point2f src_p = multi_images->imgs[0]->feature_points[i];
       Scalar color(255, 0, 0);
       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
     }
-    for (int i = 0; i < multiImages->imgs[1]->feature_points.size(); i ++) {
-      Point2f src_p = multiImages->imgs[1]->feature_points[i];
+    for (int i = 0; i < multi_images->imgs[1]->feature_points.size(); i ++) {
+      Point2f src_p = multi_images->imgs[1]->feature_points[i];
       Scalar color(255, 0, 0);
       circle(result_1, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
@@ -71,12 +71,12 @@ Mat NISwGSP_Stitching::feature_match() {
 }
 
 Mat NISwGSP_Stitching::matching_match() {
-  int img_num = multiImages->img_num;
+  int img_num = multi_images->img_num;
 
   // 初始化匹配点信息
   for (int i = 0; i < img_num; i ++) {
-    multiImages->imgs[i]->matching_points.resize(img_num);
-    multiImages->imgs[i]->homographies.resize(img_num);
+    multi_images->imgs[i]->matching_points.resize(img_num);
+    multi_images->imgs[i]->homographies.resize(img_num);
   }
 
   LOG("starting apap");
@@ -89,38 +89,38 @@ Mat NISwGSP_Stitching::matching_match() {
       int m2 = j;
 
       // 筛选成功匹配的特征点
-      const vector<Point2f> & m1_fpts = multiImages->imgs[m1]->feature_points;
-      const vector<Point2f> & m2_fpts = multiImages->imgs[m2]->feature_points;
+      const vector<Point2f> & m1_fpts = multi_images->imgs[m1]->feature_points;
+      const vector<Point2f> & m2_fpts = multi_images->imgs[m2]->feature_points;
       vector<Point2f> X, Y;
-      for (int k = 0; k < multiImages->feature_pairs[m1][m2].size(); k ++) {
-        const pair<int, int> it = multiImages->feature_pairs[m1][m2][k];
+      for (int k = 0; k < multi_images->feature_pairs[m1][m2].size(); k ++) {
+        const pair<int, int> it = multi_images->feature_pairs[m1][m2][k];
         X.emplace_back(m1_fpts[it.first ]);
         Y.emplace_back(m2_fpts[it.second]);
       }
 
       APAP_Stitching::apap_project(X,
                                    Y,
-                                   multiImages->imgs[m1]->mesh_points,
-                                   multiImages->imgs[m1]->matching_points[m2],
-                                   multiImages->imgs[m1]->homographies[m2]);
+                                   multi_images->imgs[m1]->mesh_points,
+                                   multi_images->imgs[m1]->matching_points[m2],
+                                   multi_images->imgs[m1]->homographies[m2]);
       LOG("apap [%d, %d] finish", m1, m2);
     }
   }
 
   // 记录匹配信息
-  multiImages->matching_pairs.resize(img_num);
+  multi_images->matching_pairs.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
-    multiImages->matching_pairs[i].resize(img_num);
+    multi_images->matching_pairs[i].resize(img_num);
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
       int m1 = i;
       int m2 = j;
-      Mat another_img = multiImages->imgs[m2]->data;
+      Mat another_img = multi_images->imgs[m2]->data;
 
       // 剔除出界点
-      vector<pair<int, int> > &matching_pairs = multiImages->matching_pairs[m1][m2];// 配对信息
-      const vector<Point2f> *tmp_p = &multiImages->imgs[m1]->matching_points[m2];// 匹配点位置
+      vector<pair<int, int> > &matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
+      const vector<Point2f> *tmp_p = &multi_images->imgs[m1]->matching_points[m2];// 匹配点位置
       for (int k = 0; k < tmp_p->size(); k ++) {
         if ((*tmp_p)[k].x >= 0
           && (*tmp_p)[k].y >= 0
@@ -136,8 +136,8 @@ Mat NISwGSP_Stitching::matching_match() {
   // 描绘匹配点
   Mat result_1;// 存储结果
   Mat left_1, right_1;// 分割矩阵
-  Mat img1 = multiImages->imgs[0]->data;
-  Mat img2 = multiImages->imgs[1]->data;
+  Mat img1 = multi_images->imgs[0]->data;
+  Mat img2 = multi_images->imgs[1]->data;
   result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
   left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
   right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
@@ -147,11 +147,11 @@ Mat NISwGSP_Stitching::matching_match() {
 
   if (0) {
     // 描绘匹配点配对
-    for (int i = 0; i < multiImages->matching_pairs[0][1].size(); i ++) {
-      int index = multiImages->matching_pairs[0][1][i].first;// first == second
+    for (int i = 0; i < multi_images->matching_pairs[0][1].size(); i ++) {
+      int index = multi_images->matching_pairs[0][1][i].first;// first == second
       Point2f src_p, dest_p;
-      src_p  = multiImages->imgs[0]->mesh_points[index];
-      dest_p = multiImages->imgs[0]->matching_points[1][index];
+      src_p  = multi_images->imgs[0]->mesh_points[index];
+      dest_p = multi_images->imgs[0]->matching_points[1][index];
 
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
@@ -160,10 +160,10 @@ Mat NISwGSP_Stitching::matching_match() {
     }
   } else {
     // 描绘所有匹配点
-    for (int i = 0; i < multiImages->imgs[0]->mesh_points.size(); i ++) {
+    for (int i = 0; i < multi_images->imgs[0]->mesh_points.size(); i ++) {
       Point2f src_p, dest_p;
-      src_p  = multiImages->imgs[0]->mesh_points[i];
-      dest_p = multiImages->imgs[0]->matching_points[1][i];
+      src_p  = multi_images->imgs[0]->mesh_points[i];
+      dest_p = multi_images->imgs[0]->matching_points[1][i];
 
       Scalar color1(255, 0, 0);
       circle(result_1, src_p, CIRCLE_SIZE, color1, -1);
@@ -192,20 +192,20 @@ void NISwGSP_Stitching::get_solution() {
 Mat NISwGSP_Stitching::texture_mapping() {
   vector<vector<Point2f> > result_1;
   result_1.resize(2);
-  // result_1[0] = multiImages->imgs[0]->mesh_points;// 图1的mesh
-  // for (int i = 0; i < multiImages->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
-  //   Point2f tmp_mesh = multiImages->imgs[1]->matching_points[0][i];// TODO
+  // result_1[0] = multi_images->imgs[0]->mesh_points;// 图1的mesh
+  // for (int i = 0; i < multi_images->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
+  //   Point2f tmp_mesh = multi_images->imgs[1]->matching_points[0][i];// TODO
   //   result_1[1].push_back(tmp_mesh);
   // }
-  result_1[1] = multiImages->imgs[1]->mesh_points;// 图1的mesh
-  for (int i = 0; i < multiImages->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
-    Point2f tmp_mesh = multiImages->imgs[0]->matching_points[1][i];// TODO
+  result_1[1] = multi_images->imgs[1]->mesh_points;// 图1的mesh
+  for (int i = 0; i < multi_images->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
+    Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
     result_1[0].push_back(tmp_mesh);
   }
 
   LOG("get vertices");
 
-  return multiImages->textureMapping(result_1, 1);
+  return multi_images->textureMapping(result_1, 1);
 }
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
