@@ -1,11 +1,11 @@
 #include "../common.h"
 
-#include "../Utils/Blending.h"
-#include "../Utils/Statistics.h"
-#include "../Utils/Transform.h"
+#include "../Util/Blending.h"
+#include "../Util/Statistics.h"
+#include "../Util/Transform.h"
 
-#include "../Features/FeatureController.h"
-#include "../Features/ImageData.h"
+#include "../Feature/FeatureController.h"
+#include "../Feature/ImageData.h"
 
 class FeatureDistance {
 public:
