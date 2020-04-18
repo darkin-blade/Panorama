@@ -3,9 +3,9 @@
 void ImageData::init_data(const char *img_path) {
   get_img(img_path);
   get_size();
-  get_mesh2d_points();
-  get_triangulation_indices();
-  get_polygons_indices();
+  getMesh2dPoints();
+  getTriangulationIndices();
+  getPolygonsIndices();
   assert(data.empty() == false);
   assert(alpha_mask.empty() == false);
   assert(mesh_points.empty() == false);
@@ -47,7 +47,7 @@ void ImageData::get_size() {
 
 /****************************************/
 
-void ImageData::get_mesh2d_points() {
+void ImageData::getMesh2dPoints() {
   const int memory = (nh + 1) * (nw + 1);
   mesh_points.reserve(memory);
   for (int h = 0; h <= nh; h ++) {
@@ -58,7 +58,7 @@ void ImageData::get_mesh2d_points() {
   assert(memory == mesh_points.size());
 }
 
-void ImageData::get_triangulation_indices() {
+void ImageData::getTriangulationIndices() {
   // 三角填充区域, 原值[[0, 1, 2], [0, 2, 3]], 即用两个三角形填满[0, 1, 2, 3](顺时针)的矩形区域
   triangulation_indices.resize(2);
   triangulation_indices[0].emplace_back(1);
@@ -69,7 +69,7 @@ void ImageData::get_triangulation_indices() {
   triangulation_indices[1].emplace_back(1);
 }
 
-void ImageData::get_polygons_indices() {
+void ImageData::getPolygonsIndices() {
   const Point2i nexts[GRID_VERTEX_SIZE] = {// 左上, 右上, 右下, 左下
       Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
   };
@@ -88,4 +88,45 @@ void ImageData::get_polygons_indices() {
       }
   }
   assert(memory == polygons_indices.size());
+}
+
+void ImageData::getEdges() {
+  const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1) };
+  const int memory = DIMENSION_2D * nh * nw + nh + nw;
+  edges.reserve(memory);
+  for (int h = 0; h <= nh; h ++) {
+    for (int w = 0; w <= nw; w ++) {
+      const Point2i p1(w, h);
+      for (int n = 0; n < nexts.size(); n ++) {
+        const Point2i p2 = p1 + nexts[n];
+        if (p2.x >= 0 && p2.y >= 0 && p2.x <= nw && p2.y <= nh) {
+          edges.emplace_back(p1.x + p1.y * (nw + 1),
+                             p2.x + p2.y * (nw + 1));
+        }
+      }
+    }
+  }
+  assert(memory == edges.size());
+}
+
+void ImageData::getVertexStructures() {
+  const vector<Point2i> nexts = {
+    Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1)
+  };
+  const int memory = (nh + 1) * (nw + 1);
+  vertex_structures.resize(memory);
+  int index = 0;
+  for (int h = 0; h <= nh; h ++) {
+    for (int w = 0; w <= nw; w ++) {
+      Point2i p1(w, h);
+      for (int n = 0; n < nexts.size(); n ++) {
+        Point2i p2 = p1 + nexts[n];
+        if (p2.x >= 0 && p2.y >= 0 && p2.x <= nw && p2.y <= nh) {
+          vertex_structures[index].emplace_back(p2.x + p2.y * (nw + 1));
+        }
+      }
+      index ++;
+    }
+  }
+  assert(memory == vertex_structures.size());
 }

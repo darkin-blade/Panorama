@@ -3,25 +3,37 @@
 
 #include "../common.h"
 
+const int EDGE_VERTEX_SIZE = 2;
+
+class Edge {
+public:
+  Edge(int _e1, int _e2) {
+    indices[0] = _e1;
+    indices[1] = _e2;
+  }
+  int indices[2];
+};
+
 class ImageData {
 public:
-  // mesh数据
+  // Mesh2D
   int nw;// 横向mesh数目
   int nh;// 纵向mesh数目
   double lw;// mesh宽度
   double lh;// mesh高度
+  
+  vector<Point2f> mesh_points;// 网格点
+  vector<vector<int> > polygons_indices;// TODO Indices
+  vector<vector<int> > triangulation_indices;// TODO Indices
+  vector<Edge> edges;
+  vector<vector<int> > vertex_structures;// TODO Indices
 
-  // 图像数据
+  // ImageData
   Mat data;
   Mat grey_data;
   Mat rgba_data;
   Mat alpha_mask;// TODO
   char *name;
-
-  // mesh相关参数
-  vector<Point2f> mesh_points;// 网格点
-  vector<vector<int> > polygons_indices;// TODO Indices
-  vector<vector<int> > triangulation_indices;// TODO Indices
 
   vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
   vector<Point2f> feature_points;// 特征点(全部)
@@ -33,10 +45,15 @@ public:
 
   void init_data(const char *img_path);
   void get_img(const char *img_path);
+  /** Mesh2D **/
   void get_size();
-  void get_mesh2d_points();
-  void get_polygons_indices();
-  void get_triangulation_indices();
+  /** MeshGrid **/
+  void getMesh2dPoints();// 所有mesh点
+  void getPolygonsIndices();// 所有mesh点线性索引
+  void getTriangulationIndices();// 将矩形区域划分为两个三角形
+  void getEdges();// TODO
+  void getVertexStructures();// TODO
+  /** ImageData **/
 };
 
 #endif
