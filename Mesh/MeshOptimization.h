@@ -19,12 +19,12 @@ public:
   pair<int, int> local_similarity_equation;
   pair<int, int> global_similarity_equation;
 
-  int getEdgesCount();
-  int getEdgeNeighborVerticesCount();
+  int getEdgesCount();// TODO
+  int getEdgeNeighborVerticesCount();// TODO
   void reserveData(vector<Triplet<double> > & _triplets,
-                    vector<pair<int, double> > & _b_vector,
-                    const int _start_index);
-  int getAlignmentTermEquationsCount();
+                   vector<pair<int, double> > & _b_vector,
+                   const int _start_index);// TODO
+  int getAlignmentTermEquationsCount();// TODO
 };
 
 #endif
