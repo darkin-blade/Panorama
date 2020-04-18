@@ -84,7 +84,6 @@ const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
 /*** vlfeat sift ***/
 const    int SIFT_LEVEL_COUNT          = 3;// nlevels
-// TODO minimum必须为0
 #if defined(UBUNTU)
 const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;// o_min
 #else
@@ -105,6 +104,9 @@ const int HOMOGRAPHY_MODEL_MIN_POINTS = 4;
 const int GLOBAL_MAX_ITERATION = 200;// 2000+
 // const int LOCAL_MAX_ITERATION = log(1 - OPENCV_DEFAULT_CONFIDENCE) / log(1 - pow(LOCAL_TRUE_PROBABILITY, HOMOGRAPHY_MODEL_MIN_POINTS));
 const int LOCAL_MAX_ITERATION = 1000;// 16000+
+
+/*** sparse linear system ***/
+const double STRONG_CONSTRAINT = 1e4;
 
 /* draw image */
 #if defined(UBUNTU)

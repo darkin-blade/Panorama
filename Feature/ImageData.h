@@ -1,3 +1,6 @@
+#if !defined(ImageData_H)
+#define ImageData_H
+
 #include "../common.h"
 
 class ImageData {
@@ -35,3 +38,5 @@ public:
   void get_polygons_indices();
   void get_triangulation_indices();
 };
+
+#endif

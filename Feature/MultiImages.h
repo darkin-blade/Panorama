@@ -1,11 +1,13 @@
-#include "../common.h"
+#if !defined(MultiImages_H)
+#define MultiImages_H
 
-#include "../Util/Blending.h"
-#include "../Util/Statistics.h"
-#include "../Util/Transform.h"
+#include "../common.h"
 
 #include "../Feature/FeatureController.h"
 #include "../Feature/ImageData.h"
+#include "../Util/Blending.h"
+#include "../Util/Statistics.h"
+#include "../Util/Transform.h"
 
 class FeatureDistance {
 public:
@@ -53,3 +55,5 @@ public:
                      int _blend_method);
   void getFeaturePairs();
 };
+
+#endif

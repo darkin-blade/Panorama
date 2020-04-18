@@ -1,8 +1,6 @@
 #include "NISwGSP_Stitching.h"
-#include "APAP_Stitching.h"
 
-NISwGSP_Stitching::NISwGSP_Stitching(MultiImages &multiImages) {
-  this->multiImages = &multiImages;
+NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimization(_multi_images) {
 }
 
 Mat NISwGSP_Stitching::feature_match() {
@@ -179,6 +177,18 @@ Mat NISwGSP_Stitching::matching_match() {
   return result_1;
 }
 
+void NISwGSP_Stitching::get_solution() {
+  vector<Triplet<double> > triplets;
+  vector<pair<int, double> > b_vector;
+
+  reserveData(triplets, b_vector, DIMENSION_2D);// TODO
+
+  triplets.emplace_back(0, 0, STRONG_CONSTRAINT);
+  triplets.emplace_back(1, 1, STRONG_CONSTRAINT);
+  b_vector.emplace_back(0,    STRONG_CONSTRAINT);
+  b_vector.emplace_back(1,    STRONG_CONSTRAINT);
+}
+
 Mat NISwGSP_Stitching::texture_mapping() {
   vector<vector<Point2f> > result_1;
   result_1.resize(2);
@@ -192,12 +202,6 @@ Mat NISwGSP_Stitching::texture_mapping() {
     Point2f tmp_mesh = multiImages->imgs[0]->matching_points[1][i];// TODO
     result_1[0].push_back(tmp_mesh);
   }
-
-  // for (int i = 0; i < result_1.size(); i ++) {
-  //   for (int j = 0; j < result_1[i].size(); j ++) {
-  //     LOG("%d %f %f", i, result_1[i][j].x, result_1[i][j].y);
-  //   }
-  // }
 
   LOG("get vertices");
 
