@@ -104,7 +104,12 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
 
 void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplets,
     vector<pair<int, double> > & _b_vector) {
-  assert(0);    
+  const bool local_similarity_term = local_similarity_equation.second;
+  const bool global_similarity_term = global_similarity_equation.second;
+  if (local_similarity_term || global_similarity_term) {
+    const vector<int> images_vertices_start_index = multi_images->getImagesVerticesStartIndex();
+    const vector<vector<double> > images_grid_space_matching_pts_weight = multi_images->getImagesGridSpaveMatchingPointsWeight(global_similarity_weight_gamma);
+  } 
 }
 
 int MeshOptimization::getAlignmentTermEquationsCount() {

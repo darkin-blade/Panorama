@@ -47,6 +47,7 @@ public:
 
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
   vector<int> images_vertices_start_index;// TODO
+  vector<vector<double> > images_polygon_space_matching_pts_weight;
 
   void read_img(const char *img_path);
   void getFeaturePairs();
@@ -56,6 +57,7 @@ public:
                                                             const vector<pair<int, int> > & _initial_indices);
   vector<vector<InterpolateVertex> > getInterpolateVerticesOfMatchingPoints();
   vector<int> getImagesVerticesStartIndex();
+  vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
   Mat textureMapping(vector<vector<Point2f> > &_vertices,
                      int _blend_method);
 };

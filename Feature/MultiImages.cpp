@@ -208,6 +208,14 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
   return images_vertices_start_index;
 }
 
+vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
+  if (_global_weight_gamma && images_polygon_space_matching_pts_weight.empty()) {
+    images_polygon_space_matching_pts_weight.resize(img_num);
+    const vector<vector<bool> > images_ // TODO
+  }
+  return images_polygon_space_matching_pts_weight;
+}
+
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
                                 int _blend_method) {
 
