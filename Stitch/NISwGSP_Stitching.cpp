@@ -104,12 +104,22 @@ Mat NISwGSP_Stitching::matching_match() {
     }
   }
 
+  multi_images->keypoints.resize(img_num);
+  multi_images->keypoints_mask.resize(img_num);
+  multi_images->keypoints_pairs.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    vector<Point2f> tmp_points = multi_images->imgs[i]->getMeshPoints();
+    multi_images->keypoints_mask[i].resize(tmp_points.size());
+    multi_images->keypoints_pairs[i].resize(img_num);
+    for (int j = 0; j < tmp_points.size(); j ++) {
+      multi_images->keypoints[i].emplace_back(tmp_points[j]);
+    }
+  }
+
   // 记录匹配信息
   multi_images->matching_indices.resize(img_num);
-  multi_images->keypoints_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_indices[i].resize(img_num);
-    multi_images->keypoints_mask[i].resize(multi_images->imgs[i]->getMeshPoints().size());// TODO m1
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
@@ -120,22 +130,23 @@ Mat NISwGSP_Stitching::matching_match() {
       // 剔除出界点
       vector<int> & matching_indices = multi_images->matching_indices[m1][m2];// 配对信息
       
-      vector<vector<Point2f> > tmp_point = multi_images->imgs[m1]->matching_points;
+      vector<vector<Point2f> > tmp_points = multi_images->imgs[m1]->matching_points;
       another_img = multi_images->imgs[m2]->data;
-      for (int k = 0; k < tmp_point[m2].size(); k ++) {// TODO m1 在 m2 上的匹配点
-        if (tmp_point[m2][k].x >= 0
-         && tmp_point[m2][k].y >= 0
-         && tmp_point[m2][k].x <= another_img.cols
-         && tmp_point[m2][k].y <= another_img.rows) {// x对应cols, y对应rows
+      for (int k = 0; k < tmp_points[m2].size(); k ++) {// TODO m1 在 m2 上的匹配点
+        if (tmp_points[m2][k].x >= 0
+         && tmp_points[m2][k].y >= 0
+         && tmp_points[m2][k].x <= another_img.cols
+         && tmp_points[m2][k].y <= another_img.rows) {// x对应cols, y对应rows
           // 如果对应的匹配点没有出界
-          multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
           matching_indices.emplace_back(k);// 记录可行的匹配点
+          
+          multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+          multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
+          multi_images->keypoints[m2].emplace_back(tmp_points[j][k]);
         }
       }
     }
   }
-
-  assert(0);
   
   // 描绘匹配点
   Mat result_1;// 存储结果
