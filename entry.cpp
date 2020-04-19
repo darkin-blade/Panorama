@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
 
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
+  niswgsp.get_solution();
   // niswgsp.show_img("1", result_1);
   // niswgsp.show_img("2", result_2);
 

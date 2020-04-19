@@ -196,7 +196,7 @@ vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatching
   return mesh_interpolate_vertex_of_matching_pts;
 }
 
-vector<int> MultiImages:getImagesVerticesStartIndex() {
+vector<int> MultiImages::getImagesVerticesStartIndex() {
   if (images_vertices_start_index.empty()) {
     images_vertices_start_index.reserve(img_num);
     int index = 0;

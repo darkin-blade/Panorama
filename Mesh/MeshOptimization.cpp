@@ -78,8 +78,8 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
       const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->polygons_indices;
       const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->polygons_indices;
 
-      for (int j = 0; j < matching_pairs[m1][m2].size(); j ++) {
-        const pair<int, int> D_Match = matching_pairs[m1][m2][j];// TODO
+      for (int j = 0; j < multi_images->matching_pairs[m1][m2].size(); j ++) {
+        const pair<int, int> D_Match = multi_images->matching_pairs[m1][m2][j];// TODO
 
         for (int dim = 0; dim < DIMENSION_2D; dim ++) {
           for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
@@ -110,7 +110,6 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
 int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
   int m1 = 0, m2 = 1;
-  images_match_graph_pair_list.emplace_back(make_pair(0, 1));// TODO
   result += multi_images->matching_pairs[m1][m2].size();// TODO
   return result * DIMENSION_2D;
 }

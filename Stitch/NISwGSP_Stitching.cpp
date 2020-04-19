@@ -186,17 +186,19 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
-  prepareSimilarityTerm(triplets, b_vector);
+  // prepareSimilarityTerm(triplets, b_vector);
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
   vector<vector<Point2f> > result_1;
   result_1.resize(2);
+  // 2->1
   // result_1[0] = multi_images->imgs[0]->mesh_points;// 图1的mesh
   // for (int i = 0; i < multi_images->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
   //   Point2f tmp_mesh = multi_images->imgs[1]->matching_points[0][i];// TODO
   //   result_1[1].push_back(tmp_mesh);
   // }
+  // 1->2
   result_1[1] = multi_images->imgs[1]->mesh_points;// 图1的mesh
   for (int i = 0; i < multi_images->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
     Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
