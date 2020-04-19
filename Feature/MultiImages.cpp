@@ -180,8 +180,7 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() 
-{
+vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() {
   if (mesh_interpolate_vertex_of_matching_pts.empty()) {
     mesh_interpolate_vertex_of_matching_pts.resize(img_num);
     // TODO

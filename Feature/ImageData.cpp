@@ -216,8 +216,8 @@ vector<vector<int> > ImageData::getEdgeStructures() {
 }
 
 InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
-  const vector<Point2f> vertices = mesh_points;
-  const vector<vector<int> > & grids = polygons_indices;
+  const vector<Point2f> vertices = getMeshPoints();
+  const vector<vector<int> > & grids = getPolygonsIndices();
 
   const int grid_index = getGridIndexOfPoint(_p);
 

@@ -178,20 +178,27 @@ Mat NISwGSP_Stitching::matching_match() {
 }
 
 void NISwGSP_Stitching::get_solution() {
+  alignment_weight               =    1;
+  local_similarity_weight        = 0.56;
+  global_similarity_weight_beta  =    6;
+  global_similarity_weight_gamma =   20;
+
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
 
   reserveData(triplets, b_vector, DIMENSION_2D);// TODO
+  LOG("%ld %ld", triplets.size(), b_vector.size());
 
   triplets.emplace_back(0, 0, STRONG_CONSTRAINT);
   triplets.emplace_back(1, 1, STRONG_CONSTRAINT);
   b_vector.emplace_back(0,    STRONG_CONSTRAINT);
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
+  LOG("%ld %ld", triplets.size(), b_vector.size());
 
   prepareAlignmentTerm(triplets);
-  LOG("alignemt term");
+  LOG("%ld %ld", triplets.size(), b_vector.size());
   prepareSimilarityTerm(triplets, b_vector);
-  LOG("similarity term");
+  LOG("%ld %ld", triplets.size(), b_vector.size());
   getImageMeshPoints(triplets, b_vector);
   LOG("get optimization");
 }

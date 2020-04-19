@@ -227,6 +227,8 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
 
 void MeshOptimization::getImageMeshPoints(vector<Triplet<double> > & _triplets,
     const vector<pair<int, double> > & _b_vector) {
+  LOG("%ld %ld", _triplets.size(), _b_vector.size());
+
   const int equations = global_similarity_equation.first + global_similarity_equation.second;
 
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
