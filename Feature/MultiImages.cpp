@@ -15,49 +15,6 @@ void MultiImages::read_img(const char *img_path) {
   assert(img_num == imgs.size());
 }
 
-vector<pair<int, int> > MultiImages::getOpencvFeaturePairs(const int m1, const int m2) {
-  Ptr<SIFT> core = SIFT::create();
-  vector<KeyPoint> key_points[2];
-  Mat gray_imgs[2];
-
-  // 计算灰色图
-  cvtColor(imgs[m1]->data, gray_imgs[0], CV_BGR2GRAY);// TODO TODO TODO
-  cvtColor(imgs[m2]->data, gray_imgs[1], CV_BGR2GRAY);
-
-  // 检测特征点
-  core->detect(gray_imgs[0], key_points[0]);
-  core->detect(gray_imgs[1], key_points[1]);
-  // 保存特征点
-  for (int i = 0; i < key_points[0].size(); i ++) {
-    imgs[m1]->feature_points.push_back(key_points[0][i].pt);
-  }
-  for (int i = 0; i < key_points[1].size(); i ++) {
-    imgs[m2]->feature_points.push_back(key_points[1][i].pt);
-  }
-
-  LOG("opencv detect finish");
-
-  Mat descriptors[2];
-  core->compute(gray_imgs[0], key_points[0], descriptors[0]);
-  core->compute(gray_imgs[1], key_points[1], descriptors[1]);
-
-  LOG("opencv compute finish");
-
-  // 特征点匹配
-  vector<DMatch> feature_pairs_result;// 存储配对信息
-  Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("FlannBased");
-  matcher->match(descriptors[0], descriptors[1], feature_pairs_result);
-
-  LOG("opencv match finish");
-
-  vector<pair<int, int> > initial_indices;
-  for (int i = 0; i < feature_pairs_result.size(); i ++) {
-    initial_indices.push_back(make_pair(feature_pairs_result[i].queryIdx, feature_pairs_result[i].trainIdx));
-  }
-
-  return initial_indices;
-}
-
 vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
@@ -204,11 +161,7 @@ void MultiImages::getFeaturePairs() {
       // 先计算两张图的原始配对
       int m1 = i;
       int m2 = j;
-#if defined(using_opencv)
-      vector<pair<int, int> > initial_indices = getOpencvFeaturePairs(m1, m2);
-#else
       vector<pair<int, int> > initial_indices = getVlfeatFeaturePairs(m1, m2);
-#endif
 
       // 将所有成功配对的特征点进行筛选
       const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
@@ -227,6 +180,18 @@ void MultiImages::getFeaturePairs() {
       assert(feature_pairs[m1][m2].empty() == false);
     }
   }
+}
+
+vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() {
+  if (mesh_interpolate_vertex_of_matching_pts.empty()) {
+    mesh_interpolate_vertex_of_matching_pts.resize(img_num);
+    const vector<pair<int, int> > images_features = ;// TODO
+    for (int i = 0; i < mesh_interpolate_vertex_of_matching_pts.size(); i ++) {
+      mesh_interpolate_vertex_of_matching_pts[i].reserve();// TODO
+      for (int j = 0; j < )
+    }
+  }
+  return mesh_interpolate_vertex_of_matching_pts;
 }
 
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点

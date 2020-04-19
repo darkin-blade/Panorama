@@ -71,6 +71,7 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
 
     const vector<vector<InterpolateVertex> > & mesh_interpolate_vertex_of_matching_pts = multi_images->getInterpolateVerticesOfMatchingPoints();
   }
+  assert(0);
 }
 
 int MeshOptimization::getAlignmentTermEquationsCount() {
