@@ -74,6 +74,11 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
   assert(0);
 }
 
+void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplets,
+    vector<pair<int, double> > & _b_vector) {
+  assert(0);    
+}
+
 int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
   vector<pair<int, int> > images_match_graph_pair_list;

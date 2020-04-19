@@ -185,10 +185,12 @@ void MultiImages::getFeaturePairs() {
 vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() {
   if (mesh_interpolate_vertex_of_matching_pts.empty()) {
     mesh_interpolate_vertex_of_matching_pts.resize(img_num);
-    const vector<pair<int, int> > images_features = ;// TODO
+    // TODO
     for (int i = 0; i < mesh_interpolate_vertex_of_matching_pts.size(); i ++) {
-      mesh_interpolate_vertex_of_matching_pts[i].reserve();// TODO
-      for (int j = 0; j < )
+      mesh_interpolate_vertex_of_matching_pts[i].reserve(imgs[i]->feature_points.size());// TODO
+      for (int j = 0; j < imgs[i]->feature_points.size(); j ++) {
+        mesh_interpolate_vertex_of_matching_pts[i].emplace_back(imgs[i]->getInterpolateVertex(imgs[i]->feature_points[j]));// TODO
+      }
     }
   }
   return mesh_interpolate_vertex_of_matching_pts;

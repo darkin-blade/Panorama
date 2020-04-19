@@ -6,8 +6,6 @@ NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimiza
 Mat NISwGSP_Stitching::feature_match() {
   int img_num = multi_images->img_num;
 
-  // 检测特征点
-#if !defined(using_opencv)
   for (int i = 0; i < img_num; i ++) {
     Mat grey_img;
     cvtColor(multi_images->imgs[i]->data, grey_img, CV_BGR2GRAY);
@@ -16,7 +14,6 @@ Mat NISwGSP_Stitching::feature_match() {
                               multi_images->imgs[i]->descriptors);
     LOG("[picture %d] feature points: %ld", i, multi_images->imgs[i]->feature_points.size());
   }
-#endif
 
   // 特征点匹配
   multi_images->getFeaturePairs();

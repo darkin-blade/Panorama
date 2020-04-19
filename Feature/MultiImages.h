@@ -48,13 +48,14 @@ public:
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
 
   void read_img(const char *img_path);
+  void getFeaturePairs();
   vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
                                                             const vector<Point2f> & _Y,
                                                             const vector<pair<int, int> > & _initial_indices);
+  vector<vector<InterpolateVertex> > getInterpolateVerticesOfMatchingPoints();
   Mat textureMapping(vector<vector<Point2f> > &_vertices,
                      int _blend_method);
-  void getFeaturePairs();
 };
 
 #endif

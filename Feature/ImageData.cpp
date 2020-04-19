@@ -143,7 +143,7 @@ void ImageData::getVertexStructures() {
   assert(memory == vertex_structures.size());
 }
 
-void ImageData::getInterpolateVertex(const Point2f & _p) {
+InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
   const vector<Point2f> vertices = mesh_points;
   const vector<vector<int> > & grids = polygons_indices;
 
