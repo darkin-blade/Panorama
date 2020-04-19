@@ -120,14 +120,11 @@ Mat NISwGSP_Stitching::matching_match() {
   multi_images->matching_indices.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_indices[i].resize(img_num);
-
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
       int m1 = i;
       int m2 = j;
       Mat another_img;
-
-      // 剔除出界点
       vector<int> & matching_indices = multi_images->matching_indices[m1][m2];// 配对信息
       
       vector<vector<Point2f> > tmp_points = multi_images->imgs[m1]->matching_points;
@@ -140,7 +137,11 @@ Mat NISwGSP_Stitching::matching_match() {
           // 如果对应的匹配点没有出界
           matching_indices.emplace_back(k);// 记录可行的匹配点
           
-          multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+          if (m1 < m2) {
+            multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+          } else {
+            multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(multi_images->keypoints[m2].size(), k));
+          }
           multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
           multi_images->keypoints[m2].emplace_back(tmp_points[j][k]);
         }
