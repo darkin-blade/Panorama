@@ -97,7 +97,7 @@ Mat NISwGSP_Stitching::matching_match() {
 
       APAP_Stitching::apap_project(X,
                                    Y,
-                                   multi_images->imgs[m1]->mesh_points,
+                                   multi_images->imgs[m1]->getMeshPoints(),
                                    multi_images->imgs[m1]->matching_points[m2],
                                    multi_images->imgs[m1]->homographies[m2]);
       LOG("apap [%d, %d] finish", m1, m2);
@@ -109,7 +109,7 @@ Mat NISwGSP_Stitching::matching_match() {
   multi_images->matching_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_pairs[i].resize(img_num);
-    multi_images->matching_mask[i].resize(multi_images->imgs[i]->mesh_points.size());// TODO m1
+    multi_images->matching_mask[i].resize(multi_images->imgs[i]->getMeshPoints().size());// TODO m1
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
@@ -150,7 +150,7 @@ Mat NISwGSP_Stitching::matching_match() {
     for (int i = 0; i < multi_images->matching_pairs[0][1].size(); i ++) {
       int index = multi_images->matching_pairs[0][1][i].first;// first == second
       Point2f src_p, dest_p;
-      src_p  = multi_images->imgs[0]->mesh_points[index];
+      src_p  = multi_images->imgs[0]->getMeshPoints()[index];
       dest_p = multi_images->imgs[0]->matching_points[1][index];
 
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
@@ -160,9 +160,9 @@ Mat NISwGSP_Stitching::matching_match() {
     }
   } else {
     // 描绘所有匹配点
-    for (int i = 0; i < multi_images->imgs[0]->mesh_points.size(); i ++) {
+    for (int i = 0; i < multi_images->imgs[0]->getMeshPoints().size(); i ++) {
       Point2f src_p, dest_p;
-      src_p  = multi_images->imgs[0]->mesh_points[i];
+      src_p  = multi_images->imgs[0]->getMeshPoints()[i];
       dest_p = multi_images->imgs[0]->matching_points[1][i];
 
       Scalar color1(255, 0, 0);
@@ -196,13 +196,13 @@ Mat NISwGSP_Stitching::texture_mapping() {
   vector<vector<Point2f> > result_1;
   result_1.resize(2);
   // 2->1
-  // result_1[0] = multi_images->imgs[0]->mesh_points;// 图1的mesh
+  // result_1[0] = multi_images->imgs[0]->getMeshPoints();// 图1的mesh
   // for (int i = 0; i < multi_images->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
   //   Point2f tmp_mesh = multi_images->imgs[1]->matching_points[0][i];// TODO
   //   result_1[1].push_back(tmp_mesh);
   // }
   // 1->2
-  result_1[1] = multi_images->imgs[1]->mesh_points;// 图1的mesh
+  result_1[1] = multi_images->imgs[1]->getMeshPoints();// 图1的mesh
   for (int i = 0; i < multi_images->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
     Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
     result_1[0].push_back(tmp_mesh);

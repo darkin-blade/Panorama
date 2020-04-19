@@ -265,7 +265,6 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
 
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
                                 int _blend_method) {
-
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
   vector<Mat> warp_images;// 存放wrap后的Mat
 
@@ -291,18 +290,17 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < img_num; i ++) {
-    const vector<Point2f> & src_vertices = imgs[i]->getMeshPoints();// 所有mesh点
-    const vector<vector<int> > & polygons_indices = imgs[i]->getPolygonsIndices();// TODO mesh点的线性索引
+    const vector<Point2f> src_vertices = imgs[i]->getMeshPoints();// 所有mesh点
+    const vector<vector<int> > polygons_indices = imgs[i]->getPolygonsIndices();// TODO mesh点的线性索引
     const Point2f origin(rects[i].x, rects[i].y);// 矩形坐标(左上角)
     const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用
     vector<Mat> affine_transforms;
     affine_transforms.reserve(polygons_indices.size() * (imgs[i]->getTriangulationIndices().size()));// TODO
-    LOG("%f %f", rects[i].height + shift.y, rects[i].width + shift.x);
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {
       for (int k = 0; k < imgs[i]->getTriangulationIndices().size(); k ++) {// 分两次填充矩形区域
-        const vector<int> & index = imgs[i]->getTriangulationIndices()[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
+        const vector<int> index = imgs[i]->getTriangulationIndices()[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
         const Point2i contour[] = {
           (_vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
