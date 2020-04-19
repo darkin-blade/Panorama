@@ -65,6 +65,14 @@ void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
       _start_index);
 }
 
+void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets) {
+  if (alignment_equation.second) {
+    const int equation = alignment_equation.first;
+
+    const vector<vector<InterpolateVertex> > & mesh_interpolate_vertex_of_matching_pts = multi_images->getInterpolateVerticesOfMatchingPoints();
+  }
+}
+
 int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
   vector<pair<int, int> > images_match_graph_pair_list;

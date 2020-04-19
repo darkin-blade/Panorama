@@ -14,6 +14,31 @@ public:
   int indices[EDGE_VERTEX_SIZE];
 };
 
+class InterpolateVertex {
+public:
+  int polygon;
+  vector<double> weights;
+  InterpolateVertex() {
+    polygon = -1;
+  }
+  InterpolateVertex(const InterpolateVertex & _iv) {
+    polygon = _iv.polygon;
+    weights = _iv.weights;
+  }
+  InterpolateVertex(const int _polygon,
+      const double _w0, const double _w1, const double _w2) {
+    polygon = _polygon;
+    weights.emplace_back(_w0);
+    weights.emplace_back(_w1);
+    weights.emplace_back(_w2);
+  }
+  InterpolateVertex(const int _polygon,
+      const vector<double> & _weights) {
+    polygon = _polygon;
+    weights = _weights;
+  }
+};
+
 class ImageData {
 public:
   // Mesh2D
@@ -21,7 +46,7 @@ public:
   int nh;// 纵向mesh数目
   double lw;// mesh宽度
   double lh;// mesh高度
-  
+
   vector<Point2f> mesh_points;// 网格点
   vector<vector<int> > polygons_indices;// TODO Indices
   vector<vector<int> > triangulation_indices;// TODO Indices
@@ -47,6 +72,7 @@ public:
   void get_img(const char *img_path);
   /** Mesh2D **/
   void get_size();
+  int getGridIndexOfPoint(const Point2f & _p);
   /** MeshGrid **/
   void getMesh2dPoints();// 所有mesh点
   void getPolygonsIndices();// 所有mesh点线性索引

@@ -41,7 +41,7 @@ void ImageData::get_img(const char *img_path) {
   alpha_mask = channels[3];
 }
 
-/****************************************/
+/** Mesh2D **/
 
 void ImageData::get_size() {
   nw = data.cols / GRID_SIZE + (data.cols % GRID_SIZE != 0);
@@ -50,7 +50,14 @@ void ImageData::get_size() {
   lh = data.rows / (double)nh;
 }
 
-/****************************************/
+int ImageData::getGridIndexOfPoint(const Point2f & _p) {
+  Point2i grid_p(_p.x / lw, _p.y / lh);
+  grid_p.x = grid_p.x - (grid_p.x == nw);
+  grid_p.y = grid_p.y - (grid_p.y == nh);
+  return grid_p.x + grid_p.y * nw;
+}
+
+/** MeshGrid **/
 
 void ImageData::getMesh2dPoints() {
   const int memory = (nh + 1) * (nw + 1);
@@ -134,4 +141,32 @@ void ImageData::getVertexStructures() {
     }
   }
   assert(memory == vertex_structures.size());
+}
+
+void ImageData::getInterpolateVertex(const Point2f & _p) {
+  const vector<Point2f> vertices = mesh_points;
+  const vector<vector<int> > & grids = polygons_indices;
+
+  const int grid_index = getGridIndexOfPoint(_p);
+
+  const vector<int> & g = grids[grid_index];// TODO Indices
+
+  const vector<int> diagonal_indices = {2, 3, 0, 1};/* 0 1    2 3
+                                                           ->
+                                                       3 2    1 0 */
+  assert(g.size() == GRID_VERTEX_SIZE);
+
+  vector<double> weights(GRID_VERTEX_SIZE);
+  double sum_inv = 0;
+  for (int i = 0; i < diagonal_indices.size(); i ++) {
+    Point2f tmp(_p.x - vertices[g[diagonal_indices[i]]].x,
+                _p.y - vertices[g[diagonal_indices[i]]].y);
+    weights[i] = fabs(tmp.x * tmp.y);
+    sum_inv += weights[i];
+  }
+  sum_inv = 1. / sum_inv;
+  for (int i = 0; i < GRID_VERTEX_SIZE; i ++) {
+    weights[i] = weights[i] * sum_inv;
+  }
+  return InterpolateVertex(grid_index, weights);// 构造函数
 }
