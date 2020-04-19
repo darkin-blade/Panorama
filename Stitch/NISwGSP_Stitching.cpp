@@ -189,7 +189,7 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
-  // prepareSimilarityTerm(triplets, b_vector);
+  prepareSimilarityTerm(triplets, b_vector);
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {

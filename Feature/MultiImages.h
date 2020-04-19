@@ -33,6 +33,19 @@ public:
   }
 };
 
+class dijkstraNode {
+public:
+  int from, pos;
+  double dis;
+  dijkstraNode(const int & _from,
+      const int & _pos,
+      const double & _dis) : from(_from), pos(_pos), dis(_dis) {
+  }
+  bool operator < (const dijkstraNode & rhs) const {
+    return dis > rhs.dis;
+  }
+};
+
 class MultiImages {// 注意reserve与resize的区别
 public:
   MultiImages();

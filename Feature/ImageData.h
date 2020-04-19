@@ -52,6 +52,8 @@ public:
   vector<vector<int> > triangulation_indices;// TODO Indices
   vector<Edge> edges;
   vector<vector<int> > vertex_structures;// TODO Indices
+  vector<vector<int> > polygons_neighbors;// TODO Indices
+  vector<Point2f> polygons_center;// TODO
 
   // ImageData
   Mat data;
@@ -73,11 +75,13 @@ public:
   void get_size();
   int getGridIndexOfPoint(const Point2f & _p);
   /** MeshGrid **/
-  void getMesh2dPoints();// 所有mesh点
-  void getPolygonsIndices();// 所有mesh点线性索引
-  void getTriangulationIndices();// 将矩形区域划分为两个三角形
-  void getEdges();// TODO
-  void getVertexStructures();// TODO
+  vector<Point2f> getMesh2dPoints();// 所有mesh点
+  vector<vector<int> > getPolygonsIndices();// 所有mesh点线性索引
+  vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形
+  vector<Edge> getEdges();// TODO
+  vector<vector<int> > getPolygonsNeighbors();// TODO
+  vector<vector<int> > getPolygonsCenter();// TODO
+  vector<Point2f> getVertexStructures();// TODO
   InterpolateVertex getInterpolateVertex(const Point2f & _p);
   /** ImageData **/
 };

@@ -223,7 +223,19 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
         }
       }
       images_polygon_space_matching_pts_weight[i].reserve(polygons_count);
-      priority_queue<> que;
+      priority_queue<dijkstraNode> que;
+
+      for (int j = 0; j < polygons_has_matching_pts.size(); j ++) {
+        if (polygons_has_matching_pts[j]) {
+          polygons_has_matching_pts = false;
+          images_polygon_space_matching_pts_weight[i].emplace_back(0);
+          que.push(dijkstraNode(j, j, 0));
+        } else {
+          images_polygon_space_matching_pts_weight[i].emplace_back(MAXFLOAT);
+        }
+      }
+      const vector<vector<int> > polygons_neighbors = imgs[i]->polygons_neighbors;
+      const vector<Point2f> polygons_center = imgs[i]->polygons_center;
     }
   }
   return images_polygon_space_matching_pts_weight;
