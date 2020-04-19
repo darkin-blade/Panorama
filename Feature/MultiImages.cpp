@@ -263,6 +263,17 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
   return images_polygon_space_matching_pts_weight;
 }
 
+vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {// TODO
+  if (images_similarity_elements.empty()) {
+    images_similarity_elements.resize(img_num);
+    for (int i = 0; i < images_similarity_elements.size(); i ++) {
+      images_similarity_elements[i].scale = 1;
+      images_similarity_elements[i].theta = 0;
+    }
+  }
+  return images_similarity_elements;
+}
+
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
                                 int _blend_method) {
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小

@@ -20,6 +20,14 @@ int MeshOptimization::getEdgesCount() {
   return result;
 }
 
+int MeshOptimization::getVerticesCount() {
+  int result = 0;
+  for (int i = 0; i < multi_images->img_num; i ++) {
+    result += multi_images->imgs[i]->getMeshPoints().size();
+  }
+  return result * DIMENSION_2D;
+}
+
 int MeshOptimization::getEdgeNeighborVerticesCount() {
   int result = 0;
   for (int i = 0; i < multi_images->img_num; i ++) {
@@ -33,6 +41,13 @@ int MeshOptimization::getEdgeNeighborVerticesCount() {
     result -= edges.size();
   }
   return result;
+}
+
+int MeshOptimization::getAlignmentTermEquationsCount() {
+  int result = 0;
+  int m1 = 0, m2 = 1;
+  result += multi_images->matching_pairs[m1][m2].size();// TODO
+  return result * DIMENSION_2D;
 }
 
 void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
@@ -109,12 +124,131 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
   if (local_similarity_term || global_similarity_term) {
     const vector<int> images_vertices_start_index = multi_images->getImagesVerticesStartIndex();
     const vector<vector<double> > images_grid_space_matching_pts_weight = multi_images->getImagesGridSpaceMatchingPointsWeight(global_similarity_weight_gamma);
+    const vector<SimilarityElements> images_similarity_elements = multi_images->getImagesSimilarityElements();
+    int eq_count = 0, eq_count_rotation = 0;
+    for (int i = 0; i < multi_images->img_num; i ++) {
+      const vector<Edge> edges = multi_images->imgs[i]->getEdges();
+      const vector<Point2f> mesh_points = multi_images->imgs[i]->getMeshPoints();
+      const vector<vector<int> > v_neighbors = multi_images->imgs[i]->getVertexStructures();
+      const vector<vector<int> > e_neighbors = multi_images->imgs[i]->getEdgeStructures();
+
+      const double similarity[DIMENSION_2D] = {
+        images_similarity_elements[i].scale * cos(images_similarity_elements[i].theta),
+        images_similarity_elements[i].scale * sin(images_similarity_elements[i].theta)
+      };
+
+      for (int j = 0; j < edges.size(); j ++) {
+        const int ind_e1 = edges[j].indices[0];
+        const int ind_e2 = edges[j].indices[1];
+        const Point2f src = multi_images->imgs[i]->getMeshPoints()[ind_e1];
+        const Point2f dst = multi_images->imgs[i]->getMeshPoints()[ind_e2];
+        set<int> point_ind_set;
+        for (int e = 0; e < EDGE_VERTEX_SIZE; e ++) {
+          for (int v = 0; v < v_neighbors[edges[j].indices[e]].size(); v ++) {
+            int v_index = v_neighbors[edges[j].indices[e]][v];
+            if (v_index != ind_e1) {
+              point_ind_set.insert(v_index);
+            }
+          }
+        }
+        Mat Et, E_Main(DIMENSION_2D, DIMENSION_2D, CV_64FC1), E((int)point_ind_set.size() * DIMENSION_2D, DIMENSION_2D, CV_64FC1);
+        set<int>::const_iterator it = point_ind_set.begin();
+        for (int p = 0; it != point_ind_set.end(); p ++, it ++) {
+          Point2f e = mesh_points[*it] - src;
+          E.at<double>(DIMENSION_2D * p    , 0) =  e.x;
+          E.at<double>(DIMENSION_2D * p    , 1) =  e.y;
+          E.at<double>(DIMENSION_2D * p + 1, 0) =  e.y;
+          E.at<double>(DIMENSION_2D * p + 1, 1) = -e.x;
+        }
+        transpose(E, Et);// 转置
+        Point2f e_main = dst - src;
+        E_Main.at<double>(0, 0) =  e_main.x;
+        E_Main.at<double>(0, 1) =  e_main.y;
+        E_Main.at<double>(1, 0) =  e_main.y;
+        E_Main.at<double>(1, 1) = -e_main.x;
+
+        Mat G_W = (Et * E).inv(DECOMP_SVD) * Et;
+        Mat L_W = - E_Main * G_W;
+
+        double _global_similarity_weight = global_similarity_weight_beta;
+        if (global_similarity_weight_gamma) {
+          double sum_weight = 0;
+          for (int p = 0; p < e_neighbors[j].size(); p ++) {
+            sum_weight += images_grid_space_matching_pts_weight[i][e_neighbors[j][p]];
+          }
+          _global_similarity_weight = _global_similarity_weight + global_similarity_weight_gamma * (sum_weight / e_neighbors[j].size());
+        }
+
+        double _local_similarity_weight = 1;
+        it = point_ind_set.begin();
+        for (int p = 0; it != point_ind_set.end(); p ++, it ++) {
+          for (int xy = 0; xy < DIMENSION_2D; xy ++) {
+            for (int dim = 0; dim < DIMENSION_2D; dim ++) {
+              if (local_similarity_term) {
+                _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+                    images_vertices_start_index[i]  + DIMENSION_2D * (*it) + xy,
+                    _local_similarity_weight *
+                    local_similarity_weight * L_W.at<double>(dim, DIMENSION_2D * p + xy));
+                _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+                    images_vertices_start_index[i]  + DIMENSION_2D * ind_e1 + xy,
+                    _local_similarity_weight *
+                    -local_similarity_weight * L_W.at<double>(dim, DIMENSION_2D * p + xy));
+              }
+              if (global_similarity_term) {
+                _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
+                    images_vertices_start_index[i]    + DIMENSION_2D * (*it) + xy,
+                    _global_similarity_weight * G_W.at<double>(dim, DIMENSION_2D * p + xy));
+                _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
+                    images_vertices_start_index[i]    + DIMENSION_2D * ind_e1 + xy,
+                    -_global_similarity_weight * G_W.at<double>(dim, DIMENSION_2D * p + xy));
+                _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, _global_similarity_weight * similarity[dim]);
+              }
+            }
+          }
+        }
+        if (local_similarity_term) {
+          _triplets.emplace_back(local_similarity_equation.first + eq_count    , images_vertices_start_index[i] + DIMENSION_2D * ind_e2    ,
+              _local_similarity_weight *  local_similarity_weight);
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, images_vertices_start_index[i] + DIMENSION_2D * ind_e2 + 1,
+              _local_similarity_weight *  local_similarity_weight);
+          _triplets.emplace_back(local_similarity_equation.first + eq_count    , images_vertices_start_index[i] + DIMENSION_2D * ind_e1    ,
+              _local_similarity_weight * -local_similarity_weight);
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, images_vertices_start_index[i] + DIMENSION_2D * ind_e1 + 1,
+              _local_similarity_weight * -local_similarity_weight);
+        }
+        eq_count += DIMENSION_2D;
+        eq_count_rotation ++;
+      }
+    }
+    assert(! local_similarity_term || eq_count ==  local_similarity_equation.second);
+    assert(!global_similarity_term || eq_count == global_similarity_equation.second);
   }
 }
 
-int MeshOptimization::getAlignmentTermEquationsCount() {
-  int result = 0;
-  int m1 = 0, m2 = 1;
-  result += multi_images->matching_pairs[m1][m2].size();// TODO
-  return result * DIMENSION_2D;
+void MeshOptimization::getImageMeshPoints(vector<Triplet<double> > & _triplets,
+    const vector<pair<int, double> > & _b_vector) {
+  const int equations = global_similarity_equation.first + global_similarity_equation.second;
+
+  LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
+  SparseMatrix<double> A(equations, getVerticesCount());
+  VectorXd b = VectorXd::Zero(equations), x;
+
+  A.setFromTriplets(_triplets.begin(), _triplets.end());
+  for (int i = 0; i < _b_vector.size(); i ++) {
+    b[_b_vector[i].first] = _b_vector[i].second;
+  }
+
+  lscg.compute(A);
+  x = lscg.solve(b);
+
+  multi_images->image_mesh_points.resize(multi_images->img_num);
+  for (int i = 0, x_index = 0; i < multi_images->img_num; i ++) {
+    int count = (int)multi_images->imgs[i]->getMeshPoints().size() * DIMENSION_2D;
+    multi_images->image_mesh_points[i].reserve(count);
+    for (int j = 0; j < count; j += DIMENSION_2D) {
+      multi_images->image_mesh_points[i].emplace_back(x[x_index + j    ],
+                                                      x[x_index + j + 1]);
+    }
+    x_index += count;
+  }
 }

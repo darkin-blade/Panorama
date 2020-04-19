@@ -25,8 +25,11 @@ public:
   void prepareAlignmentTerm(vector<Triplet<double> > & _triplets);
   void prepareSimilarityTerm(vector<Triplet<double> > & _triplets,
                              vector<pair<int, double> > & _b_vector);
+  void getImageMeshPoints(vector<Triplet<double> > & _triplets,
+                          const vector<pair<int, double> > & _b_vector);
 
   int getEdgesCount();// TODO
+  int getVerticesCount();// mesh point数目
   int getEdgeNeighborVerticesCount();// TODO
   int getAlignmentTermEquationsCount();// TODO
 };

@@ -46,13 +46,27 @@ public:
   }
 };
 
+class SimilarityElements {
+public:
+  double scale;
+  double theta;
+  SimilarityElements() {// TODO
+    scale = 1;
+    theta = 0;
+  };
+  SimilarityElements(const double _scale,
+                     const double _theta) {
+    scale = _scale;
+    theta = _theta;
+  }
+};
+
 class MultiImages {// 注意reserve与resize的区别
 public:
   MultiImages();
 
   int img_num;
   vector<ImageData *> imgs;
-  vector<int> triangulation_indices[2];// TODO 用于纹理映射
 
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
@@ -63,6 +77,10 @@ public:
   vector<int> images_vertices_start_index;// TODO
   vector<vector<double> > images_polygon_space_matching_pts_weight;
 
+  vector<SimilarityElements> images_similarity_elements;// TODO
+
+  vector<vector<Point2f> > image_mesh_points;// 最终结果
+
   void read_img(const char *img_path);
   void getFeaturePairs();
   vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);
@@ -72,6 +90,7 @@ public:
   vector<vector<InterpolateVertex> > getInterpolateVerticesOfMatchingPoints();
   vector<int> getImagesVerticesStartIndex();
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
+  vector<SimilarityElements> getImagesSimilarityElements();
   Mat textureMapping(vector<vector<Point2f> > &_vertices,
                      int _blend_method);
 };

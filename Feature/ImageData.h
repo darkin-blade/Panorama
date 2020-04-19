@@ -54,6 +54,7 @@ public:
   vector<vector<int> > vertex_structures;// TODO Indices
   vector<vector<int> > polygons_neighbors;// TODO Indices
   vector<Point2f> polygons_center;// TODO
+  vector<vector<int> > edge_structures;// TODO Indices
 
   // ImageData(直接获取成员)
   Mat data;
@@ -82,6 +83,7 @@ public:
   vector<vector<int> > getPolygonsNeighbors();// TODO
   vector<Point2f> getPolygonsCenter();// TODO
   vector<vector<int> > getVertexStructures();// TODO
+  vector<vector<int> > getEdgeStructures();// TODO
   InterpolateVertex getInterpolateVertex(const Point2f & _p);
   /** ImageData **/
 };
