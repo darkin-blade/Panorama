@@ -182,7 +182,8 @@ void MultiImages::getFeaturePairs() {
   }
 }
 
-vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() {
+vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatchingPoints() 
+{
   if (mesh_interpolate_vertex_of_matching_pts.empty()) {
     mesh_interpolate_vertex_of_matching_pts.resize(img_num);
     // TODO
@@ -208,10 +209,22 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
   return images_vertices_start_index;
 }
 
-vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
+vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
   if (_global_weight_gamma && images_polygon_space_matching_pts_weight.empty()) {
     images_polygon_space_matching_pts_weight.resize(img_num);
-    const vector<vector<bool> > images_ // TODO
+    const vector<vector<bool> > images_features_mask = matching_mask;// TODO
+    const vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts = getInterpolateVerticesOfMatchingPoints();
+    for (int i = 0; i < images_polygon_space_matching_pts_weight.size(); i ++) {
+      const int polygons_count = (int)imgs[i]->polygons_indices.size();
+      vector<bool> polygons_has_matching_pts(polygons_count, false);
+      for (int j = 0; j < images_features_mask[i].size(); j ++) {
+        if (images_features_mask[i][j]) {
+          polygons_has_matching_pts[mesh_interpolate_vertex_of_matching_pts[i][j].polygon] = true;
+        }
+      }
+      images_polygon_space_matching_pts_weight[i].reserve(polygons_count);
+      priority_queue<> que;
+    }
   }
   return images_polygon_space_matching_pts_weight;
 }

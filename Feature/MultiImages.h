@@ -44,6 +44,7 @@ public:
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
   vector<vector<vector<pair<int, int> > > > matching_pairs;// (过滤后)匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
+  vector<vector<bool> > matching_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
 
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
   vector<int> images_vertices_start_index;// TODO

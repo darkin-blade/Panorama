@@ -108,7 +108,7 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
   const bool global_similarity_term = global_similarity_equation.second;
   if (local_similarity_term || global_similarity_term) {
     const vector<int> images_vertices_start_index = multi_images->getImagesVerticesStartIndex();
-    const vector<vector<double> > images_grid_space_matching_pts_weight = multi_images->getImagesGridSpaveMatchingPointsWeight(global_similarity_weight_gamma);
+    const vector<vector<double> > images_grid_space_matching_pts_weight = multi_images->getImagesGridSpaceMatchingPointsWeight(global_similarity_weight_gamma);
   } 
 }
 

@@ -106,8 +106,10 @@ Mat NISwGSP_Stitching::matching_match() {
 
   // 记录匹配信息
   multi_images->matching_pairs.resize(img_num);
+  multi_images->matching_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_pairs[i].resize(img_num);
+    multi_images->matching_mask[i].resize(multi_images->imgs[m1]->mesh_points.size());// TODO
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
@@ -117,7 +119,7 @@ Mat NISwGSP_Stitching::matching_match() {
 
       // 剔除出界点
       vector<pair<int, int> > & matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
-      const vector<Point2f> *tmp_p = &multi_images->imgs[m1]->matching_points[m2];// 匹配点位置
+      const vector<Point2f> *tmp_p = & multi_images->imgs[m1]->matching_points[m2];// 匹配点位置
       for (int k = 0; k < tmp_p->size(); k ++) {
         if ((*tmp_p)[k].x >= 0
           && (*tmp_p)[k].y >= 0
@@ -125,6 +127,7 @@ Mat NISwGSP_Stitching::matching_match() {
           && (*tmp_p)[k].y <= another_img.rows) {// x对应cols, y对应rows
           // 如果对应的匹配点没有出界
           matching_pairs.push_back(pair<int, int>(k, k));
+          multi_images->matching_mask[i][k] = true;// TODO 标记可行
         }
       }
     }
