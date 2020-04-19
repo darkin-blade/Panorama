@@ -200,7 +200,6 @@ void NISwGSP_Stitching::get_solution() {
   prepareSimilarityTerm(triplets, b_vector);
   LOG("%ld %ld", triplets.size(), b_vector.size());
   getImageMeshPoints(triplets, b_vector);
-  LOG("get optimization");
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
@@ -218,13 +217,22 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
   //   result_1[0].push_back(tmp_mesh);
   // }
-  assert(multi_images->image_mesh_points.empty() == false);
-
-  for (int i = 0; i < multi_images->image_mesh_points.size(); i ++) {
-    LOG("%ld", multi_images->image_mesh_points[i].size());
+  Size2f target_size = normalizeVertices(multi_images->image_mesh_points);
+  LOG("%f %f", target_size.height, target_size.width);
+  Mat result_1;
+  result_1 = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
+  vector<vector<Point2f> > & image_mesh_points = multi_images->image_mesh_points;
+  for (int i = 0; i < multi_images->img_num; i ++) {
+    for (int j = 0; j < image_mesh_points[i].size(); j ++) {
+      Point2f tmp = image_mesh_points[i][j];
+      Scalar color1(255, 0, 0);
+      circle(result_1, tmp, CIRCLE_SIZE, color1, -1);
+    }
   }
 
-  return multi_images->textureMapping(multi_images->image_mesh_points, 1);
+  return result_1;
+
+  // return multi_images->textureMapping(multi_images->image_mesh_points, 1);
 }
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
