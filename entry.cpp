@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
   niswgsp.get_solution();
   // niswgsp.show_img("1", result_1);
-  // niswgsp.show_img("2", result_2);
+  niswgsp.show_img("2", result_2);
 
   Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
   niswgsp.show_img("3", result_3);

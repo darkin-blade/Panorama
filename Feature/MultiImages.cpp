@@ -209,7 +209,7 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
 vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
   if (_global_weight_gamma && images_polygon_space_matching_pts_weight.empty()) {
     images_polygon_space_matching_pts_weight.resize(img_num);
-    const vector<vector<bool> > images_features_mask = matching_mask;// TODO
+    const vector<vector<bool> > images_features_mask = keypoints_mask;// TODO
     const vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts = getInterpolateVerticesOfMatchingPoints();
     for (int i = 0; i < images_polygon_space_matching_pts_weight.size(); i ++) {
       const int polygons_count = (int)imgs[i]->getPolygonsIndices().size();

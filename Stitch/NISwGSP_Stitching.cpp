@@ -105,47 +105,37 @@ Mat NISwGSP_Stitching::matching_match() {
   }
 
   // 记录匹配信息
-  multi_images->matching_points.resize(img_num);// 过滤后的匹配点
-  multi_images->matching_pairs.resize(img_num);
-  multi_images->matching_mask.resize(img_num);
+  multi_images->matching_indices.resize(img_num);
+  multi_images->keypoints_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
-    multi_images->matching_pairs[i].resize(img_num);
-    multi_images->matching_mask[i].resize(multi_images->imgs[i]->getMeshPoints().size());// TODO m1
+    multi_images->matching_indices[i].resize(img_num);
+    multi_images->keypoints_mask[i].resize(multi_images->imgs[i]->getMeshPoints().size());// TODO m1
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
       int m1 = i;
       int m2 = j;
-      Mat another_img = multi_images->imgs[m2]->data;
+      Mat another_img;
 
       // 剔除出界点
-      vector<pair<int, int> > & matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
+      vector<int> & matching_indices = multi_images->matching_indices[m1][m2];// 配对信息
       
-      vector<Point2f> tmp_1 = multi_images->imgs[m1]->matching_points;// 匹配点位置
-      for (int k = 0; k < tmp_1->size(); k ++) {
-        if (tmp_1[m2][k].x >= 0 // TODO m1 or m2
-         && tmp_1[m2][k].y >= 0
-         && tmp_1[m2][k].x <= another_img.cols
-         && tmp_1[m2][k].y <= another_img.rows) {// x对应cols, y对应rows
+      vector<vector<Point2f> > tmp_point = multi_images->imgs[m1]->matching_points;
+      another_img = multi_images->imgs[m2]->data;
+      for (int k = 0; k < tmp_point[m2].size(); k ++) {// TODO m1 在 m2 上的匹配点
+        if (tmp_point[m2][k].x >= 0
+         && tmp_point[m2][k].y >= 0
+         && tmp_point[m2][k].x <= another_img.cols
+         && tmp_point[m2][k].y <= another_img.rows) {// x对应cols, y对应rows
           // 如果对应的匹配点没有出界
-          matching_pairs.push_back(pair<int, int>(k, multi_images->matching_points[m2].size()));
-          multi_images->matching_mask[m1][k] = true;// TODO 标记可行
-          multi_images->matching_points[m2].emplace_back(tmp_1[j][k]);// TODO 参数
+          multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
+          matching_indices.emplace_back(k);// 记录可行的匹配点
         }
       }
-      // const vector<Point2f> *tmp_2 = & multi_images->imgs[m2]->matching_points[m1];// 匹配点位置
-      // for (int k = 0; k < tmp_2->size(); k ++) {
-      //   if ((*tmp_2)[k].x >= 0
-      //     && (*tmp_2)[k].y >= 0
-      //     && (*tmp_2)[k].x <= another_img.cols
-      //     && (*tmp_2)[k].y <= another_img.rows) {// x对应cols, y对应rows
-      //     // 如果对应的匹配点没有出界
-      //     matching_pairs.push_back(pair<int, int>(k, k));
-      //     multi_images->matching_mask[m2][k] = true;// TODO 标记可行
-      //   }
-      // }
     }
   }
+
+  assert(0);
   
   // 描绘匹配点
   Mat result_1;// 存储结果
@@ -161,8 +151,8 @@ Mat NISwGSP_Stitching::matching_match() {
 
   if (0) {
     // 描绘匹配点配对
-    for (int i = 0; i < multi_images->matching_pairs[0][1].size(); i ++) {
-      int index = multi_images->matching_pairs[0][1][i].first;
+    for (int i = 0; i < multi_images->matching_indices[0][1].size(); i ++) {
+      int index = multi_images->matching_indices[0][1][i];
       Point2f src_p, dst_p;
       src_p = multi_images->imgs[0]->getMeshPoints()[index];
       dst_p = multi_images->imgs[0]->matching_points[1][index];
