@@ -11,7 +11,7 @@ public:
     indices[0] = _e1;
     indices[1] = _e2;
   }
-  int indices[2];
+  int indices[EDGE_VERTEX_SIZE];
 };
 
 class ImageData {

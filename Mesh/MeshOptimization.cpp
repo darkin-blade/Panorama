@@ -47,27 +47,33 @@ void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
   int edge_neighbor_vertices_count = (similarity_equation_count) ? getEdgeNeighborVerticesCount() : 0;
 
   alignment_equation.first = equation;
-  alignment_equation.second = (alignment_term) ? getAlignmentTermEquationsCount() : 0;
+  alignment_equation.second = (alignment_term) ? getAlignmentTermEquationsCount() : 0;// 未出界匹配点对 * 2
   equation += alignment_equation.second;
 
-  // local_similarity_equation.first = equation;
-  // local_similarity_equation.second = (local_similarity_term) ? similarity_equation_count : 0;
-  // equation += local_similarity_equation.second;
+  local_similarity_equation.first = equation;
+  local_similarity_equation.second = (local_similarity_term) ? similarity_equation_count : 0;
+  equation += local_similarity_equation.second;
 
-  // global_similarity_equation.first = equation;
-  // global_similarity_equation.second = (global_similarity_term) ? similarity_equation_count : 0;
+  global_similarity_equation.first = equation;
+  global_similarity_equation.second = (global_similarity_term) ? similarity_equation_count : 0;
 
-  // _triplets.reserve(alignment_equation.second * 8 +
-  //     (local_similarity_term) * (edge_neighbor_vertices_count * 8 + edge_count * 4) +
-  //     (global_similarity_term) * (edge_neighbor_vertices_count * 8) +
-  //     _start_index);
-  // _b_vector.reserve((global_similarity_term) * edge_neighbor_vertices_count * 4 +
-  //     _start_index);
+  _triplets.reserve(alignment_equation.second * 8 +
+      (local_similarity_term) * (edge_neighbor_vertices_count * 8 + edge_count * 4) +
+      (global_similarity_term) * (edge_neighbor_vertices_count * 8) +
+      _start_index);
+  _b_vector.reserve((global_similarity_term) * edge_neighbor_vertices_count * 4 +
+      _start_index);
 }
 
 int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
   vector<pair<int, int> > images_match_graph_pair_list;
-  assert(0);
-  return 0;
+  images_match_graph_pair_list.emplace_back(make_pair(0, 1));
+  for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
+    pair<int, int> match_pair = images_match_graph_pair_list[i];
+    int m1 = match_pair.first;
+    int m2 = match_pair.second;
+    result += multi_images->matching_pairs[m1][m2].size();// TODO
+  }
+  return result * DIMENSION_2D;
 }

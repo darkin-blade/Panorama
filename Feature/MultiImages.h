@@ -43,7 +43,7 @@ public:
 
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
-  vector<vector<vector<pair<int, int> > > > matching_pairs;// 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
+  vector<vector<vector<pair<int, int> > > > matching_pairs;// (过滤后)匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   void read_img(const char *img_path);
   vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);

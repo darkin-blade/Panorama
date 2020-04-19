@@ -119,7 +119,7 @@ Mat NISwGSP_Stitching::matching_match() {
       Mat another_img = multi_images->imgs[m2]->data;
 
       // 剔除出界点
-      vector<pair<int, int> > &matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
+      vector<pair<int, int> > & matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
       const vector<Point2f> *tmp_p = &multi_images->imgs[m1]->matching_points[m2];// 匹配点位置
       for (int k = 0; k < tmp_p->size(); k ++) {
         if ((*tmp_p)[k].x >= 0
