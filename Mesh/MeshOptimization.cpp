@@ -70,8 +70,36 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
     const int equation = alignment_equation.first;
 
     const vector<vector<InterpolateVertex> > & mesh_interpolate_vertex_of_matching_pts = multi_images->getInterpolateVerticesOfMatchingPoints();
+    const vector<int> images_vertices_start_index = multi_images->getImagesVerticesStartIndex();
+
+    int eq_count = 0;
+    for (int i = 0; i < 1; i ++) {// TODO
+      int m1 = 0, m2 = 1;// TODO
+      const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->polygons_indices;
+      const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->polygons_indices;
+
+      for (int j = 0; j < matching_pairs[m1][m2].size(); j ++) {
+        const pair<int, int> D_Match = matching_pairs[m1][m2][j];// TODO
+
+        for (int dim = 0; dim < DIMENSION_2D; dim ++) {
+          for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
+            _triplets.emplace_back(equation + eq_count + dim,
+                images_vertices_start_index[m1] + dim + 
+                DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),// TODO
+                alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);// TODO
+          }
+          for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m2
+            _triplets.emplace_back(equation + eq_count + dim,
+                images_vertices_start_index[m2] + dim + 
+                DIMENSION_2D * (polygons_indices_2[mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].polygon][k]),// TODO
+                -alignment_weight * mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].weights[k]);
+          }
+        }
+        eq_count += DIMENSION_2D;
+      }
+    }
+    assert(eq_count == alignment_equation.second);// 匹配点对的2倍
   }
-  assert(0);
 }
 
 void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplets,
@@ -81,13 +109,8 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
 
 int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
-  vector<pair<int, int> > images_match_graph_pair_list;
-  images_match_graph_pair_list.emplace_back(make_pair(0, 1));
-  for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
-    pair<int, int> match_pair = images_match_graph_pair_list[i];
-    int m1 = match_pair.first;
-    int m2 = match_pair.second;
-    result += multi_images->matching_pairs[m1][m2].size();// TODO
-  }
+  int m1 = 0, m2 = 1;
+  images_match_graph_pair_list.emplace_back(make_pair(0, 1));// TODO
+  result += multi_images->matching_pairs[m1][m2].size();// TODO
   return result * DIMENSION_2D;
 }

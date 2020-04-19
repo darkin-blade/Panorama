@@ -196,6 +196,18 @@ vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatching
   return mesh_interpolate_vertex_of_matching_pts;
 }
 
+vector<int> MultiImages:getImagesVerticesStartIndex() {
+  if (images_vertices_start_index.empty()) {
+    images_vertices_start_index.reserve(img_num);
+    int index = 0;
+    for (int i = 0; i < img_num; i ++) {
+      images_vertices_start_index.emplace_back(index);
+      index += imgs[i]->mesh_points.size() * DIMENSION_2D;
+    }
+  }
+  return images_vertices_start_index;
+}
+
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
                                 int _blend_method) {
 
