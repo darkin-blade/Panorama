@@ -45,6 +45,8 @@ public:
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
   vector<vector<vector<pair<int, int> > > > matching_pairs;// (过滤后)匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
+  vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
+
   void read_img(const char *img_path);
   vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);
   vector<pair<int, int> > getOpencvFeaturePairs(const int m1, const int m2);
