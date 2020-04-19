@@ -105,6 +105,7 @@ Mat NISwGSP_Stitching::matching_match() {
   }
 
   // 记录匹配信息
+  multi_images->matching_points.resize(img_num);// 过滤后的匹配点
   multi_images->matching_pairs.resize(img_num);
   multi_images->matching_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
@@ -119,17 +120,30 @@ Mat NISwGSP_Stitching::matching_match() {
 
       // 剔除出界点
       vector<pair<int, int> > & matching_pairs = multi_images->matching_pairs[m1][m2];// 配对信息
-      const vector<Point2f> *tmp_p = & multi_images->imgs[m1]->matching_points[m2];// 匹配点位置
-      for (int k = 0; k < tmp_p->size(); k ++) {
-        if ((*tmp_p)[k].x >= 0
-          && (*tmp_p)[k].y >= 0
-          && (*tmp_p)[k].x <= another_img.cols
-          && (*tmp_p)[k].y <= another_img.rows) {// x对应cols, y对应rows
+      
+      vector<Point2f> tmp_1 = multi_images->imgs[m1]->matching_points;// 匹配点位置
+      for (int k = 0; k < tmp_1->size(); k ++) {
+        if (tmp_1[m2][k].x >= 0 // TODO m1 or m2
+         && tmp_1[m2][k].y >= 0
+         && tmp_1[m2][k].x <= another_img.cols
+         && tmp_1[m2][k].y <= another_img.rows) {// x对应cols, y对应rows
           // 如果对应的匹配点没有出界
-          matching_pairs.push_back(pair<int, int>(k, k));
-          multi_images->matching_mask[i][k] = true;// TODO 标记可行
+          matching_pairs.push_back(pair<int, int>(k, multi_images->matching_points[m2].size()));
+          multi_images->matching_mask[m1][k] = true;// TODO 标记可行
+          multi_images->matching_points[m2].emplace_back(tmp_1[j][k]);// TODO 参数
         }
       }
+      // const vector<Point2f> *tmp_2 = & multi_images->imgs[m2]->matching_points[m1];// 匹配点位置
+      // for (int k = 0; k < tmp_2->size(); k ++) {
+      //   if ((*tmp_2)[k].x >= 0
+      //     && (*tmp_2)[k].y >= 0
+      //     && (*tmp_2)[k].x <= another_img.cols
+      //     && (*tmp_2)[k].y <= another_img.rows) {// x对应cols, y对应rows
+      //     // 如果对应的匹配点没有出界
+      //     matching_pairs.push_back(pair<int, int>(k, k));
+      //     multi_images->matching_mask[m2][k] = true;// TODO 标记可行
+      //   }
+      // }
     }
   }
   
@@ -148,9 +162,9 @@ Mat NISwGSP_Stitching::matching_match() {
   if (0) {
     // 描绘匹配点配对
     for (int i = 0; i < multi_images->matching_pairs[0][1].size(); i ++) {
-      int index = multi_images->matching_pairs[0][1][i].first;// first == second
+      int index = multi_images->matching_pairs[0][1][i].first;
       Point2f src_p, dst_p;
-      src_p  = multi_images->imgs[0]->getMeshPoints()[index];
+      src_p = multi_images->imgs[0]->getMeshPoints()[index];
       dst_p = multi_images->imgs[0]->matching_points[1][index];
 
       Scalar color(rand() % 256, rand() % 256, rand() % 256);
@@ -162,7 +176,7 @@ Mat NISwGSP_Stitching::matching_match() {
     // 描绘所有匹配点
     for (int i = 0; i < multi_images->imgs[0]->getMeshPoints().size(); i ++) {
       Point2f src_p, dst_p;
-      src_p  = multi_images->imgs[0]->getMeshPoints()[i];
+      src_p = multi_images->imgs[0]->getMeshPoints()[i];
       dst_p = multi_images->imgs[0]->matching_points[1][i];
 
       Scalar color1(255, 0, 0);
@@ -187,18 +201,18 @@ void NISwGSP_Stitching::get_solution() {
   vector<pair<int, double> > b_vector;
 
   reserveData(triplets, b_vector, DIMENSION_2D);// TODO
-  LOG("%ld %ld", triplets.size(), b_vector.size());
 
   triplets.emplace_back(0, 0, STRONG_CONSTRAINT);
   triplets.emplace_back(1, 1, STRONG_CONSTRAINT);
   b_vector.emplace_back(0,    STRONG_CONSTRAINT);
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
-  LOG("%ld %ld", triplets.size(), b_vector.size());
 
   prepareAlignmentTerm(triplets);
-  LOG("%ld %ld", triplets.size(), b_vector.size());
+  assert(0);
+  // for (int i = 0; i < 100; i ++) {
+  //   LOG("%lf", triplets[i].value());
+  // }
   prepareSimilarityTerm(triplets, b_vector);
-  LOG("%ld %ld", triplets.size(), b_vector.size());
   getImageMeshPoints(triplets, b_vector);
 }
 
@@ -218,7 +232,6 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   result_1[0].push_back(tmp_mesh);
   // }
   Size2f target_size = normalizeVertices(multi_images->image_mesh_points);
-  LOG("%f %f", target_size.height, target_size.width);
   Mat result_1;
   result_1 = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
   vector<vector<Point2f> > & image_mesh_points = multi_images->image_mesh_points;

@@ -90,11 +90,12 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
     int eq_count = 0;
     for (int i = 0; i < 1; i ++) {// TODO
       int m1 = 0, m2 = 1;// TODO
-      const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->polygons_indices;
-      const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->polygons_indices;
+      const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
+      const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
 
       for (int j = 0; j < multi_images->matching_pairs[m1][m2].size(); j ++) {
         const pair<int, int> D_Match = multi_images->matching_pairs[m1][m2][j];// TODO
+        LOG("%d %d", D_Match.first, D_Match.second);
 
         for (int dim = 0; dim < DIMENSION_2D; dim ++) {
           for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
