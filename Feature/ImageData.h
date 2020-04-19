@@ -80,8 +80,8 @@ public:
   vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形
   vector<Edge> getEdges();// TODO
   vector<vector<int> > getPolygonsNeighbors();// TODO
-  vector<vector<int> > getPolygonsCenter();// TODO
-  vector<Point2f> getVertexStructures();// TODO
+  vector<Point2f> getPolygonsCenter();// TODO
+  vector<vector<int> > getVertexStructures();// TODO
   InterpolateVertex getInterpolateVertex(const Point2f & _p);
   /** ImageData **/
 };

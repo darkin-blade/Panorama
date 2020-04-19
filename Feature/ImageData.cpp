@@ -3,14 +3,6 @@
 void ImageData::init_data(const char *img_path) {
   get_img(img_path);
   get_size();
-
-  assert(data.empty() == false);
-  assert(alpha_mask.empty() == false);
-  assert(mesh_points.empty() == false);
-  assert(polygons_indices.empty() == false);
-  assert(triangulation_indices.empty() == false);
-  assert(edges.empty() == false);
-  assert(vertex_structures.empty() == false);
 }
 
 void ImageData::get_img(const char *img_path) {
@@ -91,15 +83,15 @@ vector<vector<int> > ImageData::getPolygonsIndices() {
     polygons_indices.resize(memory);
     int index = 0;
     for (int h = 0; h < nh; h ++) {// 从上到下
-        for (int w = 0; w < nw; w ++) {// 从左到右
-            const Point2i p1(w, h);
-            polygons_indices[index].reserve(GRID_VERTEX_SIZE);
-            for (int n = 0; n < GRID_VERTEX_SIZE; n ++) {
-                const Point2i p2 = p1 + nexts[n];
-                polygons_indices[index].emplace_back(p2.x + p2.y * (nw + 1));// 横向索引 + 纵向索引 * (横向mesh数目)
-            }
-            index ++;
+      for (int w = 0; w < nw; w ++) {// 从左到右
+        const Point2i p1(w, h);
+        polygons_indices[index].reserve(GRID_VERTEX_SIZE);
+        for (int n = 0; n < GRID_VERTEX_SIZE; n ++) {
+          const Point2i p2 = p1 + nexts[n];
+          polygons_indices[index].emplace_back(p2.x + p2.y * (nw + 1));// 横向索引 + 纵向索引 * (横向mesh数目)
         }
+        index ++;
+      }
     }
     assert(memory == polygons_indices.size());
   }
@@ -153,7 +145,7 @@ vector<vector<int> > ImageData::getPolygonsNeighbors() {
   return polygons_neighbors;
 }
 
-vector<vector<int> > ImageData::getPolygonsCenter() {
+vector<Point2f> ImageData::getPolygonsCenter() {
   if (polygons_center.empty()) {
     const vector<Point2f> mesh_points = getMeshPoints();
     const vector<vector<int> > polygons_indices = getPolygonsIndices();
@@ -169,7 +161,7 @@ vector<vector<int> > ImageData::getPolygonsCenter() {
   return polygons_center;
 }
 
-vector<Point2f> ImageData::getVertexStructures() {
+vector<vector<int> > ImageData::getVertexStructures() {
   if (vertex_structures.empty()) {
     const vector<Point2i> nexts = {
       Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1)

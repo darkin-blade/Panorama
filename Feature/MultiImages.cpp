@@ -227,7 +227,7 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
 
       for (int j = 0; j < polygons_has_matching_pts.size(); j ++) {
         if (polygons_has_matching_pts[j]) {
-          polygons_has_matching_pts = false;
+          polygons_has_matching_pts[j] = false;
           images_polygon_space_matching_pts_weight[i].emplace_back(0);
           que.push(dijkstraNode(j, j, 0));
         } else {

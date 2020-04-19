@@ -109,7 +109,7 @@ Mat NISwGSP_Stitching::matching_match() {
   multi_images->matching_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_pairs[i].resize(img_num);
-    multi_images->matching_mask[i].resize(multi_images->imgs[m1]->mesh_points.size());// TODO
+    multi_images->matching_mask[i].resize(multi_images->imgs[i]->mesh_points.size());// TODO m1
 
     for (int j = 0; j < img_num; j ++) {
       if (i == j) continue;
