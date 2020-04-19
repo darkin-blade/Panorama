@@ -47,6 +47,7 @@ int MeshOptimization::getAlignmentTermEquationsCount() {
   int result = 0;
   int m1 = 0, m2 = 1;
   result += multi_images->keypoints_pairs[m1][m2].size();// TODO
+  result += multi_images->keypoints_pairs[m2][m1].size();// TODO
   return result * DIMENSION_2D;
 }
 
@@ -88,13 +89,21 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
     const vector<int> images_vertices_start_index = multi_images->getImagesVerticesStartIndex();
 
     int eq_count = 0;
-    for (int i = 0; i < 1; i ++) {// TODO
-      int m1 = 0, m2 = 1;// TODO
-      const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
-      const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
 
-      for (int j = 0; j < multi_images->keypoints_pairs[m1][m2].size(); j ++) {
-        const pair<int, int> D_Match = multi_images->keypoints_pairs[m1][m2][j];// TODO
+    int m1 = 0, m2 = 1;
+    const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
+    const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
+
+    int n1, n2;
+    for (int i = 0; i < 2; i ++) {// TODO
+      if (i == 0) {// TODO
+        n1 = 0, n2 = 1;
+      } else {
+        n1 = 1, n2 = 0;
+      }
+
+      for (int j = 0; j < multi_images->keypoints_pairs[n1][n2].size(); j ++) {
+        const pair<int, int> D_Match = multi_images->keypoints_pairs[n1][n2][j];// TODO
 
         for (int dim = 0; dim < DIMENSION_2D; dim ++) {
           for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1

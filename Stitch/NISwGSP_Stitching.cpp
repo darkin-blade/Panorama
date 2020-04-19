@@ -210,12 +210,12 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
-  assert(0);
-  // for (int i = 0; i < 100; i ++) {
-  //   LOG("%lf", triplets[i].value());
-  // }
   prepareSimilarityTerm(triplets, b_vector);
-  getImageMeshPoints(triplets, b_vector);
+  // int tmp_size = triplets.size() - 1;
+  // for (int i = 0; i < 100; i ++) {
+  //   LOG("%lf", triplets[tmp_size - i].value());
+  // }
+  // getImageMeshPoints(triplets, b_vector);
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
