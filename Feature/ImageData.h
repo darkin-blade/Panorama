@@ -55,7 +55,7 @@ public:
   vector<vector<int> > polygons_neighbors;// TODO Indices
   vector<Point2f> polygons_center;// TODO
 
-  // ImageData
+  // ImageData(直接获取成员)
   Mat data;
   Mat grey_data;
   Mat rgba_data;
@@ -75,7 +75,7 @@ public:
   void get_size();
   int getGridIndexOfPoint(const Point2f & _p);
   /** MeshGrid **/
-  vector<Point2f> getMesh2dPoints();// 所有mesh点
+  vector<Point2f> getMeshPoints();// 所有mesh点
   vector<vector<int> > getPolygonsIndices();// 所有mesh点线性索引
   vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形
   vector<Edge> getEdges();// TODO

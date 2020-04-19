@@ -15,7 +15,7 @@ MeshOptimization::MeshOptimization(MultiImages & _multi_images) {
 int MeshOptimization::getEdgesCount() {
   int result = 0;
   for (int i = 0; i < multi_images->img_num; i ++) {
-    result += multi_images->imgs[i]->edges.size();
+    result += multi_images->imgs[i]->getEdges().size();
   }
   return result;
 }
@@ -23,8 +23,8 @@ int MeshOptimization::getEdgesCount() {
 int MeshOptimization::getEdgeNeighborVerticesCount() {
   int result = 0;
   for (int i = 0; i < multi_images->img_num; i ++) {
-    const vector<Edge> & edges = multi_images->imgs[i]->edges;
-    const vector<vector<int> > & v_neighbors = multi_images->imgs[i]->vertex_structures;
+    const vector<Edge> & edges = multi_images->imgs[i]->getEdges();
+    const vector<vector<int> > & v_neighbors = multi_images->imgs[i]->getVertexStructures();
     for (int j = 0; j < edges.size(); j ++) {
       for (int e = 0; e < EDGE_VERTEX_SIZE; e ++) {
         result += v_neighbors[edges[j].indices[e]].size();// TODO Indices

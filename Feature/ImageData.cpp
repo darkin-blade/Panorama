@@ -54,7 +54,7 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
 /** MeshGrid **/
 
-vector<Point2f> ImageData::getMesh2dPoints() {
+vector<Point2f> ImageData::getMeshPoints() {
   if (mesh_points.empty()) {
     const int memory = (nh + 1) * (nw + 1);
     mesh_points.reserve(memory);
@@ -154,7 +154,19 @@ vector<vector<int> > ImageData::getPolygonsNeighbors() {
 }
 
 vector<vector<int> > ImageData::getPolygonsCenter() {
-  ;
+  if (polygons_center.empty()) {
+    const vector<Point2f> mesh_points = getMeshPoints();
+    const vector<vector<int> > polygons_indices = getPolygonsIndices();
+    polygons_center.reserve(polygons_indices.size());
+    for (int i = 0; i < polygons_indices.size(); i ++) {
+      Point2f center(0, 0);
+      for (int j = 0; j < polygons_indices[i].size(); j ++) {
+        center += mesh_points[polygons_indices[i][j]];
+      }
+      polygons_center.emplace_back(center / (float)polygons_indices[i].size());
+    }
+  }
+  return polygons_center;
 }
 
 vector<Point2f> ImageData::getVertexStructures() {

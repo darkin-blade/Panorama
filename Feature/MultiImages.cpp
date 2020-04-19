@@ -203,7 +203,7 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
     int index = 0;
     for (int i = 0; i < img_num; i ++) {
       images_vertices_start_index.emplace_back(index);
-      index += imgs[i]->mesh_points.size() * DIMENSION_2D;
+      index += imgs[i]->getMeshPoints().size() * DIMENSION_2D;
     }
   }
   return images_vertices_start_index;
@@ -215,7 +215,7 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
     const vector<vector<bool> > images_features_mask = matching_mask;// TODO
     const vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts = getInterpolateVerticesOfMatchingPoints();
     for (int i = 0; i < images_polygon_space_matching_pts_weight.size(); i ++) {
-      const int polygons_count = (int)imgs[i]->polygons_indices.size();
+      const int polygons_count = (int)imgs[i]->getPolygonsIndices().size();
       vector<bool> polygons_has_matching_pts(polygons_count, false);
       for (int j = 0; j < images_features_mask[i].size(); j ++) {
         if (images_features_mask[i][j]) {
@@ -234,8 +234,30 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
           images_polygon_space_matching_pts_weight[i].emplace_back(MAXFLOAT);
         }
       }
-      const vector<vector<int> > polygons_neighbors = imgs[i]->polygons_neighbors;
-      const vector<Point2f> polygons_center = imgs[i]->polygons_center;
+      const vector<vector<int> > polygons_neighbors = imgs[i]->getPolygonsNeighbors();
+      const vector<Point2f> polygons_center = imgs[i]->getPolygonsCenter();
+      while (que.empty() == false) {
+        const dijkstraNode now = que.top();
+        const int index = now.pos;
+        que.pop();
+        if (polygons_has_matching_pts[index] == false) {
+          polygons_has_matching_pts[index] = true;
+          for (int j = 0; j < polygons_neighbors[index].size(); j ++) {
+            const int n = polygons_neighbors[index][j];
+            if (polygons_has_matching_pts[n] == false) {
+              const double dis = norm(polygons_center[n] - polygons_center[now.from]);
+              if (images_polygon_space_matching_pts_weight[i][n] > dis) {
+                images_polygon_space_matching_pts_weight[i][n] = dis;
+                que.push(dijkstraNode(now.from, n, dis));
+              }
+            }
+          }
+        }
+      }
+      const double normalize_inv = 1. / norm(Point2i(imgs[i]->data.cols, imgs[i]->data.rows));
+      for (int j = 0; j < images_polygon_space_matching_pts_weight[i].size(); j ++) {
+        images_polygon_space_matching_pts_weight[i][j] = images_polygon_space_matching_pts_weight[i][j] * normalize_inv;
+      }
     }
   }
   return images_polygon_space_matching_pts_weight;
@@ -269,18 +291,18 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < img_num; i ++) {
-    const vector<Point2f> & src_vertices = imgs[i]->mesh_points;// 所有mesh点
-    const vector<vector<int> > & polygons_indices = imgs[i]->polygons_indices;// TODO mesh点的线性索引
+    const vector<Point2f> & src_vertices = imgs[i]->getMeshPoints();// 所有mesh点
+    const vector<vector<int> > & polygons_indices = imgs[i]->getPolygonsIndices();// TODO mesh点的线性索引
     const Point2f origin(rects[i].x, rects[i].y);// 矩形坐标(左上角)
     const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用
     vector<Mat> affine_transforms;
-    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->triangulation_indices.size()));// TODO
+    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->getTriangulationIndices().size()));// TODO
     LOG("%f %f", rects[i].height + shift.y, rects[i].width + shift.x);
     Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
     int label = 0;
     for (int j = 0; j < polygons_indices.size(); j ++) {
-      for (int k = 0; k < imgs[i]->triangulation_indices.size(); k ++) {// 分两次填充矩形区域
-        const vector<int> & index = imgs[i]->triangulation_indices[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
+      for (int k = 0; k < imgs[i]->getTriangulationIndices().size(); k ++) {// 分两次填充矩形区域
+        const vector<int> & index = imgs[i]->getTriangulationIndices()[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
         const Point2i contour[] = {
           (_vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
           (_vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
