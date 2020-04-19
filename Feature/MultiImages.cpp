@@ -98,8 +98,6 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
   // while (tmp_X.size() >= HOMOGRAPHY_MODEL_MIN_POINTS && // 4
   //     LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST < GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST) 
   while (true) {
-    LOG("%ld", tmp_X.size());
-
     if (tmp_X.size() < HOMOGRAPHY_MODEL_MIN_POINTS) {
       LOG("break: homography points");
       break;

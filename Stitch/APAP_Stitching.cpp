@@ -31,7 +31,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
   _dst.reserve(_src.size());
   _homographies.reserve(_src.size());
 
-  LOG("%ld %ld", A.rows(), A.cols());
+  // LOG("%ld %ld", A.rows(), A.cols());
 
   for (int i = 0; i < _src.size(); i ++) {
     for (int j = 0; j < _p_src.size(); j ++) {

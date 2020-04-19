@@ -189,8 +189,11 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
+  LOG("alignemt term");
   prepareSimilarityTerm(triplets, b_vector);
+  LOG("similarity term");
   getImageMeshPoints(triplets, b_vector);
+  LOG("get optimization");
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
@@ -208,6 +211,11 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
   //   result_1[0].push_back(tmp_mesh);
   // }
+  assert(multi_images->image_mesh_points.empty() == false);
+
+  for (int i = 0; i < multi_images->image_mesh_points.size(); i ++) {
+    LOG("%ld", multi_images->image_mesh_points[i].size());
+  }
 
   return multi_images->textureMapping(multi_images->image_mesh_points, 1);
 }
