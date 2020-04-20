@@ -139,8 +139,10 @@ Mat NISwGSP_Stitching::matching_match() {
           
           if (m1 < m2) {
             multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+            // cout << k << " " << multi_images->keypoints[m2].size() << endl; 
           } else {
             multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(multi_images->keypoints[m2].size(), k));
+            // cout << multi_images->keypoints[m2].size() << " " << k << endl;
           }
           multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
           multi_images->keypoints[m2].emplace_back(tmp_points[j][k]);
@@ -210,11 +212,11 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
-  prepareSimilarityTerm(triplets, b_vector);
   // int tmp_size = triplets.size() - 1;
   // for (int i = 0; i < 100; i ++) {
   //   LOG("%lf", triplets[tmp_size - i].value());
   // }
+  prepareSimilarityTerm(triplets, b_vector);
   getImageMeshPoints(triplets, b_vector);
 }
 
@@ -233,21 +235,26 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
   //   result_1[0].push_back(tmp_mesh);
   // }
-  Size2f target_size = normalizeVertices(multi_images->image_mesh_points);
-  Mat result_1;
-  result_1 = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
-  vector<vector<Point2f> > & image_mesh_points = multi_images->image_mesh_points;
-  for (int i = 0; i < multi_images->img_num; i ++) {
-    for (int j = 0; j < image_mesh_points[i].size(); j ++) {
-      Point2f tmp = image_mesh_points[i][j];
-      Scalar color1(255, 0, 0);
-      circle(result_1, tmp, CIRCLE_SIZE, color1, -1);
+
+  if (0) {
+    Size2f target_size = normalizeVertices(multi_images->image_mesh_points);
+    Mat result_1;
+    result_1 = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
+    vector<vector<Point2f> > & image_mesh_points = multi_images->image_mesh_points;
+    for (int i = 0; i < multi_images->img_num; i ++) {
+      for (int j = 0; j < image_mesh_points[i].size(); j ++) {
+        Point2f tmp = image_mesh_points[i][j];
+        if (i) {
+          circle(result_1, tmp, CIRCLE_SIZE, Scalar(255, 0, 0), -1);
+        } else {
+          circle(result_1, tmp, CIRCLE_SIZE, Scalar(255, 255, 0), -1);
+        }
+      }
     }
+    return result_1;
+  } else {
+    return multi_images->textureMapping(multi_images->image_mesh_points, 1);
   }
-
-  return result_1;
-
-  // return multi_images->textureMapping(multi_images->image_mesh_points, 1);
 }
 
 void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {

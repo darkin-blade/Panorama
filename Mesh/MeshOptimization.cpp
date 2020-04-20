@@ -182,10 +182,6 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
         double _global_similarity_weight = global_similarity_weight_beta;
         if (global_similarity_weight_gamma) {// TODO debug
           double sum_weight = 0;
-          for (int p = 0; p < e_neighbors[j].size(); p ++) {
-            sum_weight += images_grid_space_matching_pts_weight[i][e_neighbors[j][p]];
-            cout << e_neighbors[j][p] << endl;
-          }
           _global_similarity_weight = _global_similarity_weight + global_similarity_weight_gamma * (sum_weight / e_neighbors[j].size());
         }
 

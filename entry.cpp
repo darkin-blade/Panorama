@@ -52,6 +52,7 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
   niswgsp.feature_match();// 特征点
   niswgsp.matching_match();// 匹配点
+  niswgsp.get_solution();// 获取最优解
   *(Mat *)matBGR = niswgsp.texture_mapping().clone();// 图像拼接
 
   //    sprintf(img_path, "%s/3.jpg", app_path);
