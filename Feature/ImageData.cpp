@@ -198,15 +198,15 @@ vector<vector<int> > ImageData::getEdgeStructures() {
         Point2i p1(w, h);
         for (int n = 0; n < nexts.size(); n ++) {
           Point2i p2 = p1 + nexts[n];
-          if (p2.x >= 0 && p2.y >= 0 && p2.x < nw && p2.y < nh) {
+          if (p2.x >= 0 && p2.y >= 0 && p2.x <= nw && p2.y <= nh) {
             for (int j = 0; j < grid_neighbor.size(); j ++) {
               Point2i p3 = p1 + grid_neighbor[n] * j;
               if (p3.x >= 0 && p3.y >= 0 && p3.x < nw && p3.y < nh) {
                 edge_structures[index].emplace_back(p3.x + p3.y * nw);
               }
             }
+            index ++;
           }
-          index ++;
         }
       }
     }

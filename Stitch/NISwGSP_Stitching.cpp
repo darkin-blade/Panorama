@@ -215,7 +215,7 @@ void NISwGSP_Stitching::get_solution() {
   // for (int i = 0; i < 100; i ++) {
   //   LOG("%lf", triplets[tmp_size - i].value());
   // }
-  // getImageMeshPoints(triplets, b_vector);
+  getImageMeshPoints(triplets, b_vector);
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
