@@ -139,10 +139,10 @@ Mat NISwGSP_Stitching::matching_match() {
           
           if (m1 < m2) {
             multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
-            // cout << k << " " << multi_images->keypoints[m2].size() << endl; 
+            cout << k << " " << multi_images->keypoints[m2].size() << endl; 
           } else {
             multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(multi_images->keypoints[m2].size(), k));
-            // cout << multi_images->keypoints[m2].size() << " " << k << endl;
+            cout << multi_images->keypoints[m2].size() << " " << k << endl;
           }
           multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
           multi_images->keypoints[m2].emplace_back(tmp_points[j][k]);
