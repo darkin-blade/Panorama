@@ -90,7 +90,7 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
 
     int eq_count = 0;
 
-    int m1 = 0, m2 = 1;
+    int m1 = 0, m2 = 1;// TODO
     const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
     const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
 
