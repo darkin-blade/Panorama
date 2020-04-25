@@ -18,6 +18,27 @@ Mat NISwGSP_Stitching::feature_match() {
   // 特征点匹配
   multi_images->getFeaturePairs();
 
+  LOG("get feature pairs");
+
+  // 筛选成功匹配的特征点
+  multi_images->feature_points.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    multi_images->feature_points[i].resize(img_num);
+  }
+  for (int i = 0; i < img_num; i ++) {
+    for (int j = i + 1; j < img_num; j ++) {
+      assert(j > i);
+      int m1 = i, m2 = j;
+      const vector<Point2f> & m1_fpts = multi_images->imgs[m1]->feature_points;
+      const vector<Point2f> & m2_fpts = multi_images->imgs[m2]->feature_points;
+      for (int k = 0; k < multi_images->feature_pairs[m1][m2].size(); k ++) {
+        const pair<int, int> it = multi_images->feature_pairs[m1][m2][k];
+        multi_images->feature_points[m1][m2].emplace_back(m1_fpts[it.first ]);
+        multi_images->feature_points[m2][m1].emplace_back(m2_fpts[it.second]);
+      }
+    }
+  }
+
   // 描绘特征点
   Mat result_1;// 存储结果
   Mat left_1, right_1;// 分割矩阵
@@ -85,21 +106,16 @@ Mat NISwGSP_Stitching::matching_match() {
       int m1 = i;
       int m2 = j;
 
-      // 筛选成功匹配的特征点
-      const vector<Point2f> & m1_fpts = multi_images->imgs[m1]->feature_points;
-      const vector<Point2f> & m2_fpts = multi_images->imgs[m2]->feature_points;
-      vector<Point2f> X, Y;
-      for (int k = 0; k < multi_images->feature_pairs[m1][m2].size(); k ++) {
-        const pair<int, int> it = multi_images->feature_pairs[m1][m2][k];
-        X.emplace_back(m1_fpts[it.first ]);
-        Y.emplace_back(m2_fpts[it.second]);
-      }
-
-      APAP_Stitching::apap_project(X,
-                                   Y,
+      APAP_Stitching::apap_project(multi_images->feature_points[m1][m2],
+                                   multi_images->feature_points[m2][m1],
                                    multi_images->imgs[m1]->getMeshPoints(),
                                    multi_images->imgs[m1]->matching_points[m2],
                                    multi_images->imgs[m1]->homographies[m2]);
+
+      for (int k = 0; k < multi_images->imgs[m1]->matching_points[m2].size(); k ++) {
+        cout << k << " " << multi_images->imgs[m1]->matching_points[m2][k].x << " " << multi_images->imgs[m1]->matching_points[m2][k].y << endl;
+      }
+
       LOG("apap [%d, %d] finish", m1, m2);
     }
   }
@@ -131,7 +147,6 @@ Mat NISwGSP_Stitching::matching_match() {
       another_img = multi_images->imgs[m2]->data;
       // LOG("%d %d", another_img.cols, another_img.rows);
       for (int k = 0; k < tmp_points.size(); k ++) {
-        cout << k << " " << tmp_points[k].x << " " << tmp_points[k].y << endl;
         if (tmp_points[k].x >= 0
          && tmp_points[k].y >= 0
          && tmp_points[k].x <= another_img.cols
