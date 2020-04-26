@@ -112,10 +112,6 @@ Mat NISwGSP_Stitching::matching_match() {
                                    multi_images->imgs[m1]->matching_points[m2],
                                    multi_images->imgs[m1]->homographies[m2]);
 
-      for (int k = 0; k < multi_images->imgs[m1]->matching_points[m2].size(); k ++) {
-        cout << k << " " << multi_images->imgs[m1]->matching_points[m2][k].x << " " << multi_images->imgs[m1]->matching_points[m2][k].y << endl;
-      }
-
       LOG("apap [%d, %d] finish", m1, m2);
     }
   }
@@ -213,10 +209,10 @@ Mat NISwGSP_Stitching::matching_match() {
 }
 
 void NISwGSP_Stitching::get_solution() {
-  alignment_weight               =    1;
+  alignment_weight               = 1;
   local_similarity_weight        = 0.56;
-  global_similarity_weight_beta  =    6;
-  global_similarity_weight_gamma =   20;
+  global_similarity_weight_beta  = 6;
+  global_similarity_weight_gamma = 20;
 
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;

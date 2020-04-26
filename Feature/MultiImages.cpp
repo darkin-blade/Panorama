@@ -153,8 +153,8 @@ void MultiImages::getFeaturePairs() {
   }
 
   for (int i = 0; i < img_num; i ++) {
-    for (int j = 0; j < img_num; j ++) {
-      if (i == j) continue;
+    for (int j = i + 1; j < img_num; j ++) {
+      assert(j > i);
 
       // 先计算两张图的原始配对
       int m1 = i;
@@ -174,6 +174,11 @@ void MultiImages::getFeaturePairs() {
       }
       feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
       // feature_pairs[m1][m2] = initial_indices;
+
+      // 反向pairs
+      for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
+        feature_pairs[m2][m1].emplace_back(make_pair(feature_pairs[m1][m2][k].second, feature_pairs[m1][m2][k].first));
+      }
       
       assert(feature_pairs[m1][m2].empty() == false);
     }
