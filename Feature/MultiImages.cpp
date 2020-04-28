@@ -199,6 +199,7 @@ vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatching
 }
 
 vector<int> MultiImages::getImagesVerticesStartIndex() {
+  // 每幅图片的第1个vertex的总索引
   if (images_vertices_start_index.empty()) {
     images_vertices_start_index.reserve(img_num);
     int index = 0;

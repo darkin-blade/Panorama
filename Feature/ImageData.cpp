@@ -64,17 +64,18 @@ vector<vector<int> > ImageData::getTriangulationIndices() {
   if (triangulation_indices.empty()) {
     // 三角填充区域, 原值[[0, 1, 2], [0, 2, 3]], 即用两个三角形填满[0, 1, 2, 3](顺时针)的矩形区域
     triangulation_indices.resize(2);
+    triangulation_indices[0].emplace_back(0);
     triangulation_indices[0].emplace_back(1);
-    triangulation_indices[0].emplace_back(3);
     triangulation_indices[0].emplace_back(2);
-    triangulation_indices[1].emplace_back(3);
     triangulation_indices[1].emplace_back(0);
-    triangulation_indices[1].emplace_back(1);
+    triangulation_indices[1].emplace_back(2);
+    triangulation_indices[1].emplace_back(3);
   }
   return triangulation_indices;
 }
 
 vector<vector<int> > ImageData::getPolygonsIndices() {
+  // 获取每个mesh格子的4个顶点
   if (polygons_indices.empty()) {
     const Point2i nexts[GRID_VERTEX_SIZE] = {// 左上, 右上, 右下, 左下
         Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
@@ -99,6 +100,7 @@ vector<vector<int> > ImageData::getPolygonsIndices() {
 }
 
 vector<Edge> ImageData::getEdges() {
+  // 每个vertex的right, down邻接的vertex
   if (edges.empty()) {
     const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1) };
     const int memory = DIMENSION_2D * nh * nw + nh + nw;
@@ -121,6 +123,7 @@ vector<Edge> ImageData::getEdges() {
 }
 
 vector<vector<int> > ImageData::getPolygonsNeighbors() {
+  // 所有vertex邻接vertex的索引(不包含边界)
   if (polygons_neighbors.empty()) {
     const vector<Point2i> nexts = {
       Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1)
@@ -145,23 +148,8 @@ vector<vector<int> > ImageData::getPolygonsNeighbors() {
   return polygons_neighbors;
 }
 
-vector<Point2f> ImageData::getPolygonsCenter() {
-  if (polygons_center.empty()) {
-    const vector<Point2f> mesh_points = getMeshPoints();
-    const vector<vector<int> > polygons_indices = getPolygonsIndices();
-    polygons_center.reserve(polygons_indices.size());
-    for (int i = 0; i < polygons_indices.size(); i ++) {
-      Point2f center(0, 0);
-      for (int j = 0; j < polygons_indices[i].size(); j ++) {
-        center += mesh_points[polygons_indices[i][j]];
-      }
-      polygons_center.emplace_back(center / (float)polygons_indices[i].size());
-    }
-  }
-  return polygons_center;
-}
-
 vector<vector<int> > ImageData::getVertexStructures() {
+  // 所有vertex邻接vertex的索引(包含边界)
   if (vertex_structures.empty()) {
     const vector<Point2i> nexts = {
       Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1)
@@ -186,7 +174,25 @@ vector<vector<int> > ImageData::getVertexStructures() {
   return vertex_structures;
 }
 
+vector<Point2f> ImageData::getPolygonsCenter() {
+  // 所有vertex的中心
+  if (polygons_center.empty()) {
+    const vector<Point2f> mesh_points = getMeshPoints();
+    const vector<vector<int> > polygons_indices = getPolygonsIndices();
+    polygons_center.reserve(polygons_indices.size());
+    for (int i = 0; i < polygons_indices.size(); i ++) {
+      Point2f center(0, 0);
+      for (int j = 0; j < polygons_indices[i].size(); j ++) {
+        center += mesh_points[polygons_indices[i][j]];
+      }
+      polygons_center.emplace_back(center / (float)polygons_indices[i].size());
+    }
+  }
+  return polygons_center;
+}
+
 vector<vector<int> > ImageData::getEdgeStructures() {
+  // TODO
   if (edge_structures.empty()) {
     const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1) };
     const vector<Point2i> grid_neighbor = { Point2i(0, -1), Point2i(-1, 0) };
