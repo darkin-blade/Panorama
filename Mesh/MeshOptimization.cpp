@@ -148,7 +148,7 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
             _triplets.emplace_back(equation + eq_count + dim,
                 images_vertices_start_index[m1] + dim + 
                 DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),// TODO
-                alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);// TODO
+                alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);
           }
           for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m2
             _triplets.emplace_back(equation + eq_count + dim,
@@ -275,15 +275,23 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
 
 void MeshOptimization::getImageMeshPoints(vector<Triplet<double> > & _triplets,
     const vector<pair<int, double> > & _b_vector) {
-  LOG("%ld %ld", _triplets.size(), _b_vector.size());
-
   const int equations = global_similarity_equation.first + global_similarity_equation.second;
 
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
-  SparseMatrix<double> A(equations, getVerticesCount());
+  SparseMatrix<double> A(equations, getVerticesCount());// rows() = equations, cols() = 顶点数
+  // triplet的大小和equations无关,因为triplet中会出现重复的row, col
   VectorXd b = VectorXd::Zero(equations), x;
 
   A.setFromTriplets(_triplets.begin(), _triplets.end());
+  int max_col = 0, max_row = 0;
+  for (int i = 0; i < _triplets.size(); i ++) {
+    max_col = max(max_col, _triplets[i].col());
+    max_row = max(max_row, _triplets[i].row());
+  }
+  LOG("%d %d %ld %ld", equations, getVerticesCount(), _triplets.size(), b.size());
+  LOG("%d %d", max_row, max_col);// 因为顶点的起始下标为0, 所以出现的最大值比A矩阵的列数小1
+  LOG("%ld %ld", A.rows(), A.cols());// 行数, 列数
+
   for (int i = 0; i < _b_vector.size(); i ++) {
     b[_b_vector[i].first] = _b_vector[i].second;
   }
