@@ -11,12 +11,10 @@ int main(int argc, char *argv[]) {
   // 读取图片
   MultiImages multi_images;
   Mat img_read;
-  sprintf(img_path, "%s/1.jpg", app_path);
-  multi_images.read_img(img_path);
-  sprintf(img_path, "%s/2.jpg", app_path);
-  multi_images.read_img(img_path);
-  sprintf(img_path, "%s/3.jpg", app_path);
-  multi_images.read_img(img_path);
+  for (int i = 1; i <= 5; i ++) {
+    sprintf(img_path, "%s/%d.jpg", app_path, i);
+    multi_images.read_img(img_path);
+  }
 
   NISwGSP_Stitching niswgsp(multi_images);
 
