@@ -217,7 +217,7 @@ void NISwGSP_Stitching::get_solution() {
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
 
-  reserveData(triplets, b_vector, DIMENSION_2D);// TODO
+  reserveData(triplets, b_vector, 0);// DIMENSION_2D
 
   triplets.emplace_back(0, 0, STRONG_CONSTRAINT);
   triplets.emplace_back(1, 1, STRONG_CONSTRAINT);

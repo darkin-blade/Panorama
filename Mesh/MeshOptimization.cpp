@@ -65,21 +65,21 @@ void MeshOptimization::reserveData(vector<Triplet<double> > & _triplets,
   int similarity_equation_count = (edge_count) ? edge_count * DIMENSION_2D : 0;
   int edge_neighbor_vertices_count = (similarity_equation_count) ? getEdgeNeighborVerticesCount() : 0;
 
-  alignment_equation.first = equation;// 2
+  alignment_equation.first = equation;// TODO 改成0不影响
   alignment_equation.second = 0;
   if (alignment_term) {
     alignment_equation.second = getAlignmentTermEquationsCount();// 未出界匹配点对 * 2
   }
   equation += alignment_equation.second;
 
-  local_similarity_equation.first = equation;// (1 + 未出界匹配点对) * 2
+  local_similarity_equation.first = equation;// (未出界匹配点对) * 2
   local_similarity_equation.second = 0;
   if (local_similarity_term) {
     local_similarity_equation.second = similarity_equation_count;// mesh网格边数 * 2
   }
   equation += local_similarity_equation.second;
 
-  global_similarity_equation.first = equation;// (1 + 未出界匹配点对 + mesh网格边数) * 2
+  global_similarity_equation.first = equation;// (未出界匹配点对 + mesh网格边数) * 2
   global_similarity_equation.second = 0;
   if (global_similarity_term) {
     global_similarity_equation.second = similarity_equation_count;// mesh网格边数 * 2

@@ -146,6 +146,7 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
 }
 
 void MultiImages::getFeaturePairs() {
+  // 获取feature points下标的配对信息
   // 初始化vector大小
   feature_pairs.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
@@ -175,12 +176,18 @@ void MultiImages::getFeaturePairs() {
       feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
       // feature_pairs[m1][m2] = initial_indices;
 
-      // 反向pairs
-      for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
-        feature_pairs[m2][m1].emplace_back(make_pair(feature_pairs[m1][m2][k].second, feature_pairs[m1][m2][k].first));
-      }
+      LOG("%d %d has feature pairs %ld", i, j, feature_pairs[m1][m2].size());
+      if (feature_pairs[m1][m2].size() > 20) {
+        // 两幅图片能够配对
+        img_pairs.emplace_back(make_pair(m1, m2));  
+
+        // 记录反向的pairs
+        for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
+          feature_pairs[m2][m1].emplace_back(make_pair(feature_pairs[m1][m2][k].second, feature_pairs[m1][m2][k].first));
+        }
       
-      assert(feature_pairs[m1][m2].empty() == false);
+        assert(feature_pairs[m1][m2].empty() == false);
+      }
     }
   }
 }
