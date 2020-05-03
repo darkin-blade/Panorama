@@ -48,9 +48,12 @@ int MeshOptimization::getEdgeNeighborVerticesCount() {
 int MeshOptimization::getAlignmentTermEquationsCount() {
   // 每对配对图片正 + 反(未出界)匹配点对 * 2
   int result = 0;
-  int m1 = 0, m2 = 1;
-  result += multi_images->keypoints_pairs[m1][m2].size();// TODO
-  result += multi_images->keypoints_pairs[m2][m1].size();// TODO
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    result += multi_images->keypoints_pairs[m1][m2].size();// TODO
+    result += multi_images->keypoints_pairs[m2][m1].size();// TODO
+  }
   return result * DIMENSION_2D;
 }
 
@@ -128,38 +131,42 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
 
     int eq_count = 0;
 
-    int m1 = 0, m2 = 1;// TODO
-    const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
-    const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
+    for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+      int m1 = multi_images->img_pairs[i].first;
+      int m2 = multi_images->img_pairs[i].second;
+      const vector<vector<int> > polygons_indices_1 = multi_images->imgs[m1]->getPolygonsIndices();
+      const vector<vector<int> > polygons_indices_2 = multi_images->imgs[m2]->getPolygonsIndices();
 
-    int n1, n2;
-    for (int i = 0; i < 2; i ++) {// TODO
-      if (i == 0) {// TODO
-        n1 = 0, n2 = 1;
-      } else {
-        n1 = 1, n2 = 0;
-      }
-
-      for (int j = 0; j < multi_images->keypoints_pairs[n1][n2].size(); j ++) {
-        const pair<int, int> D_Match = multi_images->keypoints_pairs[n1][n2][j];// TODO
-
-        for (int dim = 0; dim < DIMENSION_2D; dim ++) {
-          for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
-            _triplets.emplace_back(equation + eq_count + dim,
-                images_vertices_start_index[m1] + dim + 
-                DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),// TODO
-                alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);
-          }
-          for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m2
-            _triplets.emplace_back(equation + eq_count + dim,
-                images_vertices_start_index[m2] + dim + 
-                DIMENSION_2D * (polygons_indices_2[mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].polygon][k]),// TODO
-                -alignment_weight * mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].weights[k]);
-          }
+      int n1, n2;
+      for (int j = 0; j < 2; j ++) {
+        if (j == 0) {// TODO
+          n1 = m1, n2 = m2;// 正向
+        } else {
+          n1 = m2, n2 = m1;// 反向
         }
-        eq_count += DIMENSION_2D;
+
+        for (int j = 0; j < multi_images->keypoints_pairs[n1][n2].size(); j ++) {
+          const pair<int, int> D_Match = multi_images->keypoints_pairs[n1][n2][j];// TODO
+
+          for (int dim = 0; dim < DIMENSION_2D; dim ++) {
+            for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
+              _triplets.emplace_back(equation + eq_count + dim,
+                  images_vertices_start_index[m1] + dim + 
+                  DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),// TODO
+                  alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);
+            }
+            for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m2
+              _triplets.emplace_back(equation + eq_count + dim,
+                  images_vertices_start_index[m2] + dim + 
+                  DIMENSION_2D * (polygons_indices_2[mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].polygon][k]),// TODO
+                  -alignment_weight * mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].weights[k]);
+            }
+          }
+          eq_count += DIMENSION_2D;
+        }
       }
     }
+
     assert(eq_count == alignment_equation.second);// 匹配点对的2倍
   }
 }
