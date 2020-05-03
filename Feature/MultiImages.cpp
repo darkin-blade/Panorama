@@ -178,6 +178,7 @@ void MultiImages::getFeaturePairs() {
 
       LOG("%d %d has feature pairs %ld", i, j, feature_pairs[m1][m2].size());
       if (feature_pairs[m1][m2].size() > 20) {
+        LOG("%d %d can match", m1, m2);
         // 两幅图片能够配对
         img_pairs.emplace_back(make_pair(m1, m2));  
 
@@ -187,6 +188,8 @@ void MultiImages::getFeaturePairs() {
         }
       
         assert(feature_pairs[m1][m2].empty() == false);
+      } else {
+        LOG("%d %d can't match", m1, m2);
       }
     }
   }

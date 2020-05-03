@@ -15,6 +15,8 @@ int main(int argc, char *argv[]) {
   multi_images.read_img(img_path);
   sprintf(img_path, "%s/2.jpg", app_path);
   multi_images.read_img(img_path);
+  sprintf(img_path, "%s/3.jpg", app_path);
+  multi_images.read_img(img_path);
 
   NISwGSP_Stitching niswgsp(multi_images);
 
