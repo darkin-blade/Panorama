@@ -103,22 +103,27 @@ Mat NISwGSP_Stitching::matching_match() {
   LOG("starting apap");
 
   // 计算匹配点
-  for (int i = 0; i < img_num; i ++) {
-    for (int j = 0; j < img_num; j ++) {
-      if (i == j) continue;
-      int m1 = i;
-      int m2 = j;
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    assert(m2 > m1);
 
-      APAP_Stitching::apap_project(multi_images->feature_points[m1][m2],
-                                   multi_images->feature_points[m2][m1],
-                                   multi_images->imgs[m1]->getMeshPoints(),
-                                   multi_images->imgs[m1]->matching_points[m2],
-                                   multi_images->imgs[m1]->homographies[m2]);
+    APAP_Stitching::apap_project(multi_images->feature_points[m1][m2],
+                                 multi_images->feature_points[m2][m1],
+                                 multi_images->imgs[m1]->getMeshPoints(),
+                                 multi_images->imgs[m1]->matching_points[m2],
+                                 multi_images->imgs[m1]->homographies[m2]);
 
-      LOG("apap [%d, %d] finish", m1, m2);
-    }
+    APAP_Stitching::apap_project(multi_images->feature_points[m2][m1],
+                                 multi_images->feature_points[m1][m2],
+                                 multi_images->imgs[m2]->getMeshPoints(),
+                                 multi_images->imgs[m2]->matching_points[m1],
+                                 multi_images->imgs[m2]->homographies[m1]);
+
+    LOG("apap [%d, %d] finish", m1, m2);
   }
 
+  // 所有mesh点都算作keypoint
   multi_images->keypoints.resize(img_num);
   multi_images->keypoints_mask.resize(img_num);
   multi_images->keypoints_pairs.resize(img_num);
@@ -131,8 +136,56 @@ Mat NISwGSP_Stitching::matching_match() {
     }
   }
 
-  // 记录匹配信息
+  // 记录keypoint下标的配对信息
   multi_images->matching_indices.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    multi_images->matching_indices[i].resize(img_num);
+  }
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    assert(m2 > m1);
+    Mat another_img;
+    vector<Point2f> tmp_points;
+
+    // 正向配对
+    vector<int> & forward_indices = multi_images->matching_indices[m1][m2];// 记录配对信息
+    tmp_points = multi_images->imgs[m1]->matching_points[m2];// m1 在 m2 上的匹配点
+    another_img = multi_images->imgs[m2]->data;
+    for (int k = 0; k < tmp_points.size(); k ++) {
+      if (tmp_points[k].x >= 0
+        && tmp_points[k].y >= 0
+        && tmp_points[k].x <= another_img.cols
+        && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
+        // 如果对应的匹配点没有出界
+        forward_indices.emplace_back(k);// 记录可行的匹配点
+        
+        multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+
+        multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
+        multi_images->keypoints[m2].emplace_back(tmp_points[k]);
+      }
+    }
+    // 反向配对
+    vector<int> & backward_indices = multi_images->matching_indices[m2][m1];// 记录配对信息
+    tmp_points = multi_images->imgs[m2]->matching_points[m1];// m1 在 m2 上的匹配点
+    another_img = multi_images->imgs[m1]->data;
+    for (int k = 0; k < tmp_points.size(); k ++) {
+      if (tmp_points[k].x >= 0
+        && tmp_points[k].y >= 0
+        && tmp_points[k].x <= another_img.cols
+        && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
+        // 如果对应的匹配点没有出界
+        backward_indices.emplace_back(k);// 记录可行的匹配点
+        
+        multi_images->keypoints_pairs[m2][m1].emplace_back(make_pair(multi_images->keypoints[m1].size(), k));
+
+        multi_images->keypoints_mask[m2][k] = true;// TODO 标记可行
+        multi_images->keypoints[m1].emplace_back(tmp_points[k]);
+      }
+    }
+  }
+
   for (int i = 0; i < img_num; i ++) {
     multi_images->matching_indices[i].resize(img_num);
     for (int j = 0; j < img_num; j ++) {
