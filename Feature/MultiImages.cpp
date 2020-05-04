@@ -314,6 +314,16 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {// TODO
       images_similarity_elements[i].scale = 1;
       images_similarity_elements[i].theta = 0;
     }
+    // images_similarity_elements[0].scale = 1.3;
+    // images_similarity_elements[0].theta = -1.4;
+    // images_similarity_elements[1].scale = 1.1;
+    // images_similarity_elements[1].theta = 1.4;
+    // images_similarity_elements[2].scale = 1;
+    // images_similarity_elements[2].theta = 0.5;
+    // images_similarity_elements[3].scale = 1.2;
+    // images_similarity_elements[3].theta = -2.1;
+    // images_similarity_elements[4].scale = 1.2;
+    // images_similarity_elements[4].theta = -1.7;
   }
   return images_similarity_elements;
 }

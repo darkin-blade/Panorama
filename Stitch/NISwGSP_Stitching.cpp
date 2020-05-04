@@ -15,13 +15,6 @@ Mat NISwGSP_Stitching::feature_match() {
     LOG("[picture %d] feature points: %ld", i, multi_images->imgs[i]->feature_points.size());
   }
 
-  // 自定义图片配对关系
-  multi_images->auto_match = 0;// 不自动配对
-  multi_images->img_pairs.emplace_back(make_pair(0, 1));
-  multi_images->img_pairs.emplace_back(make_pair(1, 2));
-  multi_images->img_pairs.emplace_back(make_pair(2, 3));
-  multi_images->img_pairs.emplace_back(make_pair(3, 4));
-
   // 特征点匹配
   multi_images->getFeaturePairs();
 

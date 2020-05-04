@@ -11,10 +11,16 @@ int main(int argc, char *argv[]) {
   // 读取图片
   MultiImages multi_images;
   Mat img_read;
-  for (int i = 1; i <= 5; i ++) {
+  for (int i = 1; i <= 4; i ++) {
     sprintf(img_path, "%s/%d.jpg", app_path, i);
     multi_images.read_img(img_path);
   }
+
+  // 自定义图片配对关系
+  multi_images.auto_match = 0;// 不自动配对
+  multi_images.img_pairs.emplace_back(make_pair(0, 1));
+  multi_images.img_pairs.emplace_back(make_pair(1, 2));
+  multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
   NISwGSP_Stitching niswgsp(multi_images);
 
