@@ -66,6 +66,7 @@ public:
   MultiImages();
 
   int img_num;
+  int auto_match;// 自行检测图片的配对关系
   vector<ImageData *> imgs;
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
