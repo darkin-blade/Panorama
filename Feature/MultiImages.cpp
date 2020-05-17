@@ -15,6 +15,10 @@ void MultiImages::read_img(const char *img_path) {
   assert(img_num == imgs.size());
 }
 
+void MultiImages::do_matching() {
+  ;
+}
+
 vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
@@ -231,9 +235,9 @@ vector<vector<InterpolateVertex> > MultiImages::getInterpolateVerticesOfMatching
   if (mesh_interpolate_vertex_of_matching_pts.empty()) {
     mesh_interpolate_vertex_of_matching_pts.resize(img_num);
     for (int i = 0; i < mesh_interpolate_vertex_of_matching_pts.size(); i ++) {
-      mesh_interpolate_vertex_of_matching_pts[i].reserve(keypoints[i].size());
-      for (int j = 0; j < keypoints[i].size(); j ++) {
-        mesh_interpolate_vertex_of_matching_pts[i].emplace_back(imgs[i]->getInterpolateVertex(keypoints[i][j]));
+      mesh_interpolate_vertex_of_matching_pts[i].reserve(image_features[i].keypoints.size());
+      for (int j = 0; j < image_features[i].keypoints.size(); j ++) {
+        mesh_interpolate_vertex_of_matching_pts[i].emplace_back(imgs[i]->getInterpolateVertex(image_features[i].keypoints[j].pt));
       }
     }
   }
@@ -357,7 +361,7 @@ vector<CameraParams> MultiImages::getCameraParams() {
     for (int i = 0; i < relative_3D_rotations.size(); i ++) {
       relative_3D_rotations[i].resize(img_num);
     }
-    const vector<detail::ImageFeatures> & images_features    = getImagesFeaturesByMatchingPoints();
+    assert(image_features.size() > 0);
     const vector<detail::MatchesInfo>   & pairwise_matches   = getPairwiseMatchesByMatchingPoints();// TODO
     const vector<pair<int, int> > & images_match_graph_pair_list = parameter.getImagesMatchGraphPairList();
     for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
