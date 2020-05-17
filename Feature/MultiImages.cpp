@@ -307,24 +307,329 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
   return images_polygon_space_matching_pts_weight;
 }
 
-vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {// TODO
-  if (images_similarity_elements.empty()) {
-    images_similarity_elements.resize(img_num);
-    for (int i = 0; i < images_similarity_elements.size(); i ++) {
-      images_similarity_elements[i].scale = 1;
-      images_similarity_elements[i].theta = 0;
+vector<CameraParams> MultiImages::getCameraParams() const {
+  if(camera_params.empty()) {
+    camera_params.resize(images_data.size());
+    /*** Focal Length ***/
+    const vector<vector<vector<bool> > > & apap_overlap_mask = getAPAPOverlapMask();
+    const vector<vector<vector<Mat> > >  & apap_homographies = getAPAPHomographies();
+
+    vector<Mat> translation_matrix;
+    translation_matrix.reserve(images_data.size());
+    for(int i = 0; i < images_data.size(); ++i) {
+      Mat T(3, 3, CV_64FC1);
+      T.at<double>(0, 0) = T.at<double>(1, 1) = T.at<double>(2, 2) = 1;
+      T.at<double>(0, 2) = images_data[i].img.cols * 0.5;
+      T.at<double>(1, 2) = images_data[i].img.rows * 0.5;
+      T.at<double>(0, 1) = T.at<double>(1, 0) = T.at<double>(2, 0) = T.at<double>(2, 1) = 0;
+      translation_matrix.emplace_back(T);
     }
-    // images_similarity_elements[0].scale = 1.3;
-    // images_similarity_elements[0].theta = -1.4;
-    // images_similarity_elements[1].scale = 1.1;
-    // images_similarity_elements[1].theta = 1.4;
-    // images_similarity_elements[2].scale = 1;
-    // images_similarity_elements[2].theta = 0.5;
-    // images_similarity_elements[3].scale = 1.2;
-    // images_similarity_elements[3].theta = -2.1;
-    // images_similarity_elements[4].scale = 1.2;
-    // images_similarity_elements[4].theta = -1.7;
+    vector<vector<double> > image_focal_candidates;
+    image_focal_candidates.resize(images_data.size());
+    for(int i = 0; i < images_data.size(); ++i) {
+      for(int j = 0; j < images_data.size(); ++j) {
+        for(int k = 0; k < apap_overlap_mask[i][j].size(); ++k) {
+          if(apap_overlap_mask[i][j][k]) {
+            double f0, f1;
+            bool f0_ok, f1_ok;
+            Mat H = translation_matrix[j].inv() * apap_homographies[i][j][k] * translation_matrix[i];
+            detail::focalsFromHomography(H / H.at<double>(2, 2),
+                f0, f1, f0_ok, f1_ok);
+            if(f0_ok && f1_ok) {
+              image_focal_candidates[i].emplace_back(f0);
+              image_focal_candidates[j].emplace_back(f1);
+            }
+          }
+        }
+      }
+    }
+    for(int i = 0; i < camera_params.size(); ++i) {
+      if(image_focal_candidates[i].empty()) {
+        camera_params[i].focal = images_data[i].img.cols + images_data[i].img.rows;
+      } else {
+        Statistics::getMedianWithoutCopyData(image_focal_candidates[i], camera_params[i].focal);
+      }
+    }
+    /********************/
+    /*** 3D Rotations ***/
+    RED("3D rotations");
+    vector<vector<Mat> > relative_3D_rotations;
+    relative_3D_rotations.resize(images_data.size());
+    for(int i = 0; i < relative_3D_rotations.size(); ++i) {
+      relative_3D_rotations[i].resize(images_data.size());
+    }
+    const vector<detail::ImageFeatures> & images_features    = getImagesFeaturesByMatchingPoints();
+    const vector<detail::MatchesInfo>   & pairwise_matches   = getPairwiseMatchesByMatchingPoints();
+    const vector<pair<int, int> > & images_match_graph_pair_list = parameter.getImagesMatchGraphPairList();
+    for(int i = 0; i < images_match_graph_pair_list.size(); ++i) {
+      const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+      const int & m1 = match_pair.first, & m2 = match_pair.second;
+      const int m_index = m1 * (int)images_data.size() + m2;
+      const detail::MatchesInfo & matches_info = pairwise_matches[m_index];
+      const double & focal1 = camera_params[m1].focal;
+      const double & focal2 = camera_params[m2].focal;
+
+      MatrixXd A = MatrixXd::Zero(matches_info.num_inliers * DIMENSION_2D,
+          HOMOGRAPHY_VARIABLES_COUNT);
+
+      for(int j = 0; j < matches_info.num_inliers; ++j) {
+        Point2d p1 = Point2d(images_features[m1].keypoints[matches_info.matches[j].queryIdx].pt) -
+          Point2d(translation_matrix[m1].at<double>(0, 2), translation_matrix[m1].at<double>(1, 2));
+        Point2d p2 = Point2d(images_features[m2].keypoints[matches_info.matches[j].trainIdx].pt) -
+          Point2d(translation_matrix[m2].at<double>(0, 2), translation_matrix[m2].at<double>(1, 2));
+        A(2*j  , 0) =  p1.x;
+        A(2*j  , 1) =  p1.y;
+        A(2*j  , 2) =         focal1;
+        A(2*j  , 6) = -p2.x *   p1.x / focal2;
+        A(2*j  , 7) = -p2.x *   p1.y / focal2;
+        A(2*j  , 8) = -p2.x * focal1 / focal2;
+
+        A(2*j+1, 3) =  p1.x;
+        A(2*j+1, 4) =  p1.y;
+        A(2*j+1, 5) =         focal1;
+        A(2*j+1, 6) = -p2.y *   p1.x / focal2;
+        A(2*j+1, 7) = -p2.y *   p1.y / focal2;
+        A(2*j+1, 8) = -p2.y * focal1 / focal2;
+      }
+      JacobiSVD<MatrixXd, HouseholderQRPreconditioner> jacobi_svd(A, ComputeThinV);
+      MatrixXd V = jacobi_svd.matrixV();
+      Mat R(3, 3, CV_64FC1);
+      for(int j = 0; j < V.rows(); ++j) {
+        R.at<double>(j / 3, j % 3) = V(j, V.rows() - 1);
+      }
+      SVD svd(R, SVD::FULL_UV);
+      relative_3D_rotations[m1][m2] = svd.u * svd.vt;
+    }
+    queue<int> que;
+    vector<bool> labels(images_data.size(), false);
+    const int & center_index = parameter.center_image_index;
+    const vector<vector<bool> > & images_match_graph = parameter.getImagesMatchGraph();
+
+    que.push(center_index);
+    relative_3D_rotations[center_index][center_index] = Mat::eye(3, 3, CV_64FC1);
+
+    while(que.empty() == false) {
+      int now = que.front();
+      que.pop();
+      labels[now] = true;
+      for(int i = 0; i < images_data.size(); ++i) {
+        if(labels[i] == false) {
+          if(images_match_graph[now][i]) {
+            relative_3D_rotations[i][i] = relative_3D_rotations[now][i] * relative_3D_rotations[now][now];
+            que.push(i);
+          }
+          if(images_match_graph[i][now]) {
+            relative_3D_rotations[i][i] = relative_3D_rotations[i][now].inv() * relative_3D_rotations[now][now];
+            que.push(i);
+          }
+        }
+      }
+    }
+    /********************/
+    for(int i = 0; i < camera_params.size(); ++i) {
+      camera_params[i].aspect = 1;
+      camera_params[i].ppx = translation_matrix[i].at<double>(0, 2);
+      camera_params[i].ppy = translation_matrix[i].at<double>(1, 2);
+      camera_params[i].t = Mat::zeros(3, 1, CV_64FC1);
+      camera_params[i].R = relative_3D_rotations[i][i].inv();
+      camera_params[i].R.convertTo(camera_params[i].R, CV_32FC1);
+    }
+
+    Ptr<detail::BundleAdjusterBase> adjuster = makePtr<detail::BundleAdjusterReproj>();
+    adjuster->setTermCriteria(TermCriteria(TermCriteria::EPS, CRITERIA_MAX_COUNT, CRITERIA_EPSILON));
+
+    Mat_<uchar> refine_mask = Mat::zeros(3, 3, CV_8U);
+    refine_mask(0, 0) = 1; /* (0, 0)->focal, (0, 2)->ppx, (1, 2)->ppy, (1, 1)->aspect */
+    adjuster->setConfThresh(1.f);
+    adjuster->setRefinementMask(refine_mask);
+
+    if (!(*adjuster)(images_features, pairwise_matches, camera_params)) {
+      printError("F(getCameraParams) camera parameters adjuster failed");
+    }
+
+    Mat center_rotation_inv = camera_params[parameter.center_image_index].R.inv();
+    for(int i = 0; i < camera_params.size(); ++i) {
+      camera_params[i].R = center_rotation_inv * camera_params[i].R;
+    }
+    /* wave correction */
+    if(WAVE_CORRECT != WAVE_X) {
+      vector<Mat> rotations;
+      rotations.reserve(camera_params.size());
+      for(int i = 0; i < camera_params.size(); ++i) {
+        rotations.emplace_back(camera_params[i].R);
+      }
+      waveCorrect(rotations, ((WAVE_CORRECT == WAVE_H) ? detail::WAVE_CORRECT_HORIZ : detail::WAVE_CORRECT_VERT));
+      for(int i = 0; i < camera_params.size(); ++i) {
+        camera_params[i].R = rotations[i];
+      }
+    }
+    /*******************/
   }
+  return camera_params;
+}
+
+vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {// TODO
+  // if (images_similarity_elements.empty()) {
+  //   images_similarity_elements.resize(img_num);
+  //   for (int i = 0; i < images_similarity_elements.size(); i ++) {
+  //     images_similarity_elements[i].scale = 1;
+  //     images_similarity_elements[i].theta = 0;
+  //   }
+  // }
+  // return images_similarity_elements;
+
+  if (images_similarity_elements.empty()) {
+    images_similarity_elements.reserve(img_num);
+    const vector<CameraParams> & camera_params = getCameraParams();
+    for(int i = 0; i < images_data.size(); ++i) {
+      images_similarity_elements.emplace_back(fabs(camera_params[parameter.center_image_index].focal / camera_params[i].focal),
+          -getEulerZXYRadians<float>(camera_params[i].R)[2]);
+    }
+    double rotate_theta = parameter.center_image_rotation_angle;
+    for(int i = 0; i < images_data.size(); ++i) {
+      double a = (images_similarity_elements[i].theta - rotate_theta) * 180 / M_PI;
+      images_similarity_elements[i].theta = normalizeAngle(a) * M_PI / 180;
+    }
+
+    const vector<pair<int, int> > & images_match_graph_pair_list = parameter.getImagesMatchGraphPairList();
+    const vector<vector<pair<double, double> > > & images_relative_rotation_range = getImagesRelativeRotationRange();
+
+    switch (_global_rotation_method) {
+      case GLOBAL_ROTATION_2D_METHOD:
+        {
+          class RotationNode {
+            public:
+              int index, parent;
+              RotationNode(const int _index, const int _parent) {
+                index = _index, parent = _parent;
+              }
+            private:
+
+          };
+          const double TOLERANT_THETA = TOLERANT_ANGLE * M_PI / 180;
+          vector<pair<int, double> > theta_constraints;
+          vector<bool> decided(images_data.size(), false);
+          vector<RotationNode> priority_que;
+          theta_constraints.emplace_back(parameter.center_image_index, images_similarity_elements[parameter.center_image_index].theta);
+          decided[parameter.center_image_index] = true;
+          priority_que.emplace_back(parameter.center_image_index, -1);
+          const vector<vector<bool> > & images_match_graph = parameter.getImagesMatchGraph();
+          while(priority_que.empty() == false) {
+            RotationNode node = priority_que.front();
+            priority_que.erase(priority_que.begin());
+            if(!decided[node.index]) {
+              decided[node.index] = true;
+              images_similarity_elements[node.index].theta = images_similarity_elements[node.parent].theta + getImagesMinimumLineDistortionRotation(node.parent, node.index);
+            }
+            for(int i = 0; i < decided.size(); ++i) {
+              if(!decided[i]) {
+                const int e[EDGE_VERTEX_SIZE] = { node.index, i };
+                for(int j = 0; j < EDGE_VERTEX_SIZE; ++j) {
+                  if(images_match_graph[e[j]][e[!j]]) {
+                    RotationNode new_node(i, node.index);
+                    if(isRotationInTheRange<double>(0, images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].first  - TOLERANT_THETA,
+                          images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].second + TOLERANT_THETA)) {
+                      priority_que.insert(priority_que.begin(), new_node);
+                      images_similarity_elements[i].theta = 0;
+                      decided[i] = true;
+                      theta_constraints.emplace_back(i, 0);
+                    } else {
+                      priority_que.emplace_back(new_node);
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          const int equations_count = (int)(images_match_graph_pair_list.size() + theta_constraints.size()) * DIMENSION_2D;
+          SparseMatrix<double> A(equations_count, images_data.size() * DIMENSION_2D);
+          VectorXd b = VectorXd::Zero(equations_count);
+          vector<Triplet<double> > triplets;
+          triplets.reserve(theta_constraints.size() * 2 + images_match_graph_pair_list.size() * 6);
+
+          int equation = 0;
+          for(int i = 0; i < theta_constraints.size(); ++i) {
+            triplets.emplace_back(equation    , DIMENSION_2D * theta_constraints[i].first    , STRONG_CONSTRAINT);
+            triplets.emplace_back(equation + 1, DIMENSION_2D * theta_constraints[i].first + 1, STRONG_CONSTRAINT);
+            b[equation    ] = STRONG_CONSTRAINT * cos(theta_constraints[i].second);
+            b[equation + 1] = STRONG_CONSTRAINT * sin(theta_constraints[i].second);
+            equation += DIMENSION_2D;
+          } 
+          for(int i = 0; i < images_match_graph_pair_list.size(); ++i) {
+            const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+            const int & m1 = match_pair.first, & m2 = match_pair.second;
+            const FLOAT_TYPE & MLDR_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+            triplets.emplace_back(equation    , DIMENSION_2D * m1    ,  cos(MLDR_theta));
+            triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, -sin(MLDR_theta));
+            triplets.emplace_back(equation    , DIMENSION_2D * m2    ,               -1);
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m1    ,  sin(MLDR_theta));
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1,  cos(MLDR_theta));
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,               -1);
+            equation += DIMENSION_2D;
+          }
+          assert(equation == equations_count);
+          A.setFromTriplets(triplets.begin(), triplets.end());
+          LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
+          VectorXd x = lscg.solve(b);
+
+          for(int i = 0; i < images_data.size(); ++i) {
+            images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
+          }
+        }
+        break;
+      case GLOBAL_ROTATION_3D_METHOD:
+        {
+          const int equations_count = (int)images_match_graph_pair_list.size() * DIMENSION_2D + DIMENSION_2D;
+          SparseMatrix<double> A(equations_count, images_data.size() * DIMENSION_2D);
+          VectorXd b = VectorXd::Zero(equations_count);
+          vector<Triplet<double> > triplets;
+          triplets.reserve(images_match_graph_pair_list.size() * 6 + DIMENSION_2D);
+
+          b[0] = STRONG_CONSTRAINT * cos(images_similarity_elements[parameter.center_image_index].theta);
+          b[1] = STRONG_CONSTRAINT * sin(images_similarity_elements[parameter.center_image_index].theta);
+          triplets.emplace_back(0, DIMENSION_2D * parameter.center_image_index    , STRONG_CONSTRAINT);
+          triplets.emplace_back(1, DIMENSION_2D * parameter.center_image_index + 1, STRONG_CONSTRAINT);
+          int equation = DIMENSION_2D;
+          for(int i = 0; i < images_match_graph_pair_list.size(); ++i) {
+            const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+            const int & m1 = match_pair.first, & m2 = match_pair.second;
+            const double guess_theta = images_similarity_elements[m2].theta - images_similarity_elements[m1].theta;
+            FLOAT_TYPE decision_theta, weight;
+            if(isRotationInTheRange(guess_theta,
+                  images_relative_rotation_range[m1][m2].first,
+                  images_relative_rotation_range[m1][m2].second)) {
+              decision_theta = guess_theta;
+              weight = LAMBDA_GAMMA;
+            } else {
+              decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+              weight = 1;
+            }
+            triplets.emplace_back(equation    , DIMENSION_2D * m1    , weight *  cos(decision_theta));
+            triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, weight * -sin(decision_theta));
+            triplets.emplace_back(equation    , DIMENSION_2D * m2    ,                       -weight);
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m1    , weight *  sin(decision_theta));
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1, weight *  cos(decision_theta));
+            triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,                       -weight);
+
+            equation += DIMENSION_2D;
+          }
+          assert(equation == equations_count);
+          A.setFromTriplets(triplets.begin(), triplets.end());
+          LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
+          VectorXd x = lscg.solve(b);
+
+          for(int i = 0; i < images_data.size(); ++i) {
+            images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
+          }
+        }
+        break;
+      default:
+        printError("F(getImagesSimilarityElements) NISwGSP_ROTATION_METHOD");
+        break;
+    }
+  }
+  
   return images_similarity_elements;
 }
 

@@ -96,6 +96,7 @@ public:
   vector<vector<InterpolateVertex> > getInterpolateVerticesOfMatchingPoints();
   vector<int> getImagesVerticesStartIndex();
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
+  vector<CameraParams> getCameraParams();
   vector<SimilarityElements> getImagesSimilarityElements();
   Mat textureMapping(vector<vector<Point2f> > &_vertices,
                      int _blend_method);
