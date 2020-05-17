@@ -12,7 +12,6 @@ void NISwGSP_Stitching::prepare() {
   // multi_images->imgs[2]->data = change_image(multi_images->imgs[2]->data, -0.51, 1.0);
   // multi_images->imgs[3]->data = change_image(multi_images->imgs[3]->data, +2.12, 1.3);
   // multi_images->imgs[4]->data = change_image(multi_images->imgs[4]->data, +1.68, 1.2);
-  assert(0);
 }
 
 Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
@@ -29,26 +28,33 @@ Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
   new_height = diagonal * cos(asin(width / diagonal) - tmp_angle);
 
   // 平移变换
+  double width_offset = (new_width - width) / 2;
+  double height_offset = (new_height - height) / 2;
   Mat translate = Mat::zeros(2, 3, CV_32FC1);
   translate.at<float>(0, 0) = 1;
-  translate.at<float>(0, 2) = (new_width - width) / 2;// 水平偏移
+  if (new_width > width) {
+    translate.at<float>(0, 2) = (new_width - width) / 2;// 水平偏移
+  }
   translate.at<float>(1, 1) = 1;
-  translate.at<float>(1, 2) = (new_height - height) / 2;// 垂直偏移
+  if (new_height > height) {
+    translate.at<float>(1, 2) = (new_height - height) / 2;// 垂直偏移
+  }
   Mat result_1;
-  warpAffine(img, result_1, translate, Size(new_width, new_height));
+  double tmp_size = max(new_width, new_height);
+  warpAffine(img, result_1, translate, Size(tmp_size, tmp_size));
   show_img("0", img);
-  show_img("1", result_1);
+  // show_img("1", result_1);
 
   // 旋转变换
-  Point2f center(new_width / 2, new_height / 2);
+  Point2f center(tmp_size / 2, tmp_size / 2);
   Mat rotation = getRotationMatrix2D(center, angle / tmp, 1.0);
   Mat result_2;
-  warpAffine(result_1, result_2, rotation, Size(new_width, new_height));
-  show_img("2", result_2);
+  warpAffine(result_1, result_2, rotation, Size(tmp_size, tmp_size));
+  // show_img("2", result_2);
 
   // 缩放变换
   Mat result_3;
-  resize(result_2, result_3, Size(new_width * 1, new_height * 1), 0, 0, INTER_LINEAR);
+  resize(result_2, result_3, Size(tmp_size * scale, tmp_size * scale), 0, 0, INTER_LINEAR);
   show_img("3", result_3);
 
   return result_3;
