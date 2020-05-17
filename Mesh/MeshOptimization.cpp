@@ -186,10 +186,10 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
       const vector<vector<int> > v_neighbors = multi_images->imgs[i]->getVertexStructures();// 上, 下, 左, 右
       const vector<vector<int> > e_neighbors = multi_images->imgs[i]->getEdgeStructures();// 右, 右上, 下, 左下
 
-      const double similarity[DIMENSION_2D] = {
-        images_similarity_elements[i].scale * cos(images_similarity_elements[i].theta),
-        images_similarity_elements[i].scale * sin(images_similarity_elements[i].theta)
-      };
+      // const double similarity[DIMENSION_2D] = {
+      //   images_similarity_elements[i].scale * cos(images_similarity_elements[i].theta),// 1 * 1
+      //   images_similarity_elements[i].scale * sin(images_similarity_elements[i].theta) // 1 * 0
+      // };
 
       for (int j = 0; j < edges.size(); j ++) {
         const int ind_e1 = edges[j].indices[0];
@@ -256,7 +256,7 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
                 _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
                     images_vertices_start_index[i]    + DIMENSION_2D * ind_e1 + xy,
                     -_global_similarity_weight * G_W.at<double>(dim, DIMENSION_2D * p + xy));
-                _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, _global_similarity_weight * similarity[dim]);
+                _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, _global_similarity_weight * (1 - dim));// similarity[dim]
               }
             }
           }

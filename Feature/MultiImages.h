@@ -67,7 +67,7 @@ public:
   MultiImages();
 
   int img_num;
-  int center_index;
+  // int center_index;
   int auto_match;// 自行检测图片的配对关系
   vector<ImageData *> imgs;
 

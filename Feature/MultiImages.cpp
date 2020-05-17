@@ -260,7 +260,6 @@ void MultiImages::getFeaturePairs() {
     feature_pairs[i].resize(img_num);
   }
 
-  center_index = 0;// TODO 中心位置的图片
   if (auto_match) {
     // 需要自动检测图片配对关系
     for (int i = 0; i < img_num; i ++) {
