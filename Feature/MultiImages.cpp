@@ -16,7 +16,116 @@ void MultiImages::read_img(const char *img_path) {
 }
 
 void MultiImages::do_matching() {
-  ;
+  // 初始化匹配点信息
+  for (int i = 0; i < img_num; i ++) {
+    imgs[i]->matching_points.resize(img_num);
+    imgs[i]->homographies.resize(img_num);
+  }
+
+  LOG("starting apap");
+
+  // 计算匹配点
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    assert(m2 > m1);
+
+    APAP_Stitching::apap_project(feature_points[m1][m2],
+                                 feature_points[m2][m1],
+                                 imgs[m1]->getMeshPoints(),
+                                 imgs[m1]->matching_points[m2],
+                                 imgs[m1]->homographies[m2]);
+
+    APAP_Stitching::apap_project(feature_points[m2][m1],
+                                 feature_points[m1][m2],
+                                 imgs[m2]->getMeshPoints(),
+                                 imgs[m2]->matching_points[m1],
+                                 imgs[m2]->homographies[m1]);
+
+    LOG("apap [%d, %d] finish", m1, m2);
+  }
+  // 将各自的homography保存到multi_images
+  apap_homographies.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    apap_homographies[i].resize(img_num);
+    for (int j = 0; j < img_num; i ++) {
+      apap_homographies[i][j] = imgs[i]->homographies[j];
+    }
+  }
+
+  // 所有mesh点都算作keypoint
+  image_features.resize(img_num);// TODO
+  keypoints_mask.resize(img_num);
+  keypoints_pairs.resize(img_num);
+  apap_overlap_mask.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    vector<Point2f> tmp_points = imgs[i]->getMeshPoints();
+    keypoints_mask[i].resize(tmp_points.size());
+    keypoints_pairs[i].resize(img_num);
+    for (int j = 0; j < tmp_points.size(); j ++) {
+      image_features[i].keypoints.emplace_back(tmp_points[j]);
+    }
+    apap_overlap_mask[i].resize(img_num);
+    for (int j = 0; j < img_num; j ++) {
+      apap_overlap_mask[i][j].resize(tmp_points.size());
+    }
+  }
+
+  // 记录keypoint下标的配对信息
+  num_inliers.resize(img_pairs.size());// 和图片匹配对数相等size
+  matching_indices.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    matching_indices[i].resize(img_num);
+  }
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    assert(m2 > m1);
+    Mat another_img;
+    vector<Point2f> tmp_points;
+
+    // 正向配对
+    vector<int> & forward_indices = matching_indices[m1][m2];// 记录配对信息
+    tmp_points = imgs[m1]->matching_points[m2];// m1 在 m2 上的匹配点
+    another_img = imgs[m2]->data;
+    for (int k = 0; k < tmp_points.size(); k ++) {
+      if (tmp_points[k].x >= 0
+        && tmp_points[k].y >= 0
+        && tmp_points[k].x <= another_img.cols
+        && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
+        // 如果对应的匹配点没有出界
+        forward_indices.emplace_back(k);// 记录可行的匹配点
+        
+        keypoints_pairs[m1][m2].emplace_back(make_pair(k, image_features[m2].keypoints.size()));
+        apap_overlap_mask[m1][m2][k] = true;
+
+        keypoints_mask[m1][k] = true;// TODO 标记可行
+        image_features[m2].keypoints.emplace_back(tmp_points[k]);
+      }
+    }
+    // 反向配对
+    vector<int> & backward_indices = matching_indices[m2][m1];// 记录配对信息
+    tmp_points = imgs[m2]->matching_points[m1];// m1 在 m2 上的匹配点
+    another_img = imgs[m1]->data;
+    for (int k = 0; k < tmp_points.size(); k ++) {
+      if (tmp_points[k].x >= 0
+        && tmp_points[k].y >= 0
+        && tmp_points[k].x <= another_img.cols
+        && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
+        // 如果对应的匹配点没有出界
+        backward_indices.emplace_back(k);// 记录可行的匹配点
+        
+        keypoints_pairs[m2][m1].emplace_back(make_pair(image_features[m1].keypoints.size(), k));
+        apap_overlap_mask[m2][m1][k] = true;
+
+        keypoints_mask[m2][k] = true;// TODO 标记可行
+        image_features[m1].keypoints.emplace_back(tmp_points[k]);
+      }
+    }
+
+    // 用于计算旋转角度和缩放比例
+    num_inliers[i] = (int)(keypoints_pairs[m1][m2].size() + keypoints_pairs[m2][m1].size());
+  }
 }
 
 vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {  
