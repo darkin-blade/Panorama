@@ -91,7 +91,9 @@ Mat NISwGSP_Stitching::feature_match() {
   return result_1;
 }
 
-Mat NISwGSP_Stitching::matching_match() {  
+Mat NISwGSP_Stitching::matching_match() {
+  multi_images->do_matching();
+
   // 描绘匹配点
   Mat result_1;// 存储结果
   Mat left_1, right_1;// 分割矩阵

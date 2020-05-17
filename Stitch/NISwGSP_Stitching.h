@@ -3,7 +3,6 @@
 #include "../Feature/FeatureController.h"
 #include "../Feature/MultiImages.h"
 #include "../Mesh/MeshOptimization.h"
-#include "../Stitch/APAP_Stitching.h"
 
 class NISwGSP_Stitching : public MeshOptimization {
 public:
