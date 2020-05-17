@@ -72,18 +72,22 @@ public:
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点(实际上[m1][m2]与[m2][m1]重复(相反))
-  vector<vector<vector<Point2f> > > feature_points;// [m1][m2]: m1与m2成功匹配的特征点;
-  vector<vector<vector<int > > > matching_indices;// TODO (待改进) 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
+  vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配的特征点;
+  vector<vector<vector<int > > >            matching_indices;// TODO (待改进) 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
-  vector<vector<Point2f> > keypoints;// mesh点 + 过滤后的匹配点
+  vector<vector<Point2f> >                  keypoints;// mesh点 + 过滤后的匹配点
   vector<vector<vector<pair<int, int> > > > keypoints_pairs;// (mesh点 + 匹配点)配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
-  vector<vector<bool> > keypoints_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
+  vector<vector<bool> >                     keypoints_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
+
+  vector<vector<vector<Mat> > >  apap_homographies;
+  vector<vector<vector<bool> > > apap_overlap_mask;
 
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
-  vector<int> images_vertices_start_index;// TODO
-  vector<vector<double> > images_polygon_space_matching_pts_weight;
+  vector<int>                        images_vertices_start_index;// TODO
+  vector<vector<double> >            images_polygon_space_matching_pts_weight;
 
-  vector<SimilarityElements> images_similarity_elements;// TODO
+  vector<CameraParams>  camera_params;
+  vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果
 
@@ -98,6 +102,7 @@ public:
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
   vector<CameraParams> getCameraParams();
   vector<SimilarityElements> getImagesSimilarityElements();
+
   Mat textureMapping(vector<vector<Point2f> > &_vertices,
                      int _blend_method);
 };

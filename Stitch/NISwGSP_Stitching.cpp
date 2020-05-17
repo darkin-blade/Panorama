@@ -122,17 +122,30 @@ Mat NISwGSP_Stitching::matching_match() {
 
     LOG("apap [%d, %d] finish", m1, m2);
   }
+  // 将各自的homography保存到multi_images
+  multi_images->apap_homographies.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    multi_images->apap_homographies[i].resize(img_num);
+    for (int j = 0; j < img_num; i ++) {
+      multi_images->apap_homographies[i][j] = multi_images->imgs[i]->homographies[j];
+    }
+  }
 
   // 所有mesh点都算作keypoint
   multi_images->keypoints.resize(img_num);
   multi_images->keypoints_mask.resize(img_num);
   multi_images->keypoints_pairs.resize(img_num);
+  multi_images->apap_overlap_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     vector<Point2f> tmp_points = multi_images->imgs[i]->getMeshPoints();
     multi_images->keypoints_mask[i].resize(tmp_points.size());
     multi_images->keypoints_pairs[i].resize(img_num);
     for (int j = 0; j < tmp_points.size(); j ++) {
       multi_images->keypoints[i].emplace_back(tmp_points[j]);
+    }
+    multi_images->apap_overlap_mask[i].resize(img_num);
+    for (int j = 0; j < img_num; j ++) {
+      multi_images->apap_overlap_mask[i][j].resize(tmp_points.size());
     }
   }
 
@@ -161,6 +174,7 @@ Mat NISwGSP_Stitching::matching_match() {
         forward_indices.emplace_back(k);// 记录可行的匹配点
         
         multi_images->keypoints_pairs[m1][m2].emplace_back(make_pair(k, multi_images->keypoints[m2].size()));
+        multi_images->apap_overlap_mask[m1][m2][k] = true;
 
         multi_images->keypoints_mask[m1][k] = true;// TODO 标记可行
         multi_images->keypoints[m2].emplace_back(tmp_points[k]);
@@ -179,6 +193,7 @@ Mat NISwGSP_Stitching::matching_match() {
         backward_indices.emplace_back(k);// 记录可行的匹配点
         
         multi_images->keypoints_pairs[m2][m1].emplace_back(make_pair(multi_images->keypoints[m1].size(), k));
+        multi_images->apap_overlap_mask[m2][m1][k] = true;
 
         multi_images->keypoints_mask[m2][k] = true;// TODO 标记可行
         multi_images->keypoints[m1].emplace_back(tmp_points[k]);
