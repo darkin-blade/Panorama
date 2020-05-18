@@ -14,9 +14,9 @@ void ImageData::get_img(const char *img_path) {
   float original_img_size = data.rows * data.cols;
   
   if(original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
-      float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
-      resize(data, data, Size(), scale, scale);
-      resize(rgba_data, rgba_data, Size(), scale, scale);
+    float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
+    resize(data, data, Size(), scale, scale);
+    resize(rgba_data, rgba_data, Size(), scale, scale);
   }
   
   assert(rgba_data.channels() >= 3);
