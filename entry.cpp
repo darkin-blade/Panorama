@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 
   NISwGSP_Stitching niswgsp(multi_images);
 
-  niswgsp.prepare();// 图像旋转,缩放
+  // niswgsp.prepare();// 图像旋转,缩放
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
   niswgsp.show_img("1", result_1);

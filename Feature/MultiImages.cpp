@@ -602,6 +602,10 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
       images_similarity_elements[i].scale = 1;
       images_similarity_elements[i].theta = 0;
     }
+    // images_similarity_elements[0].scale = 1;
+    // images_similarity_elements[0].theta = 0;
+    // images_similarity_elements[1].scale = 1;
+    // images_similarity_elements[1].theta = -2.2;
   }
   return images_similarity_elements;
 
