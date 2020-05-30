@@ -79,7 +79,9 @@ public:
   vector<vector<vector<int > > >            matching_indices;// TODO (待改进) 匹配点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   // vector<vector<Point2f> >                  keypoints;// mesh点 + 过滤后的匹配点(原images_features)
-  vector<ImageFeatures>                     image_features;// 只有keypoints有用,见上
+  vector<ImageFeatures>                     image_features;// 包含keypoints
+  vector<CameraParams>                      camera_params;
+
   vector<vector<vector<pair<int, int> > > > keypoints_pairs;// (mesh点 + 匹配点)配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
   vector<vector<bool> >                     keypoints_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
 
@@ -88,9 +90,9 @@ public:
 
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
   vector<int>                        images_vertices_start_index;// TODO
-  vector<vector<double> >            images_polygon_space_matching_pts_weight;
 
-  vector<CameraParams>  camera_params;
+  vector<vector<double> >            images_polygon_space_matching_pts_weight;// TODO
+
   vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果
