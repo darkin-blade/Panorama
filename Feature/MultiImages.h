@@ -72,6 +72,7 @@ public:
   vector<ImageData *> imgs;
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
+  vector<vector<bool> >   images_match_graph_pair_list;// 配对矩阵
 
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点(实际上[m1][m2]与[m2][m1]重复(相反))
@@ -89,7 +90,9 @@ public:
   vector<vector<vector<bool> > > apap_overlap_mask;
 
   vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
-  vector<int>                        images_vertices_start_index;// TODO
+
+  vector<int>                             images_vertices_start_index;// TODO
+  vector<vector<pair<double, double> > >  images_relative_rotation_range;// TODO 旋转角度范围
 
   vector<vector<double> >            images_polygon_space_matching_pts_weight;// TODO
 
@@ -106,6 +109,7 @@ public:
   vector<vector<InterpolateVertex> > getInterpolateVerticesOfMatchingPoints();
   vector<int> getImagesVerticesStartIndex();
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
+  vector<vector<pair<double, double> > > & MultiImages::getImagesRelativeRotationRange();
   vector<CameraParams> getCameraParams();
   vector<SimilarityElements> getImagesSimilarityElements();
 
