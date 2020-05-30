@@ -810,7 +810,11 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         LOG("%lf %lf", theta_min, theta_max);
       }
 
-      if (0) {
+      for (int i = 0; i < img_num; i ++) {
+        LOG("%lf %lf", images_similarity_elements[i].scale, images_similarity_elements[i].theta);
+      }
+  
+      if (1) {
         // do nothing
       } else if (0) {
         // // 2D method
