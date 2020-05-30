@@ -32,13 +32,13 @@ void MultiImages::do_matching() {
 
     APAP_Stitching::apap_project(feature_points[m1][m2],
                                  feature_points[m2][m1],
-                                 imgs[m1]->getMeshPoints(),
+                                 imgs[m1]->getVertices(),
                                  imgs[m1]->matching_points[m2],
                                  imgs[m1]->homographies[m2]);
 
     APAP_Stitching::apap_project(feature_points[m2][m1],
                                  feature_points[m1][m2],
-                                 imgs[m2]->getMeshPoints(),
+                                 imgs[m2]->getVertices(),
                                  imgs[m2]->matching_points[m1],
                                  imgs[m2]->homographies[m1]);
 
@@ -52,6 +52,14 @@ void MultiImages::do_matching() {
       apap_homographies[i][j] = imgs[i]->homographies[j];
     }
   }
+  // 将各自的matching points保存到multi_images
+  apap_matching_points.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    apap_matching_points[i].resize(img_num);
+    for (int j = 0; j < img_num; j ++) {
+      apap_matching_points[i][j] = imgs[i]->matching_points[j];
+    }
+  }
 
   // 所有mesh点都算作keypoint
   image_features.resize(img_num);// TODO
@@ -59,7 +67,7 @@ void MultiImages::do_matching() {
   keypoints_pairs.resize(img_num);
   apap_overlap_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
-    vector<Point2f> tmp_points = imgs[i]->getMeshPoints();
+    vector<Point2f> tmp_points = imgs[i]->getVertices();
     keypoints_mask[i].resize(tmp_points.size());
     keypoints_pairs[i].resize(img_num);
     for (int j = 0; j < tmp_points.size(); j ++) {
@@ -354,7 +362,7 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
     int index = 0;
     for (int i = 0; i < img_num; i ++) {
       images_vertices_start_index.emplace_back(index);
-      index += imgs[i]->getMeshPoints().size() * DIMENSION_2D;
+      index += imgs[i]->getVertices().size() * DIMENSION_2D;
     }
   }
   return images_vertices_start_index;
@@ -529,7 +537,6 @@ vector<CameraParams> MultiImages::getCameraParams() {
     }
     queue<int> que;
     vector<bool> labels(img_num, false);
-    const vector<vector<bool> > & images_match_graph = parameter.getImagesMatchGraph();
 
     que.push(center_index);
     relative_3D_rotations[center_index][center_index] = Mat::eye(3, 3, CV_64FC1);
@@ -574,7 +581,7 @@ vector<CameraParams> MultiImages::getCameraParams() {
     //   assert(0);
     // }
 
-    Mat center_rotation_inv = camera_params[parameter.center_image_index].R.inv();
+    Mat center_rotation_inv = camera_params[center_index].R.inv();
     for (int i = 0; i < camera_params.size(); i ++) {
       camera_params[i].R = center_rotation_inv * camera_params[i].R;
     }
@@ -597,24 +604,27 @@ vector<CameraParams> MultiImages::getCameraParams() {
 
 vector<vector<pair<double, double> > > & MultiImages::getImagesRelativeRotationRange() {
   if (images_relative_rotation_range.empty()) {
-    images_relative_rotation_range.resize(images_data.size());
+    images_relative_rotation_range.resize(img_num);
     for (int i = 0; i < images_relative_rotation_range.size(); i ++) {
       images_relative_rotation_range[i].resize(images_relative_rotation_range.size(), make_pair(0, 0));
     }
-    const vector<pair<int, int> > & images_match_graph_pair_list = parameter.getImagesMatchGraphPairList();
-    const vector<vector<vector<bool> > > & apap_overlap_mask = getAPAPOverlapMask();
-    const vector<vector<vector<Point2> > > & apap_matching_points = getAPAPMatchingPoints();
-    for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
-      const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+    assert(apap_overlap_mask.empty() == false);
+    assert(apap_matching_points.empty() == false);
+    for (int i = 0; i < img_pairs.size(); i ++) {
+      const pair<int, int> & match_pair = img_pairs[i];
       const int & m1 = match_pair.first, & m2 = match_pair.second;
-      const vector<Edge> & m1_edges = images_data[m1].mesh_2d->getEdges();
-      const vector<Edge> & m2_edges = images_data[m2].mesh_2d->getEdges();
+      const vector<Edge> & m1_edges = imgs[m1]->getEdges();
+      const vector<Edge> & m2_edges = imgs[m2]->getEdges();
       const vector<const vector<Edge> *> & edges = { &m1_edges, &m2_edges };
       const vector<pair<int, int> > pair_index = { make_pair(m1, m2), make_pair(m2, m1) };
-      const vector<pair<const vector<Point2> *, const vector<Point2> *> > & vertices_pair = {
-        make_pair(&images_data[m1].mesh_2d->getVertices(), &apap_matching_points[m1][m2]),
-        make_pair(&images_data[m2].mesh_2d->getVertices(), &apap_matching_points[m2][m1])
+
+      vector<Point2f> mesh_pts_1 = imgs[m1]->getVertices();
+      vector<Point2f> mesh_pts_2 = imgs[m2]->getVertices();
+      const vector<pair<vector<Point2f> *, vector<Point2f> *> > & vertices_pair = {
+        make_pair(&mesh_pts_1, &apap_matching_points[m1][m2]),
+        make_pair(&mesh_pts_2, &apap_matching_points[m2][m1])
       };
+      
       vector<double> positive, negative;
       const vector<bool> sign_mapping = { false, true, true, false };
       for (int j = 0; j < edges.size(); j ++) {
@@ -681,26 +691,26 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
       images_similarity_elements.reserve(img_num);
       const vector<CameraParams> & camera_params = getCameraParams();
       for (int i = 0; i < img_num; i ++) {
-        images_similarity_elements.emplace_back(fabs(camera_params[parameter.center_image_index].focal / camera_params[i].focal),
+        images_similarity_elements.emplace_back(fabs(camera_params[center_index].focal / camera_params[i].focal),
             -getEulerZXYRadians<float>(camera_params[i].R)[2]);
       }
-      double rotate_theta = parameter.center_image_rotation_angle;
+      double rotate_theta = 0;// TODO 自定义的参照图片旋转角度
       for (int i = 0; i < img_num; i ++) {
         double a = (images_similarity_elements[i].theta - rotate_theta) * 180 / M_PI;
         images_similarity_elements[i].theta = normalizeAngle(a) * M_PI / 180;
       }
 
-      if (images_match_graph_pair_list.empty()) {
-        images_match_graph_pair_list.resize(img_num);
+      if (images_match_graph.empty()) {
+        images_match_graph.resize(img_num);
         for (int i = 0; i < img_num; i ++) {
-          images_match_graph_pair_list[i].resize(img_num, false);
+          images_match_graph[i].resize(img_num, false);
         }
       }
       for (int i = 0; i < img_pairs.size(); i ++) {
         int m1 = img_pairs[i].first;
         int m2 = img_pairs[i].second;
         assert(m1 < m2);
-        images_match_graph_pair_list[m1][m2] = true;
+        images_match_graph[m1][m2] = true;
       }
 
       const vector<vector<pair<double, double> > > & images_relative_rotation_range = getImagesRelativeRotationRange();
@@ -722,10 +732,9 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         // vector<pair<int, double> > theta_constraints;
         // vector<bool> decided(img_num, false);
         // vector<RotationNode> priority_que;
-        // theta_constraints.emplace_back(parameter.center_image_index, images_similarity_elements[parameter.center_image_index].theta);
-        // decided[parameter.center_image_index] = true;
-        // priority_que.emplace_back(parameter.center_image_index, -1);
-        // const vector<vector<bool> > & images_match_graph = parameter.getImagesMatchGraph();
+        // theta_constraints.emplace_back(center_index, images_similarity_elements[center_index].theta);
+        // decided[center_index] = true;
+        // priority_que.emplace_back(center_index, -1);
         // while(priority_que.empty() == false) {
         //   RotationNode node = priority_que.front();
         //   priority_que.erase(priority_que.begin());
@@ -754,11 +763,11 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         //     }
         //   }
         // }
-        // const int equations_count = (int)(images_match_graph_pair_list.size() + theta_constraints.size()) * DIMENSION_2D;
+        // const int equations_count = (int)(img_pairs.size() + theta_constraints.size()) * DIMENSION_2D;
         // SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
         // VectorXd b = VectorXd::Zero(equations_count);
         // vector<Triplet<double> > triplets;
-        // triplets.reserve(theta_constraints.size() * 2 + images_match_graph_pair_list.size() * 6);
+        // triplets.reserve(theta_constraints.size() * 2 + img_pairs.size() * 6);
 
         // int equation = 0;
         // for (int i = 0; i < theta_constraints.size(); i ++) {
@@ -768,8 +777,8 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         //   b[equation + 1] = STRONG_CONSTRAINT * sin(theta_constraints[i].second);
         //   equation += DIMENSION_2D;
         // } 
-        // for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
-        //   const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+        // for (int i = 0; i < img_pairs.size(); i ++) {
+        //   const pair<int, int> & match_pair = img_pairs[i];
         //   const int & m1 = match_pair.first, & m2 = match_pair.second;
         //   const FLOAT_TYPE & MLDR_theta = getImagesMinimumLineDistortionRotation(m1, m2);
         //   triplets.emplace_back(equation    , DIMENSION_2D * m1    ,  cos(MLDR_theta));
@@ -790,19 +799,19 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         // }
       } else {
     //     // 3D method
-    //     const int equations_count = (int)images_match_graph_pair_list.size() * DIMENSION_2D + DIMENSION_2D;
+    //     const int equations_count = (int)img_pairs.size() * DIMENSION_2D + DIMENSION_2D;
     //     SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
     //     VectorXd b = VectorXd::Zero(equations_count);
     //     vector<Triplet<double> > triplets;
-    //     triplets.reserve(images_match_graph_pair_list.size() * 6 + DIMENSION_2D);
+    //     triplets.reserve(img_pairs.size() * 6 + DIMENSION_2D);
 
-    //     b[0] = STRONG_CONSTRAINT * cos(images_similarity_elements[parameter.center_image_index].theta);
-    //     b[1] = STRONG_CONSTRAINT * sin(images_similarity_elements[parameter.center_image_index].theta);
-    //     triplets.emplace_back(0, DIMENSION_2D * parameter.center_image_index    , STRONG_CONSTRAINT);
-    //     triplets.emplace_back(1, DIMENSION_2D * parameter.center_image_index + 1, STRONG_CONSTRAINT);
+    //     b[0] = STRONG_CONSTRAINT * cos(images_similarity_elements[center_index].theta);
+    //     b[1] = STRONG_CONSTRAINT * sin(images_similarity_elements[center_index].theta);
+    //     triplets.emplace_back(0, DIMENSION_2D * center_index    , STRONG_CONSTRAINT);
+    //     triplets.emplace_back(1, DIMENSION_2D * center_index + 1, STRONG_CONSTRAINT);
     //     int equation = DIMENSION_2D;
-    //     for (int i = 0; i < images_match_graph_pair_list.size(); i ++) {
-    //       const pair<int, int> & match_pair = images_match_graph_pair_list[i];
+    //     for (int i = 0; i < img_pairs.size(); i ++) {
+    //       const pair<int, int> & match_pair = img_pairs[i];
     //       const int & m1 = match_pair.first, & m2 = match_pair.second;
     //       const double guess_theta = images_similarity_elements[m2].theta - images_similarity_elements[m1].theta;
     //       FLOAT_TYPE decision_theta, weight;
@@ -832,7 +841,7 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
     //     for (int i = 0; i < img_num; i ++) {
     //       images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
     //     }
-    //   }
+      }
     }
   }
 
@@ -866,7 +875,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < img_num; i ++) {
-    const vector<Point2f> src_vertices = imgs[i]->getMeshPoints();// 所有mesh点
+    const vector<Point2f> src_vertices = imgs[i]->getVertices();// 所有mesh点
     const vector<vector<int> > polygons_indices = imgs[i]->getPolygonsIndices();// TODO mesh点的线性索引
     const Point2f origin(rects[i].x, rects[i].y);// 矩形坐标(左上角)
     const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用

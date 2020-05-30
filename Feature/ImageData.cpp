@@ -46,7 +46,7 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
 /** MeshGrid **/
 
-vector<Point2f> ImageData::getMeshPoints() {
+vector<Point2f> ImageData::getVertices() {
   if (mesh_points.empty()) {
     const int memory = (nh + 1) * (nw + 1);
     mesh_points.reserve(memory);
@@ -177,7 +177,7 @@ vector<vector<int> > ImageData::getVertexStructures() {
 vector<Point2f> ImageData::getPolygonsCenter() {
   // 所有vertex的中心
   if (polygons_center.empty()) {
-    const vector<Point2f> mesh_points = getMeshPoints();
+    const vector<Point2f> mesh_points = getVertices();
     const vector<vector<int> > polygons_indices = getPolygonsIndices();
     polygons_center.reserve(polygons_indices.size());
     for (int i = 0; i < polygons_indices.size(); i ++) {
@@ -222,7 +222,7 @@ vector<vector<int> > ImageData::getEdgeStructures() {
 }
 
 InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
-  const vector<Point2f> vertices = getMeshPoints();
+  const vector<Point2f> vertices = getVertices();
   const vector<vector<int> > & grids = getPolygonsIndices();
 
   const int grid_index = getGridIndexOfPoint(_p);

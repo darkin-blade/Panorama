@@ -76,7 +76,7 @@ public:
   void get_size();
   int getGridIndexOfPoint(const Point2f & _p);
   /** MeshGrid **/
-  vector<Point2f> getMeshPoints();// 所有mesh点
+  vector<Point2f> getVertices();// 所有mesh点
   vector<vector<int> > getPolygonsIndices();// 所有mesh点线性索引
   vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形
   vector<Edge> getEdges();// TODO

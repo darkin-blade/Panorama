@@ -33,6 +33,7 @@
 #include <opencv2/stitching/detail/autocalib.hpp>
 #include <opencv2/stitching/detail/camera.hpp>
 #include <opencv2/stitching/detail/matchers.hpp>
+#include <opencv2/stitching/detail/motion_estimators.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp>
 
 #if defined(UBUNTU)
@@ -109,6 +110,16 @@ const int LOCAL_MAX_ITERATION = 1000;// 16000+
 
 /*** sparse linear system ***/
 const double STRONG_CONSTRAINT = 1e4;
+
+/*** bundle adjustment ***/
+const int CRITERIA_MAX_COUNT = 1000;
+const double CRITERIA_EPSILON = DBL_EPSILON;
+
+/* AutoStitch */
+enum  AUTO_STITCH_WAVE_CORRECTS { WAVE_X = 0, WAVE_H, WAVE_V };
+const AUTO_STITCH_WAVE_CORRECTS   WAVE_CORRECT = WAVE_H;
+
+
 
 /* draw image */
 #if defined(UBUNTU)

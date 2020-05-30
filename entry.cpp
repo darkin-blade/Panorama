@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
   // multi_images.img_pairs.emplace_back(make_pair(1, 2));
   // multi_images.img_pairs.emplace_back(make_pair(2, 3));
   // multi_images.img_pairs.emplace_back(make_pair(3, 4));
+  multi_images.center_index = 0;// 参照图片的索引
 
   NISwGSP_Stitching niswgsp(multi_images);
 

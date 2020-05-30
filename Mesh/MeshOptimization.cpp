@@ -23,7 +23,7 @@ int MeshOptimization::getEdgesCount() {
 int MeshOptimization::getVerticesCount() {
   int result = 0;
   for (int i = 0; i < multi_images->img_num; i ++) {
-    result += multi_images->imgs[i]->getMeshPoints().size();
+    result += multi_images->imgs[i]->getVertices().size();
   }
   return result * DIMENSION_2D;
 }
@@ -182,7 +182,7 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
     int eq_count = 0, eq_count_rotation = 0;
     for (int i = 0; i < multi_images->img_num; i ++) {
       const vector<Edge> edges = multi_images->imgs[i]->getEdges();
-      const vector<Point2f> mesh_points = multi_images->imgs[i]->getMeshPoints();
+      const vector<Point2f> mesh_points = multi_images->imgs[i]->getVertices();
       const vector<vector<int> > v_neighbors = multi_images->imgs[i]->getVertexStructures();// 上, 下, 左, 右
       const vector<vector<int> > e_neighbors = multi_images->imgs[i]->getEdgeStructures();// 右, 右上, 下, 左下
 
@@ -194,8 +194,8 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
       for (int j = 0; j < edges.size(); j ++) {
         const int ind_e1 = edges[j].indices[0];
         const int ind_e2 = edges[j].indices[1];
-        const Point2f src = multi_images->imgs[i]->getMeshPoints()[ind_e1];
-        const Point2f dst = multi_images->imgs[i]->getMeshPoints()[ind_e2];
+        const Point2f src = multi_images->imgs[i]->getVertices()[ind_e1];
+        const Point2f dst = multi_images->imgs[i]->getVertices()[ind_e2];
         set<int> point_ind_set;
         for (int e = 0; e < EDGE_VERTEX_SIZE; e ++) {
           for (int v = 0; v < v_neighbors[edges[j].indices[e]].size(); v ++) {// 边e[j]的两个端点的邻接vertex
@@ -283,7 +283,7 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
   }
 }
 
-void MeshOptimization::getImageMeshPoints(vector<Triplet<double> > & _triplets,
+void MeshOptimization::getImageVerticesBySolving(vector<Triplet<double> > & _triplets,
     const vector<pair<int, double> > & _b_vector) {
   const int equations = global_similarity_equation.first + global_similarity_equation.second;
 
@@ -311,7 +311,7 @@ void MeshOptimization::getImageMeshPoints(vector<Triplet<double> > & _triplets,
 
   multi_images->image_mesh_points.resize(multi_images->img_num);
   for (int i = 0, x_index = 0; i < multi_images->img_num; i ++) {
-    int count = (int)multi_images->imgs[i]->getMeshPoints().size() * DIMENSION_2D;
+    int count = (int)multi_images->imgs[i]->getVertices().size() * DIMENSION_2D;
     multi_images->image_mesh_points[i].reserve(count);
     for (int j = 0; j < count; j += DIMENSION_2D) {
       multi_images->image_mesh_points[i].emplace_back(x[x_index + j    ],

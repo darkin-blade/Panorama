@@ -168,7 +168,7 @@ Mat NISwGSP_Stitching::matching_match() {
       for (int i = 0; i < multi_images->matching_indices[m1][m2].size(); i ++) {
         int index = multi_images->matching_indices[m1][m2][i];
         Point2f src_p, dst_p;
-        src_p = multi_images->imgs[m1]->getMeshPoints()[index];
+        src_p = multi_images->imgs[m1]->getVertices()[index];
         dst_p = multi_images->imgs[m1]->matching_points[m2][index];
 
         Scalar color(rand() % 256, rand() % 256, rand() % 256);
@@ -178,9 +178,9 @@ Mat NISwGSP_Stitching::matching_match() {
       }
     } else {
       // 描绘所有匹配点
-      for (int i = 0; i < multi_images->imgs[m1]->getMeshPoints().size(); i ++) {
+      for (int i = 0; i < multi_images->imgs[m1]->getVertices().size(); i ++) {
         Point2f src_p, dst_p;
-        src_p = multi_images->imgs[m1]->getMeshPoints()[i];
+        src_p = multi_images->imgs[m1]->getVertices()[i];
         dst_p = multi_images->imgs[m1]->matching_points[m2][i];
 
         Scalar color1(255, 0, 0);
@@ -216,20 +216,20 @@ void NISwGSP_Stitching::get_solution() {
   //   LOG("%lf", triplets[tmp_size - i].value());
   // }
   prepareSimilarityTerm(triplets, b_vector);
-  getImageMeshPoints(triplets, b_vector);
+  getImageVerticesBySolving(triplets, b_vector);
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
   // vector<vector<Point2f> > result_1;
   // result_1.resize(2);
   // 2->1
-  // result_1[0] = multi_images->imgs[0]->getMeshPoints();// 图1的mesh
+  // result_1[0] = multi_images->imgs[0]->getVertices();// 图1的mesh
   // for (int i = 0; i < multi_images->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
   //   Point2f tmp_mesh = multi_images->imgs[1]->matching_points[0][i];// TODO
   //   result_1[1].push_back(tmp_mesh);
   // }
   // 1->2
-  // result_1[1] = multi_images->imgs[1]->getMeshPoints();// 图1的mesh
+  // result_1[1] = multi_images->imgs[1]->getVertices();// 图1的mesh
   // for (int i = 0; i < multi_images->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
   //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
   //   result_1[0].push_back(tmp_mesh);
