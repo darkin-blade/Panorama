@@ -68,7 +68,6 @@ public:
 
   int img_num;
   int center_index;// 参照图片的索引
-  int auto_match;// 自行检测图片的配对关系
   vector<ImageData *> imgs;
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
@@ -97,6 +96,8 @@ public:
 
   vector<vector<double> >            images_polygon_space_matching_pts_weight;// TODO
 
+  vector<vector<double> >            images_minimum_line_distortion_rotation;// TODO
+
   vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果
@@ -112,6 +113,7 @@ public:
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
   vector<vector<pair<double, double> > > & getImagesRelativeRotationRange();
   vector<CameraParams> getCameraParams();
+  double getImagesMinimumLineDistortionRotation(const int _from, const int _to);
   vector<SimilarityElements> getImagesSimilarityElements();
 
   void do_matching();

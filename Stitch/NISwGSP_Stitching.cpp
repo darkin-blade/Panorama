@@ -68,7 +68,7 @@ Mat NISwGSP_Stitching::feature_match() {
     LOG("[picture %d] feature points: %ld", i, multi_images->imgs[i]->feature_points.size());
   }
 
-  // 特征点匹配
+  // 特征点匹配(内含自动检测图片匹配)
   multi_images->getFeaturePairs();
 
   LOG("get feature pairs");

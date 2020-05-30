@@ -115,11 +115,23 @@ const double STRONG_CONSTRAINT = 1e4;
 const int CRITERIA_MAX_COUNT = 1000;
 const double CRITERIA_EPSILON = DBL_EPSILON;
 
+/*** 2D Method ***/
+const double TOLERANT_ANGLE = 1.5;
+
+/*** 3D Method ***/
+const double LAMBDA_GAMMA = 10;
+
+/************************/
+/************************/
+/************************/
+
 /* AutoStitch */
 enum  AUTO_STITCH_WAVE_CORRECTS { WAVE_X = 0, WAVE_H, WAVE_V };
 const AUTO_STITCH_WAVE_CORRECTS   WAVE_CORRECT = WAVE_H;
 
-
+/************************/
+/************************/
+/************************/
 
 /* draw image */
 #if defined(UBUNTU)

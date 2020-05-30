@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
   }
 
   // 自定义图片配对关系
-  multi_images.auto_match = 0;// 不自动配对
   multi_images.img_pairs.emplace_back(make_pair(0, 1));
   // multi_images.img_pairs.emplace_back(make_pair(1, 2));
   // multi_images.img_pairs.emplace_back(make_pair(2, 3));
