@@ -165,17 +165,6 @@ Mat NISwGSP_Stitching::matching_match() {
 
     if (0) {
       // 描绘匹配点配对
-      for (int i = 0; i < multi_images->matching_indices[m1][m2].size(); i ++) {
-        int index = multi_images->matching_indices[m1][m2][i];
-        Point2f src_p, dst_p;
-        src_p = multi_images->imgs[m1]->getVertices()[index];
-        dst_p = multi_images->imgs[m1]->matching_points[m2][index];
-
-        Scalar color(rand() % 256, rand() % 256, rand() % 256);
-        circle(result_1, src_p, CIRCLE_SIZE, color, -1);
-        line(result_1, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
-        circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
-      }
     } else {
       // 描绘所有匹配点
       for (int i = 0; i < multi_images->imgs[m1]->getVertices().size(); i ++) {

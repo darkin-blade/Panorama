@@ -76,12 +76,12 @@ void MultiImages::do_matching() {
 
   // 所有mesh点都算作keypoint
   image_features.resize(img_num);// TODO
-  keypoints_mask.resize(img_num);
+  image_features_mask.resize(img_num);
   keypoints_pairs.resize(img_num);
   apap_overlap_mask.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     vector<Point2f> tmp_points = imgs[i]->getVertices();
-    keypoints_mask[i].resize(tmp_points.size());
+    image_features_mask[i].resize(tmp_points.size());
     keypoints_pairs[i].resize(img_num);
     for (int j = 0; j < tmp_points.size(); j ++) {
       image_features[i].keypoints.emplace_back(tmp_points[j], 0);// TODO keypoints
@@ -93,10 +93,6 @@ void MultiImages::do_matching() {
   }
 
   // 记录keypoint下标的配对信息
-  matching_indices.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    matching_indices[i].resize(img_num);
-  }
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
@@ -105,7 +101,6 @@ void MultiImages::do_matching() {
     vector<Point2f> tmp_points;
 
     // 正向配对
-    vector<int> & forward_indices = matching_indices[m1][m2];// 记录配对信息
     tmp_points = imgs[m1]->matching_points[m2];// m1 在 m2 上的匹配点
     another_img = imgs[m2]->data;
     for (int k = 0; k < tmp_points.size(); k ++) {
@@ -114,17 +109,14 @@ void MultiImages::do_matching() {
         && tmp_points[k].x <= another_img.cols
         && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
         // 如果对应的匹配点没有出界
-        forward_indices.emplace_back(k);// 记录可行的匹配点
-        
         keypoints_pairs[m1][m2].emplace_back(make_pair(k, image_features[m2].keypoints.size()));
         apap_overlap_mask[m1][m2][k] = true;
 
-        keypoints_mask[m1][k] = true;// TODO 标记可行
+        image_features_mask[m1][k] = true;// TODO 标记可行
         image_features[m2].keypoints.emplace_back(tmp_points[k], 0);// TODO keypoints
       }
     }
     // 反向配对
-    vector<int> & backward_indices = matching_indices[m2][m1];// 记录配对信息
     tmp_points = imgs[m2]->matching_points[m1];// m1 在 m2 上的匹配点
     another_img = imgs[m1]->data;
     for (int k = 0; k < tmp_points.size(); k ++) {
@@ -133,12 +125,10 @@ void MultiImages::do_matching() {
         && tmp_points[k].x <= another_img.cols
         && tmp_points[k].y <= another_img.rows) {// x对应cols, y对应rows
         // 如果对应的匹配点没有出界
-        backward_indices.emplace_back(k);// 记录可行的匹配点
-        
         keypoints_pairs[m2][m1].emplace_back(make_pair(image_features[m1].keypoints.size(), k));
         apap_overlap_mask[m2][m1][k] = true;
 
-        keypoints_mask[m2][k] = true;// TODO 标记可行
+        image_features_mask[m2][k] = true;// TODO 标记可行
         image_features[m1].keypoints.emplace_back(tmp_points[k], 0);// TODO keypoints
       }
     }
@@ -385,7 +375,7 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
 vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
   if (_global_weight_gamma && images_polygon_space_matching_pts_weight.empty()) {
     images_polygon_space_matching_pts_weight.resize(img_num);
-    const vector<vector<bool> > images_features_mask = keypoints_mask;// TODO
+    const vector<vector<bool> > images_features_mask = image_features_mask;// TODO
     const vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts = getInterpolateVerticesOfMatchingPoints();
     for (int i = 0; i < images_polygon_space_matching_pts_weight.size(); i ++) {
       const int polygons_count = (int)imgs[i]->getPolygonsIndices().size();
@@ -595,13 +585,34 @@ vector<CameraParams> MultiImages::getCameraParams() {
     for (int i = 0; i < img_pairs.size(); i ++) {
       int m1 = img_pairs[i].first;
       int m2 = img_pairs[i].second;
+      assert(m1 < m2);
       int m_index = m1 * img_num + m2;
-      for (int j = 0; j < apap_matching_points[m1][m2].size(); j ++) {
-        pairwise_matches[m_index].;
+      // 正向
+      for (int j = 0; j < keypoints_pairs[m1][m2].size(); j ++) {
+        int queryIdx = keypoints_pairs[m1][m2][j].first;
+        int trainIdx = keypoints_pairs[m1][m2][j].second;
+        pairwise_matches[m_index].matches.emplace_back(queryIdx, trainIdx, 0);
       }
+      // 反向
+      for (int j = 0; j < keypoints_pairs[m2][m1].size(); j ++) {
+        int queryIdx = keypoints_pairs[m2][m1][j].first;
+        int trainIdx = keypoints_pairs[m2][m1][j].second;
+        pairwise_matches[m_index].matches.emplace_back(queryIdx, trainIdx, 0);
+      }
+      pairwise_matches[m_index].confidence  = 2.; /*** need > 1.f ***/
+      pairwise_matches[m_index].src_img_idx = m1;
+      pairwise_matches[m_index].dst_img_idx = m2;
+      pairwise_matches[m_index].inliers_mask.resize(pairwise_matches[m_index].matches.size(), 1);// TODO
+      pairwise_matches[m_index].num_inliers = (int)pairwise_matches[m_index].matches.size();
+      pairwise_matches[m_index].H = apap_homographies[m1][m2].front(); /*** for OpenCV findMaxSpanningTree funtion ***/
     }
+
     if (!(*adjuster)(image_features, pairwise_matches, camera_params)) {
       assert(0);
+    }
+
+    for (int i = 0; i < img_num; i ++) {
+      LOG("%d: %lf", i, camera_params[i].focal);
     }
 
     Mat center_rotation_inv = camera_params[center_index].R.inv();
