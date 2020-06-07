@@ -281,13 +281,13 @@ vector<LineData> ImageData::getLines() {
   if (img_lines.empty()) {
     Mat grey_image = grey_data;// getGreyImage;
     assert(grey_image.empty() == false);
-    Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
-    // Ptr<cv::ximgproc::FastLineDetector> ls = cv::ximgproc::createFastLineDetector();
+    // Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);// has been removed
+    Ptr<cv::ximgproc::FastLineDetector> ls = cv::ximgproc::createFastLineDetector();
 
     vector<Vec4f>  lines;
     vector<double> lines_width, lines_prec, lines_nfa;
-    ls->detect(grey_image, lines, lines_width, lines_prec, lines_nfa);
-    // ls->detect(grey_image, lines);
+    // ls->detect(grey_image, lines, lines_width, lines_prec, lines_nfa);// has been removed
+    ls->detect(grey_image, lines);
 
     vector<double> lines_length;
     vector<Point2f> lines_points[2];

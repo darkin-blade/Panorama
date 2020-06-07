@@ -35,6 +35,7 @@
 #include <opencv2/stitching/detail/matchers.hpp>
 #include <opencv2/stitching/detail/motion_estimators.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp>
+#include <opencv2/ximgproc/fast_line_detector.hpp>
 
 #if defined(UBUNTU)
 

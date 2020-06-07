@@ -975,8 +975,8 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
             decision_theta = guess_theta;
             weight = LAMBDA_GAMMA;
           } else {
-            // decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
-            decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
+            decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+            // decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
             weight = 1;
           }
           LOG("[%d,%d]: %lf", m1, m2, decision_theta);
