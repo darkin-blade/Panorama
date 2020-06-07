@@ -1,5 +1,33 @@
 #include "ImageData.h"
 
+
+LineData::LineData(const Point2f & _a,
+    const Point2f & _b,
+    const double _width,
+    const double _length) {
+  data[0] = _a;
+  data[1] = _b;
+  width   = _width;
+  length  = _length;
+}
+
+const bool LINES_FILTER_NONE(const double _data,
+    const Statistics & _statistics) {
+  return true;
+};
+
+const bool LINES_FILTER_WIDTH (const double _data,
+    const Statistics & _statistics) {
+  return _data >= MAX(2.f, (_statistics.min + _statistics.mean) / 2.f);
+  return true;
+};
+
+const bool LINES_FILTER_LENGTH(const double _data,
+    const Statistics & _statistics) {
+  return _data >= MAX(10.f, _statistics.mean);
+  return true;
+};
+
 void ImageData::init_data(const char *img_path) {
   get_img(img_path);
   get_size();
@@ -10,18 +38,18 @@ void ImageData::get_img(const char *img_path) {
   rgba_data = imread(img_path, IMREAD_UNCHANGED);
   grey_data = Mat();// 灰色图
   cvtColor(data, grey_data, CV_BGR2GRAY);
-    
+
   float original_img_size = data.rows * data.cols;
-  
-  if(original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
+
+  if (original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
     float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
     resize(data, data, Size(), scale, scale);
     resize(rgba_data, rgba_data, Size(), scale, scale);
   }
-  
+
   assert(rgba_data.channels() >= 3);
-  if(rgba_data.channels() == 3) {
-      cvtColor(rgba_data, rgba_data, CV_BGR2BGRA);
+  if (rgba_data.channels() == 3) {
+    cvtColor(rgba_data, rgba_data, CV_BGR2BGRA);
   }
   vector<Mat> channels;
   split(rgba_data, channels);
@@ -51,9 +79,9 @@ vector<Point2f> ImageData::getVertices() {
     const int memory = (nh + 1) * (nw + 1);
     mesh_points.reserve(memory);
     for (int h = 0; h <= nh; h ++) {
-        for (int w = 0; w <= nw; w ++) {
-            mesh_points.emplace_back(w * lw, h * lh);
-        }
+      for (int w = 0; w <= nw; w ++) {
+        mesh_points.emplace_back(w * lw, h * lh);
+      }
     }
     assert(memory == mesh_points.size());
   }
@@ -78,7 +106,7 @@ vector<vector<int> > ImageData::getPolygonsIndices() {
   // 获取每个mesh格子的4个顶点
   if (polygons_indices.empty()) {
     const Point2i nexts[GRID_VERTEX_SIZE] = {// 左上, 右上, 右下, 左下
-        Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
+      Point2i(0, 0), Point2i(1, 0), Point2i(1, 1), Point2i(0, 1)
     };
     const int memory = nh * nw;// mesh点数目
     polygons_indices.resize(memory);
@@ -112,7 +140,7 @@ vector<Edge> ImageData::getEdges() {
           const Point2i p2 = p1 + nexts[n];
           if (p2.x >= 0 && p2.y >= 0 && p2.x <= nw && p2.y <= nh) {
             edges.emplace_back(p1.x + p1.y * (nw + 1),
-                              p2.x + p2.y * (nw + 1));
+                p2.x + p2.y * (nw + 1));
           }
         }
       }
@@ -230,7 +258,7 @@ InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
   const vector<int> & g = grids[grid_index];// TODO Indices
 
   const vector<int> diagonal_indices = {2, 3, 0, 1};/* 0 1    2 3
-                                                           ->
+                                                       ->
                                                        3 2    1 0 */
   assert(g.size() == GRID_VERTEX_SIZE);
 
@@ -238,7 +266,7 @@ InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
   double sum_inv = 0;
   for (int i = 0; i < diagonal_indices.size(); i ++) {
     Point2f tmp(_p.x - vertices[g[diagonal_indices[i]]].x,
-                _p.y - vertices[g[diagonal_indices[i]]].y);
+        _p.y - vertices[g[diagonal_indices[i]]].y);
     weights[i] = fabs(tmp.x * tmp.y);
     sum_inv += weights[i];
   }
@@ -247,4 +275,56 @@ InterpolateVertex ImageData::getInterpolateVertex(const Point2f & _p) {
     weights[i] = weights[i] * sum_inv;
   }
   return InterpolateVertex(grid_index, weights);// 构造函数
+}
+
+vector<LineData> ImageData::getLines() {
+  if (img_lines.empty()) {
+    Mat grey_image = grey_data;// getGreyImage;
+    assert(grey_image.empty() == false);
+    Ptr<LineSegmentDetector> ls = createLineSegmentDetector(LSD_REFINE_STD);
+    // Ptr<cv::ximgproc::FastLineDetector> ls = cv::ximgproc::createFastLineDetector();
+
+    vector<Vec4f>  lines;
+    vector<double> lines_width, lines_prec, lines_nfa;
+    ls->detect(grey_image, lines, lines_width, lines_prec, lines_nfa);
+    // ls->detect(grey_image, lines);
+
+    vector<double> lines_length;
+    vector<Point2f> lines_points[2];
+
+    const int line_count = (int)lines.size();
+
+    lines_length.reserve(line_count);
+    lines_points[0].reserve(line_count);
+    lines_points[1].reserve(line_count);
+
+    for (int i = 0; i < line_count; i ++) {
+      lines_points[0].emplace_back(lines[i][0], lines[i][1]);
+      lines_points[1].emplace_back(lines[i][2], lines[i][3]);
+      lines_length.emplace_back(norm(lines_points[1][i] - lines_points[0][i]));
+    }
+
+    const Statistics width_statistics(lines_width), length_statistics(lines_length);
+    for (int i = 0; i < line_count; i ++) {
+      if ( LINES_FILTER_WIDTH( lines_width[i],  width_statistics) && // width_filter
+          LINES_FILTER_LENGTH(lines_length[i], length_statistics)) { // length_filter
+        img_lines.emplace_back(lines_points[0][i],
+            lines_points[1][i],
+            lines_width[i],
+            lines_length[i]);
+      }
+    }
+    // #ifndef NDEBUG
+    //         vector<Vec4f> draw_lines;
+    //         draw_lines.reserve(img_lines.size());
+    //         for (int i = 0; i < img_lines.size(); i ++) {
+    //             draw_lines.emplace_back(img_lines[i].data[0].x, img_lines[i].data[0].y,
+    //                                     img_lines[i].data[1].x, img_lines[i].data[1].y);
+    //         }
+    //         Mat canvas = Mat::zeros(grey_image.rows, grey_image.cols, grey_image.type());
+    //         ls->drawSegments(canvas, draw_lines);
+    //         imwrite(*debug_dir + "line-result-" + file_name + file_extension, canvas);
+    // #endif
+  }
+  return img_lines;
 }

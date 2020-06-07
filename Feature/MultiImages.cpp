@@ -611,10 +611,6 @@ vector<CameraParams> MultiImages::getCameraParams() {
       assert(0);
     }
 
-    for (int i = 0; i < img_num; i ++) {
-      LOG("%d: %lf", i, camera_params[i].focal);
-    }
-
     Mat center_rotation_inv = camera_params[center_index].R.inv();
     for (int i = 0; i < camera_params.size(); i ++) {
       camera_params[i].R = center_rotation_inv * camera_params[i].R;
@@ -711,6 +707,139 @@ vector<vector<pair<double, double> > > & MultiImages::getImagesRelativeRotationR
   return images_relative_rotation_range;
 }
 
+vector<vector<vector<Point2f> > > MultiImages::getFeatureMatches() {
+  if (feature_matches.empty()) {
+    // feature_pairs TODO
+    feature_matches.resize(img_num);
+    for (int i = 0; i < img_num; i ++) {
+      feature_matches[i].resize(img_num);
+    }
+    for (int i = 0; i < img_pairs.size(); i ++) {
+      const pair<int, int> & match_pair = img_pairs[i];
+      const int & m1 = match_pair.first, & m2 = match_pair.second;
+      feature_matches[m1][m2].reserve(feature_pairs[m1][m2].size());
+      feature_matches[m2][m1].reserve(feature_pairs[m1][m2].size());
+      const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;//
+      const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;//
+      assert(m2_fpts.empty() == false);
+      for (int j = 0; j < feature_pairs[m1][m2].size(); j ++) {
+        feature_matches[m1][m2].emplace_back(m1_fpts[feature_pairs[m1][m2][j].first ]);
+        feature_matches[m2][m1].emplace_back(m2_fpts[feature_pairs[m1][m2][j].second]);
+      }
+    }
+  }
+  return feature_matches;
+}
+
+vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _to) {
+  if (images_lines_projects.empty()) {
+    images_lines_projects.resize(img_num);
+    for (int i = 0; i < images_lines_projects.size(); i ++) {
+      images_lines_projects[i].resize(img_num);
+    }
+  }
+  if (images_lines_projects[_from][_to].empty()) {
+    const vector<vector<vector<Point2f> > > & feature_matches = getFeatureMatches();
+    const vector<LineData> & lines = imgs[_from]->getLines();
+    vector<Point2f> points, project_points;
+    points.reserve(lines.size() * EDGE_VERTEX_SIZE);
+    for (int i = 0; i < lines.size(); i ++) {
+      for (int j = 0; j < EDGE_VERTEX_SIZE; j ++) {
+        points.emplace_back(lines[i].data[j]);
+      }
+    }
+    vector<Mat> not_be_used;
+    APAP_Stitching::apap_project(feature_matches[_from][_to], feature_matches[_to][_from], points, images_lines_projects[_from][_to], not_be_used);
+  }
+  return images_lines_projects[_from][_to];
+}
+
+double MultiImages::getImagesMinimumLineDistortionRotation(const int _from, const int _to) {
+  if (images_minimum_line_distortion_rotation.empty()) {
+    images_minimum_line_distortion_rotation.resize(img_num);
+    for (int i = 0; i < images_minimum_line_distortion_rotation.size(); i ++) {
+      images_minimum_line_distortion_rotation[i].resize(img_num, std::numeric_limits<float>::max());
+    }
+  }
+  if (images_minimum_line_distortion_rotation[_from][_to] == std::numeric_limits<float>::max()) {
+    const vector<LineData> & from_lines   = imgs[_from]->getLines();
+    const vector<LineData> &   to_lines   = imgs[_to  ]->getLines();
+    const vector<Point2f>   & from_project = getImagesLinesProject(_from, _to);
+    const vector<Point2f>   &   to_project = getImagesLinesProject(_to, _from);
+
+    const vector<const vector<LineData> *> & lines    = { &from_lines,   &to_lines   };
+    const vector<const vector<Point2f  > *> & projects = { &from_project, &to_project };
+    const vector<int> & img_indices = { _to, _from };
+    const vector<int> sign_mapping = { -1, 1, 1, -1 };
+
+    vector<pair<double, double> > theta_weight_pairs;
+    for (int i = 0; i < lines.size(); i ++) {
+      const int & rows = imgs[img_indices[i]]->data.rows;
+      const int & cols = imgs[img_indices[i]]->data.cols;
+      const vector<pair<Point2f, Point2f> > & boundary_edgs = {
+        make_pair(Point2f(0,       0), Point2f(cols,    0)),
+        make_pair(Point2f(cols,    0), Point2f(cols, rows)),
+        make_pair(Point2f(cols, rows), Point2f(   0, rows)),
+        make_pair(Point2f(   0, rows), Point2f(   0,    0))
+      };
+      for (int j = 0; j < lines[i]->size(); j ++) {
+        const Point2f & p1 = (*projects[i])[EDGE_VERTEX_SIZE * j    ];
+        const Point2f & p2 = (*projects[i])[EDGE_VERTEX_SIZE * j + 1];
+        const bool p1_in_img = (p1.x >= 0 && p1.x <= cols && p1.y >= 0 && p1.y <= rows);
+        const bool p2_in_img = (p2.x >= 0 && p2.x <= cols && p2.y >= 0 && p2.y <= rows);
+
+        const bool p_in_img[EDGE_VERTEX_SIZE] = { p1_in_img, p2_in_img };
+
+        Point2f p[EDGE_VERTEX_SIZE] = { p1, p2 };
+
+        if (!p1_in_img || !p2_in_img) {
+          vector<double> scales;
+          for (int k = 0; k < boundary_edgs.size(); k ++) {
+            double s1;
+            if (isEdgeIntersection(p1, p2, boundary_edgs[k].first, boundary_edgs[k].second, &s1)) {
+              scales.emplace_back(s1);
+            }
+          }
+          assert(scales.size() <= EDGE_VERTEX_SIZE);
+          if (scales.size() == EDGE_VERTEX_SIZE) {
+            assert(!p1_in_img && !p2_in_img);
+            if (scales.front() > scales.back()) {
+              iter_swap(scales.begin(), scales.begin() + 1);
+            }
+            for (int k = 0; k < scales.size(); k ++) {
+              p[k] = p1 + scales[k] * (p2 - p1);
+            }
+          } else if (!scales.empty()){
+            for (int k = 0; k < EDGE_VERTEX_SIZE; k ++) {
+              if (!p_in_img[k]) {
+                p[k] = p1 + scales.front() * (p2 - p1);
+              }
+            }
+          } else {
+            continue;
+          }
+        }
+        const Point2d a = (*lines[i])[j].data[1] - (*lines[i])[j].data[0];
+        const Point2d b = p2 - p1;
+        const double theta = acos(a.dot(b) / (norm(a) * norm(b)));
+        const double direction = a.x * b.y - a.y * b.x;
+        const int map = ((direction > 0) << 1) + i;
+        const double b_length_2 = sqrt(b.x * b.x + b.y * b.y);
+        theta_weight_pairs.emplace_back(theta * sign_mapping[map],
+            (*lines[i])[j].length * (*lines[i])[j].width * b_length_2);
+      }
+    }
+    Point2f dir(0, 0);
+    for (int i = 0; i < theta_weight_pairs.size(); i ++) {
+      const double & theta = theta_weight_pairs[i].first;
+      dir += (theta_weight_pairs[i].second * Point2f(cos(theta), sin(theta)));
+    }
+    images_minimum_line_distortion_rotation[_from][_to] = acos(dir.x / (norm(dir))) * (dir.y > 0 ? 1 : -1);
+    images_minimum_line_distortion_rotation[_to][_from] = -images_minimum_line_distortion_rotation[_from][_to];
+  }
+  return images_minimum_line_distortion_rotation[_from][_to];
+}
+
 vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
   if (0) {
     if (images_similarity_elements.empty()) {
@@ -729,10 +858,6 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
             -getEulerZXYRadians<float>(camera_params[i].R)[2]);
       }
 
-      for (int i = 0; i < img_num; i ++) {
-        LOG("[%d](%lf)", i, images_similarity_elements[i].scale);
-      }
-
       double rotate_theta = 0;// TODO 自定义的参照图片旋转角度
       for (int i = 0; i < img_num; i ++) {
         double a = (images_similarity_elements[i].theta - rotate_theta) * 180 / M_PI;
@@ -740,16 +865,8 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
       }
 
       const vector<vector<pair<double, double> > > & images_relative_rotation_range = getImagesRelativeRotationRange();
-
-      for (int i = 0; i < img_pairs.size(); i ++) {
-        int m1 = img_pairs[i].first;
-        int m2 = img_pairs[i].second;
-        double theta_min = images_relative_rotation_range[m1][m2].first;
-        double theta_max = images_relative_rotation_range[m1][m2].second;
-        LOG("[%d][%d](%lf, %lf)", m1, m2, theta_min, theta_max);
-      }
   
-      if (1) {
+      if (0) {
         // do nothing
       } else if (0) {
         // // 2D method
@@ -832,52 +949,58 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         //   images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
         // }
       } else {
-        // // 3D method
-        // const int equations_count = (int)img_pairs.size() * DIMENSION_2D + DIMENSION_2D;
-        // SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
-        // VectorXd b = VectorXd::Zero(equations_count);
-        // vector<Triplet<double> > triplets;
-        // triplets.reserve(img_pairs.size() * 6 + DIMENSION_2D);
+        // 3D method
+        const int equations_count = (int)img_pairs.size() * DIMENSION_2D + DIMENSION_2D;
+        SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
+        VectorXd b = VectorXd::Zero(equations_count);
+        vector<Triplet<double> > triplets;
+        triplets.reserve(img_pairs.size() * 6 + DIMENSION_2D);
 
-        // b[0] = STRONG_CONSTRAINT * cos(images_similarity_elements[center_index].theta);
-        // b[1] = STRONG_CONSTRAINT * sin(images_similarity_elements[center_index].theta);
-        // triplets.emplace_back(0, DIMENSION_2D * center_index    , STRONG_CONSTRAINT);
-        // triplets.emplace_back(1, DIMENSION_2D * center_index + 1, STRONG_CONSTRAINT);
-        // int equation = DIMENSION_2D;
-        // for (int i = 0; i < img_pairs.size(); i ++) {
-        //   const pair<int, int> & match_pair = img_pairs[i];
-        //   const int & m1 = match_pair.first, & m2 = match_pair.second;
-        //   const double guess_theta = images_similarity_elements[m2].theta - images_similarity_elements[m1].theta;
-        //   double decision_theta, weight;
-        //   if (isRotationInTheRange(guess_theta,
-        //         images_relative_rotation_range[m1][m2].first,
-        //         images_relative_rotation_range[m1][m2].second)) {
-        //     decision_theta = guess_theta;
-        //     weight = LAMBDA_GAMMA;
-        //   } else {
-        //     decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
-        //     weight = 1;
-        //   }
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m1    , weight *  cos(decision_theta));
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, weight * -sin(decision_theta));
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m2    ,                       -weight);
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m1    , weight *  sin(decision_theta));
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1, weight *  cos(decision_theta));
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,                       -weight);
+        b[0] = STRONG_CONSTRAINT * cos(images_similarity_elements[center_index].theta);
+        b[1] = STRONG_CONSTRAINT * sin(images_similarity_elements[center_index].theta);
+        triplets.emplace_back(0, DIMENSION_2D * center_index    , STRONG_CONSTRAINT);
+        triplets.emplace_back(1, DIMENSION_2D * center_index + 1, STRONG_CONSTRAINT);
+        int equation = DIMENSION_2D;
+        for (int i = 0; i < img_pairs.size(); i ++) {
+          const pair<int, int> & match_pair = img_pairs[i];
+          const int & m1 = match_pair.first, & m2 = match_pair.second;
+          const double guess_theta = images_similarity_elements[m2].theta - images_similarity_elements[m1].theta;// TODO
+          double decision_theta, weight;
+          
+          LOG("%lf %lf", images_relative_rotation_range[m1][m2].first, images_relative_rotation_range[m1][m2].second);
 
-        //   equation += DIMENSION_2D;
-        // }
-        // assert(equation == equations_count);
-        // A.setFromTriplets(triplets.begin(), triplets.end());
-        // LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
-        // VectorXd x = lscg.solve(b);
+          if (isRotationInTheRange(guess_theta,// TODO
+                images_relative_rotation_range[m1][m2].first,
+                images_relative_rotation_range[m1][m2].second)) {
+            decision_theta = guess_theta;
+            weight = LAMBDA_GAMMA;
+          } else {
+            // decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+            decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
+            weight = 1;
+          }
+          LOG("[%d,%d]: %lf", m1, m2, decision_theta);
+          triplets.emplace_back(equation    , DIMENSION_2D * m1    , weight *  cos(decision_theta));
+          triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, weight * -sin(decision_theta));
+          triplets.emplace_back(equation    , DIMENSION_2D * m2    ,                       -weight);
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m1    , weight *  sin(decision_theta));
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1, weight *  cos(decision_theta));
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,                       -weight);
 
-        // for (int i = 0; i < img_num; i ++) {
-        //   images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
-        // }
+          equation += DIMENSION_2D;
+        }
+        assert(equation == equations_count);
+        A.setFromTriplets(triplets.begin(), triplets.end());
+        LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
+        VectorXd x = lscg.solve(b);
+
+        for (int i = 0; i < img_num; i ++) {
+          images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
+        }
       }
     }
   }
+  assert(images_similarity_elements.size() == img_num);
 
   return images_similarity_elements;
 }
