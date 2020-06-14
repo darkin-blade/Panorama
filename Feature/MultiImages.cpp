@@ -768,12 +768,12 @@ double MultiImages::getImagesMinimumLineDistortionRotation(const int _from, cons
     const vector<Point2f>   &   to_project = getImagesLinesProject(_to, _from);
 
     const vector<const vector<LineData> *> & lines    = { &from_lines,   &to_lines   };
-    const vector<const vector<Point2f  > *> & projects = { &from_project, &to_project };
+    const vector<const vector<Point2f > *> & projects = { &from_project, &to_project };
     const vector<int> & img_indices = { _to, _from };
     const vector<int> sign_mapping = { -1, 1, 1, -1 };
 
     vector<pair<double, double> > theta_weight_pairs;
-    for (int i = 0; i < lines.size(); i ++) {
+    for (int i = 0; i < lines.size(); i ++) {// 2次循环
       const int & rows = imgs[img_indices[i]]->data.rows;
       const int & cols = imgs[img_indices[i]]->data.cols;
       const vector<pair<Point2f, Point2f> > & boundary_edgs = {
@@ -870,84 +870,84 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         // do nothing
       } else if (0) {
         // // 2D method
-        // class RotationNode {
-        //   public:
-        //     int index, parent;
-        //     RotationNode(const int _index, const int _parent) {
-        //       index = _index, parent = _parent;
-        //     }
-        //   private:
+        class RotationNode {
+          public:
+            int index, parent;
+            RotationNode(const int _index, const int _parent) {
+              index = _index, parent = _parent;
+            }
+          private:
 
-        // };
-        // const double TOLERANT_THETA = TOLERANT_ANGLE * M_PI / 180;
-        // vector<pair<int, double> > theta_constraints;
-        // vector<bool> decided(img_num, false);
-        // vector<RotationNode> priority_que;
-        // theta_constraints.emplace_back(center_index, images_similarity_elements[center_index].theta);
-        // decided[center_index] = true;
-        // priority_que.emplace_back(center_index, -1);
-        // while(priority_que.empty() == false) {
-        //   RotationNode node = priority_que.front();
-        //   priority_que.erase(priority_que.begin());
-        //   if (!decided[node.index]) {
-        //     decided[node.index] = true;
-        //     images_similarity_elements[node.index].theta = images_similarity_elements[node.parent].theta + getImagesMinimumLineDistortionRotation(node.parent, node.index);
-        //   }
-        //   for (int i = 0; i < decided.size(); i ++) {
-        //     if (!decided[i]) {
-        //       const int e[EDGE_VERTEX_SIZE] = { node.index, i };
-        //       for (int j = 0; j < EDGE_VERTEX_SIZE; j ++) {
-        //         if (images_match_graph[e[j]][e[!j]]) {
-        //           RotationNode new_node(i, node.index);
-        //           if (isRotationInTheRange<double>(0, images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].first  - TOLERANT_THETA,
-        //                 images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].second + TOLERANT_THETA)) {
-        //             priority_que.insert(priority_que.begin(), new_node);
-        //             images_similarity_elements[i].theta = 0;
-        //             decided[i] = true;
-        //             theta_constraints.emplace_back(i, 0);
-        //           } else {
-        //             priority_que.emplace_back(new_node);
-        //           }
-        //           break;
-        //         }
-        //       }
-        //     }
-        //   }
-        // }
-        // const int equations_count = (int)(img_pairs.size() + theta_constraints.size()) * DIMENSION_2D;
-        // SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
-        // VectorXd b = VectorXd::Zero(equations_count);
-        // vector<Triplet<double> > triplets;
-        // triplets.reserve(theta_constraints.size() * 2 + img_pairs.size() * 6);
+        };
+        const double TOLERANT_THETA = TOLERANT_ANGLE * M_PI / 180;
+        vector<pair<int, double> > theta_constraints;
+        vector<bool> decided(img_num, false);
+        vector<RotationNode> priority_que;
+        theta_constraints.emplace_back(center_index, images_similarity_elements[center_index].theta);
+        decided[center_index] = true;
+        priority_que.emplace_back(center_index, -1);
+        while (priority_que.empty() == false) {
+          RotationNode node = priority_que.front();
+          priority_que.erase(priority_que.begin());
+          if (!decided[node.index]) {
+            decided[node.index] = true;
+            images_similarity_elements[node.index].theta = images_similarity_elements[node.parent].theta + getImagesMinimumLineDistortionRotation(node.parent, node.index);
+          }
+          for (int i = 0; i < decided.size(); i ++) {
+            if (!decided[i]) {
+              const int e[EDGE_VERTEX_SIZE] = { node.index, i };
+              for (int j = 0; j < EDGE_VERTEX_SIZE; j ++) {
+                if (images_match_graph[e[j]][e[!j]]) {
+                  RotationNode new_node(i, node.index);
+                  if (isRotationInTheRange<double>(0, images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].first  - TOLERANT_THETA,
+                        images_similarity_elements[node.index].theta + images_relative_rotation_range[node.index][i].second + TOLERANT_THETA)) {
+                    priority_que.insert(priority_que.begin(), new_node);
+                    images_similarity_elements[i].theta = 0;
+                    decided[i] = true;
+                    theta_constraints.emplace_back(i, 0);
+                  } else {
+                    priority_que.emplace_back(new_node);
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+        const int equations_count = (int)(img_pairs.size() + theta_constraints.size()) * DIMENSION_2D;
+        SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
+        VectorXd b = VectorXd::Zero(equations_count);
+        vector<Triplet<double> > triplets;
+        triplets.reserve(theta_constraints.size() * 2 + img_pairs.size() * 6);
 
-        // int equation = 0;
-        // for (int i = 0; i < theta_constraints.size(); i ++) {
-        //   triplets.emplace_back(equation    , DIMENSION_2D * theta_constraints[i].first    , STRONG_CONSTRAINT);
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * theta_constraints[i].first + 1, STRONG_CONSTRAINT);
-        //   b[equation    ] = STRONG_CONSTRAINT * cos(theta_constraints[i].second);
-        //   b[equation + 1] = STRONG_CONSTRAINT * sin(theta_constraints[i].second);
-        //   equation += DIMENSION_2D;
-        // } 
-        // for (int i = 0; i < img_pairs.size(); i ++) {
-        //   const pair<int, int> & match_pair = img_pairs[i];
-        //   const int & m1 = match_pair.first, & m2 = match_pair.second;
-        //   const double & MLDR_theta = getImagesMinimumLineDistortionRotation(m1, m2);
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m1    ,  cos(MLDR_theta));
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, -sin(MLDR_theta));
-        //   triplets.emplace_back(equation    , DIMENSION_2D * m2    ,               -1);
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m1    ,  sin(MLDR_theta));
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1,  cos(MLDR_theta));
-        //   triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,               -1);
-        //   equation += DIMENSION_2D;
-        // }
-        // assert(equation == equations_count);
-        // A.setFromTriplets(triplets.begin(), triplets.end());
-        // LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
-        // VectorXd x = lscg.solve(b);
+        int equation = 0;
+        for (int i = 0; i < theta_constraints.size(); i ++) {
+          triplets.emplace_back(equation    , DIMENSION_2D * theta_constraints[i].first    , STRONG_CONSTRAINT);
+          triplets.emplace_back(equation + 1, DIMENSION_2D * theta_constraints[i].first + 1, STRONG_CONSTRAINT);
+          b[equation    ] = STRONG_CONSTRAINT * cos(theta_constraints[i].second);
+          b[equation + 1] = STRONG_CONSTRAINT * sin(theta_constraints[i].second);
+          equation += DIMENSION_2D;
+        } 
+        for (int i = 0; i < img_pairs.size(); i ++) {
+          const pair<int, int> & match_pair = img_pairs[i];
+          const int & m1 = match_pair.first, & m2 = match_pair.second;
+          const double & MLDR_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+          triplets.emplace_back(equation    , DIMENSION_2D * m1    ,  cos(MLDR_theta));
+          triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, -sin(MLDR_theta));
+          triplets.emplace_back(equation    , DIMENSION_2D * m2    ,               -1);
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m1    ,  sin(MLDR_theta));
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m1 + 1,  cos(MLDR_theta));
+          triplets.emplace_back(equation + 1, DIMENSION_2D * m2 + 1,               -1);
+          equation += DIMENSION_2D;
+        }
+        assert(equation == equations_count);
+        A.setFromTriplets(triplets.begin(), triplets.end());
+        LeastSquaresConjugateGradient<SparseMatrix<double> > lscg(A);
+        VectorXd x = lscg.solve(b);
 
-        // for (int i = 0; i < img_num; i ++) {
-        //   images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
-        // }
+        for (int i = 0; i < img_num; i ++) {
+          images_similarity_elements[i].theta = atan2(x[DIMENSION_2D * i + 1], x[DIMENSION_2D * i]);
+        }
       } else {
         // 3D method
         const int equations_count = (int)img_pairs.size() * DIMENSION_2D + DIMENSION_2D;
@@ -979,7 +979,6 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
             // decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
             weight = 1;
           }
-          LOG("[%d,%d]: %lf", m1, m2, decision_theta);
           triplets.emplace_back(equation    , DIMENSION_2D * m1    , weight *  cos(decision_theta));
           triplets.emplace_back(equation    , DIMENSION_2D * m1 + 1, weight * -sin(decision_theta));
           triplets.emplace_back(equation    , DIMENSION_2D * m2    ,                       -weight);

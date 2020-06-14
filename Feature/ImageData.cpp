@@ -1,6 +1,5 @@
 #include "ImageData.h"
 
-
 LineData::LineData(const Point2f & _a,
     const Point2f & _b,
     const double _width,
@@ -10,23 +9,6 @@ LineData::LineData(const Point2f & _a,
   width   = _width;
   length  = _length;
 }
-
-const bool LINES_FILTER_NONE(const double _data,
-    const Statistics & _statistics) {
-  return true;
-};
-
-const bool LINES_FILTER_WIDTH (const double _data,
-    const Statistics & _statistics) {
-  return _data >= MAX(2.f, (_statistics.min + _statistics.mean) / 2.f);
-  return true;
-};
-
-const bool LINES_FILTER_LENGTH(const double _data,
-    const Statistics & _statistics) {
-  return _data >= MAX(10.f, _statistics.mean);
-  return true;
-};
 
 void ImageData::init_data(const char *img_path) {
   get_img(img_path);
@@ -295,6 +277,7 @@ vector<LineData> ImageData::getLines() {
     const int line_count = (int)lines.size();
 
     lines_length.reserve(line_count);
+    lines_width.reserve(line_count);
     lines_points[0].reserve(line_count);
     lines_points[1].reserve(line_count);
 
@@ -302,29 +285,16 @@ vector<LineData> ImageData::getLines() {
       lines_points[0].emplace_back(lines[i][0], lines[i][1]);
       lines_points[1].emplace_back(lines[i][2], lines[i][3]);
       lines_length.emplace_back(norm(lines_points[1][i] - lines_points[0][i]));
+      // TODO 直线所在的区域
+      lines_width.emplace_back(fabs(lines[i][2] - lines[i][0]));
     }
 
-    const Statistics width_statistics(lines_width), length_statistics(lines_length);
     for (int i = 0; i < line_count; i ++) {
-      if ( LINES_FILTER_WIDTH( lines_width[i],  width_statistics) && // width_filter
-          LINES_FILTER_LENGTH(lines_length[i], length_statistics)) { // length_filter
-        img_lines.emplace_back(lines_points[0][i],
-            lines_points[1][i],
-            lines_width[i],
-            lines_length[i]);
-      }
+      img_lines.emplace_back(lines_points[0][i],
+          lines_points[1][i],
+          lines_width[i],
+          lines_length[i]);
     }
-    // #ifndef NDEBUG
-    //         vector<Vec4f> draw_lines;
-    //         draw_lines.reserve(img_lines.size());
-    //         for (int i = 0; i < img_lines.size(); i ++) {
-    //             draw_lines.emplace_back(img_lines[i].data[0].x, img_lines[i].data[0].y,
-    //                                     img_lines[i].data[1].x, img_lines[i].data[1].y);
-    //         }
-    //         Mat canvas = Mat::zeros(grey_image.rows, grey_image.cols, grey_image.type());
-    //         ls->drawSegments(canvas, draw_lines);
-    //         imwrite(*debug_dir + "line-result-" + file_name + file_extension, canvas);
-    // #endif
   }
   return img_lines;
 }
