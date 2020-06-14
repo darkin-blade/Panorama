@@ -1,43 +1,7 @@
 #include "NISwGSP_Stitching.h"
 
 NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimization(_multi_images) {
-}
-
-void NISwGSP_Stitching::prepare() {
-  // 对图片预处理
-  int img_num = multi_images->img_num;
-
-  multi_images->imgs[0]->data = change_image(multi_images->imgs[0]->data, +0.00, 1.0).clone();
-  multi_images->imgs[1]->data = change_image(multi_images->imgs[1]->data, +1.57, 1.0).clone();
-  // multi_images->imgs[2]->data = change_image(multi_images->imgs[2]->data, -0.51, 1.0);
-  // multi_images->imgs[3]->data = change_image(multi_images->imgs[3]->data, +2.12, 1.3);
-  // multi_images->imgs[4]->data = change_image(multi_images->imgs[4]->data, +1.68, 1.2);
-}
-
-Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
-  double tmp = 3.1415926 / 180;
-
-  double width = img.cols;
-  double height = img.rows;
-  double diagonal = sqrt(width * width + height * height);
-
-  double new_width;
-  double new_height;
-  double tmp_angle = fabs(asin(sin(angle)));
-  new_width = diagonal * cos(asin(height / diagonal) - tmp_angle);
-  new_height = diagonal * cos(asin(width / diagonal) - tmp_angle);
-
-  // 平移变换
-  double width_offset = (new_width - width) / 2;
-  double height_offset = (new_height - height) / 2;
-  Mat translate = Mat::zeros(2, 3, CV_32FC1);
-  translate.at<float>(0, 0) = 1;
-  translate.at<float>(0, 2) = (new_width - width) / 2;// 水平偏移
-  translate.at<float>(1, 1) = 1;
-  translate.at<float>(1, 2) = (new_height - height) / 2;// 垂直偏移
-  Mat result_1;
-  double tmp_size = max(new_width, new_height);
-  // warpAffine(img, result_1, translate, Size(tmp_size, tmp_size));
+}cd ize, tmp_size));
   // show_img("1", result_1);
 
   // 旋转变换
