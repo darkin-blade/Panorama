@@ -57,7 +57,7 @@ using namespace cv::xfeatures2d;
 
 /************************************** 自定义 ********************************************/
 
-void print_message(const char *fmt, const char *func, const int line_no, ...);
+void print_message(const char *fmt, ...);
 
 /*****************************************************************************************/
 

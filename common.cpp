@@ -1,9 +1,9 @@
-#include <common.h>
+#include "common.h"
 
 static char sprint_buf[1024];
 static char tmp_fmt[1024];
 
-void fuck(const char *fmt, const char *func, const int line_no, ...) {
+void print_message(const char *fmt, ...) {
   va_list args;
   int n;
   va_start(args, fmt);

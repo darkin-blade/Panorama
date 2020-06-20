@@ -16,6 +16,7 @@ set(niswgsp_source
     ${stitch_src}
     ${util_src}
     common.h
+    common.cpp
     entry.cpp )
 
 # eigen

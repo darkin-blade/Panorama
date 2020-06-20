@@ -8,6 +8,8 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
+  LOG("fuck %s", "you");
+
   // 读取图片
   MultiImages multi_images;
   Mat img_read;
