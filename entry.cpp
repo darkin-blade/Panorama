@@ -39,12 +39,30 @@ int main(int argc, char *argv[]) {
 
 #else
 
+JNIEnv * total_env;
+
 extern "C" JNIEXPORT int JNICALL
 Java_com_example_niswgsp_11_MainActivity_main_1test(
     JNIEnv* env,
     jobject thiz,
     jobjectArray imgPaths,
     jlong matBGR) {
+  total_env = env;
+//  if (total_env != NULL) {
+//    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
+//    if (clazz != NULL) {
+//        jmethodID id = total_env->GetStaticMethodID(clazz, "infoLog", "(Ljava/lang/String;)V");
+//        if (id != NULL) {
+//            jstring msg = total_env->NewStringUTF("fuck your mother");
+//            total_env->CallStaticVoidMethod(clazz, id, msg);
+//        } else {
+//            assert(0);
+//        }
+//    } else {
+//        assert(0);
+//    }
+//  }
+
   // 获取String数组长度
   jsize str_len = env->GetArrayLength(imgPaths);
 
@@ -63,13 +81,17 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   multi_images.center_index = 0;// 参照图片的索引
 
   NISwGSP_Stitching niswgsp(multi_images);
+  set_progress(5);
 
   // *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
   // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
   niswgsp.feature_match();// 特征点
+  set_progress(30);
   niswgsp.matching_match();// 匹配点
+  set_progress(65);
 
   niswgsp.get_solution();// 获取最优解
+  set_progress(100);
   *(Mat *)matBGR = niswgsp.texture_mapping().clone();// 图像拼接
 
   //    sprintf(img_path, "%s/3.jpg", app_path);
