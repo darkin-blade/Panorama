@@ -2,6 +2,8 @@
 #define COMMON_H
 
 #include <assert.h>
+#include <stdarg.h>
+#include <unistd.h>
 #include <cmath>
 #include <iostream>
 #include <queue>
@@ -37,14 +39,8 @@
 #include <opencv2/xfeatures2d/nonfree.hpp>
 #include <opencv2/ximgproc/fast_line_detector.hpp>
 
-#if defined(UBUNTU)
-
 #define LOG(format, ...) \
-  printf("\033[1;32m[%s, %d]" format "\33[0m\n", __func__, __LINE__, ## __VA_ARGS__)
-#else
-#define LOG(format, ...) __android_log_print(ANDROID_LOG_INFO, "fuck", "[%s, %d] " format, __func__, __LINE__, ## __VA_ARGS__)
-
-#endif
+  print_message("[%s, %d] " format, __func__, __LINE__, ## __VA_ARGS__)
 
 extern "C" {
 #include <vl/generic.h>
@@ -58,6 +54,10 @@ using namespace Eigen;
 using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
+
+/************************************** 自定义 ********************************************/
+
+void print_message(const char *fmt, const char *func, const int line_no, ...);
 
 /*****************************************************************************************/
 

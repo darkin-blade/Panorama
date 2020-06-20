@@ -8,6 +8,7 @@ class NISwGSP_Stitching : public MeshOptimization {
 public:
   NISwGSP_Stitching(MultiImages & _multi_images);
 
+  void prepare();
   Mat change_image(Mat img, double angle, double scale);
 
   Mat feature_match();
