@@ -35,12 +35,12 @@ else()
 endif()
 
 # vlfeat
-set(vlfeat_dir /home/lynx/fuck_mount/vlfeat_android)
+set(vlfeat_dir /home/lynx/fuck_mount/vlfeat/vlfeat_android)
 include_directories(${vlfeat_dir})
 # include_directories(${CMAKE_CURRENT_SOURCCE_DIR})
 # set(vlfeat_lib "${vlfeat_dir}/build/libvl.so")
-aux_source_directory(/home/lynx/fuck_mount/vlfeat_android/src vl_src)
-aux_source_directory(/home/lynx/fuck_mount/vlfeat_android/vl vl_head)
+aux_source_directory(${vlfeat_dir}/src vl_src)
+aux_source_directory(${vlfeat_dir}/vl vl_head)
 add_library(
   vlfeat_lib
 
