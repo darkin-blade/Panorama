@@ -13,13 +13,12 @@ int main(int argc, char *argv[]) {
   for (int i = 1; i <= 3; i ++) {
     sprintf(img_path, "%s/%d.jpg", app_path, i);
     multi_images.read_img(img_path);
+    if (i != 1) {
+        // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
+        multi_images.img_pairs.emplace_back(make_pair(i - 2, i - 1));
+    }
   }
 
-  // 自定义图片配对关系
-  multi_images.img_pairs.emplace_back(make_pair(0, 1));
-  // multi_images.img_pairs.emplace_back(make_pair(1, 2));
-  // multi_images.img_pairs.emplace_back(make_pair(2, 3));
-  // multi_images.img_pairs.emplace_back(make_pair(3, 4));
   multi_images.center_index = 0;// 参照图片的索引
 
   NISwGSP_Stitching niswgsp(multi_images);

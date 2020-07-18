@@ -2296,27 +2296,15 @@ opencv2/features2d.hpp
 opencv2/core.hpp
 -
 
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/FeatureController.cpp
-FeatureController.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/FeatureController.h
-
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/FeatureController.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/ImageData.cpp
-ImageData.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/ImageData.h
 
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/ImageData.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
 ../Util/Statistics.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Statistics.h
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/MultiImages.cpp
-MultiImages.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/MultiImages.h
 
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/MultiImages.h
 ../common.h
@@ -2334,29 +2322,17 @@ MultiImages.h
 ../Util/Transform.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.h
 
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Mesh/MeshOptimization.cpp
-MeshOptimization.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Mesh/MeshOptimization.h
-
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Mesh/MeshOptimization.h
 ../Feature/MultiImages.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Feature/MultiImages.h
 ../Util/Blending.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Blending.h
 
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/APAP_Stitching.cpp
-APAP_Stitching.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/APAP_Stitching.h
-
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/APAP_Stitching.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
 ../Util/Transform.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.h
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.cpp
-NISwGSP_Stitching.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.h
 
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.h
 ../common.h
@@ -2368,32 +2344,16 @@ NISwGSP_Stitching.h
 ../Mesh/MeshOptimization.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Mesh/MeshOptimization.h
 
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Blending.cpp
-Blending.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Blending.h
-
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Blending.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Statistics.cpp
-Statistics.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Statistics.h
 
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Statistics.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
 
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.cpp
-Transform.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.h
-
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.h
 ../common.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.cpp
-common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
 
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
