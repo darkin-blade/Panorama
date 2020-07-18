@@ -71,7 +71,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
     _homographies.emplace_back(H);
 
 #if !defined(UBUNTU)
-    LOG("process: [%d/%d]", i, (int) _src.size());
+    // LOG("process: [%d/%d]", i, (int) _src.size());
 #endif
   }
 }
