@@ -60,6 +60,7 @@ class ImageData {
     double lh;// mesh高度
 
     vector<Point2f> mesh_points;// 网格点
+    vector<int> boundary_edge_indices;// 边界顶点索引
     vector<vector<int> > polygons_indices;// TODO Indices
     vector<vector<int> > triangulation_indices;// TODO Indices
     vector<Edge> edges;
@@ -91,6 +92,7 @@ class ImageData {
     void get_size();
     int getGridIndexOfPoint(const Point2f & _p);
     /** MeshGrid **/
+    vector<int> getBoundaryVertexIndices();// 所有边界mesh点的index
     vector<Point2f> getVertices();// 所有mesh点
     vector<vector<int> > getPolygonsIndices();// 所有mesh点线性索引
     vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形

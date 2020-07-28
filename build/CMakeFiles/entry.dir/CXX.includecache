@@ -2334,6 +2334,10 @@ opencv2/core.hpp
 ../Util/Transform.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Util/Transform.h
 
+/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.cpp
+NISwGSP_Stitching.h
+/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.h
+
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.h
 ../common.h
 /home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
@@ -2425,12 +2429,6 @@ vl/generic.h
 -
 vl/sift.h
 -
-
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/entry.cpp
-common.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/common.h
-Stitch/NISwGSP_Stitching.h
-/home/lynx/fuck_mount/opencv/workspace/NISwGSP/Stitch/NISwGSP_Stitching.h
 
 /home/lynx/fuck_mount/vlfeat/vlfeat_android/vl/fuck.h
 

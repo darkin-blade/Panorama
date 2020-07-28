@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 
   niswgsp.get_solution();
   Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
+
   niswgsp.show_img("3", result_3);
 }
 

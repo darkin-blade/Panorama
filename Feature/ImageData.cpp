@@ -56,6 +56,26 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
 /** MeshGrid **/
 
+vector<int> ImageData::getBoundaryVertexIndices() {
+  if (boundary_edge_indices.empty()) {
+      const int memory = DIMENSION_2D * (nh + nw);
+      boundary_edge_indices.reserve(memory);
+      const int bottom_shift = DIMENSION_2D * nh * nw + nh;
+      for (int w = 0; w < nw; w ++) {
+          boundary_edge_indices.emplace_back(2 * w);
+          boundary_edge_indices.emplace_back(bottom_shift + w);
+      }
+      const int dh = 2 * nw + 1;
+      for (int h = 0; h < nh; h ++) {
+          int tmp = h * dh;
+          boundary_edge_indices.emplace_back(tmp + 1);
+          boundary_edge_indices.emplace_back(tmp + dh - 1);
+      }
+      assert(memory == boundary_edge_indices.size());
+  }
+  return boundary_edge_indices;
+}
+
 vector<Point2f> ImageData::getVertices() {
   if (mesh_points.empty()) {
     const int memory = (nh + 1) * (nw + 1);

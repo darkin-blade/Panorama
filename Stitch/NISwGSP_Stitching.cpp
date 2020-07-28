@@ -242,7 +242,28 @@ Mat NISwGSP_Stitching::texture_mapping() {
     }
     return result_1;
   } else {
-    return multi_images->textureMapping(multi_images->image_mesh_points, 1);
+    Mat result = multi_images->textureMapping(multi_images->image_mesh_points, 1);
+
+    // 图像描边
+    int line_thickness = 2;// 描边的线宽
+    Mat imgs_border(result.size() + Size(line_thickness * 6, line_thickness * 6), CV_8UC4);
+    Point2f shift(line_thickness * 3, line_thickness * 3);// 偏移
+    Rect rect(shift, result.size());
+    result.copyTo(imgs_border);
+    for (int i = 0; i < multi_images->img_num; i ++) {
+      Scalar color(255, i / (multi_images->img_num - 1) * 255, 255 - i / (multi_images->img_num - 1) * 255);
+      vector<Edge> edges = multi_images->imgs[i]->getEdges();
+      vector<int> edge_indices = multi_images->imgs[i]->getBoundaryVertexIndices();
+      for (int j = 0; j < edge_indices.size(); j ++) {
+        line(imgs_border,
+             multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[0]] + shift,
+             multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[1]] + shift,
+             color, line_thickness, LINE_8);
+      }
+    }
+    show_img("border", imgs_border);
+
+    return result;
   }
 }
 
@@ -256,7 +277,7 @@ void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
   char img_name[128];
   int savable = 0;
   for (int i = 0; i < 100; i ++) {
-    sprintf(img_name, "../../result_%d.jpg", i);
+    sprintf(img_name, "../../result_%d.png", i);
     if (fopen(img_name, "r") == NULL) {
       savable = 1;
       break;
