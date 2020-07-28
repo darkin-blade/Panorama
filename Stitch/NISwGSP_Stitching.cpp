@@ -245,15 +245,23 @@ Mat NISwGSP_Stitching::texture_mapping() {
     Mat result = multi_images->textureMapping(multi_images->image_mesh_points, 1);
 
     // 图像描边
-    int line_thickness = 2;// 描边的线宽
+    int line_thickness = 1;// 描边的线宽
     Mat imgs_border(result.size() + Size(line_thickness * 6, line_thickness * 6), CV_8UC4);
     Point2f shift(line_thickness * 3, line_thickness * 3);// 偏移
     Rect rect(shift, result.size());
     result.copyTo(imgs_border);
     for (int i = 0; i < multi_images->img_num; i ++) {
-      Scalar color(255, i / (multi_images->img_num - 1) * 255, 255 - i / (multi_images->img_num - 1) * 255);
+      Scalar color(255, 255. * i / (multi_images->img_num - 1), 255 - 255. * i / (multi_images->img_num - 1), 255);
       vector<Edge> edges = multi_images->imgs[i]->getEdges();
-      vector<int> edge_indices = multi_images->imgs[i]->getBoundaryVertexIndices();
+      vector<int> edge_indices;
+      if (0) {// 只描绘边框
+        edge_indices = multi_images->imgs[i]->getBoundaryVertexIndices();
+      } else {// 描绘网格
+        edge_indices.reserve(edges.size());
+        for (int j = 0; j < edges.size(); j ++) {
+          edge_indices.emplace_back(j);
+        }
+      }
       for (int j = 0; j < edge_indices.size(); j ++) {
         line(imgs_border,
              multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[0]] + shift,
