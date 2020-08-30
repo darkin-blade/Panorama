@@ -200,11 +200,8 @@ void NISwGSP_Stitching::get_solution() {
   b_vector.emplace_back(1,    STRONG_CONSTRAINT);
 
   prepareAlignmentTerm(triplets);
-  // int tmp_size = triplets.size() - 1;
-  // for (int i = 0; i < 100; i ++) {
-  //   LOG("%lf", triplets[tmp_size - i].value());
-  // }
   prepareSimilarityTerm(triplets, b_vector);
+
   getImageVerticesBySolving(triplets, b_vector);
 }
 

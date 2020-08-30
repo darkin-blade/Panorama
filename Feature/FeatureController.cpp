@@ -44,7 +44,6 @@ void FeatureController::detect(
   if (vl_sift_process_first_octave(vlSift, (vl_sift_pix const *) grey_img_float.data) != VL_ERR_EOF) {
     do {
       vl_sift_detect(vlSift);// 特征点检测
-      LOG("feature points: [%d]", vlSift->nkeys);
       for (int i = 0; i < vlSift->nkeys; i ++) {
         double angles[4];
         _feature_points.emplace_back(vlSift->keys[i].x, vlSift->keys[i].y);
