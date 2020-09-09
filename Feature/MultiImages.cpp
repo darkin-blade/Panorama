@@ -789,12 +789,38 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
 
     const vector<vector<pair<double, double> > > & images_relative_rotation_range = getImagesRelativeRotationRange();
 
+    img_rotations.push_back(-0.01401);
+    img_rotations.push_back(-0.07620);
+    img_rotations.push_back(-0.12581);
+    img_rotations.push_back(-0.37667);
+    img_rotations.push_back(-0.44059);
+    img_rotations.push_back(-0.46294);
+    img_rotations.push_back(-0.49170);
+    img_rotations.push_back(-0.49230);
+    img_rotations.push_back(-0.53165);
+    img_rotations.push_back(-0.58703);
+    img_rotations.push_back(-0.51593);
+    img_rotations.push_back(-0.45398);
+    img_rotations.push_back(-0.46673);
+    img_rotations.push_back(-0.45039);
+    img_rotations.push_back(-0.36060);
+    img_rotations.push_back(-0.32579);
+    img_rotations.push_back(-0.38784);
+    img_rotations.push_back(-0.40186);
+    img_rotations.push_back(-0.45880);
+    img_rotations.push_back(-0.44475);
+    img_rotations.push_back(-0.44171);
+    img_rotations.push_back(-0.48201);
+    img_rotations.push_back(-0.52211);
+    img_rotations.push_back(-0.82520);
+    img_rotations.push_back(-0.69123);
+
     if (img_rotations.size() != 0) {
       // 有相机拍摄的数据
-      for (int i = 0; i < img_rotations.size(); i ++) {
-      // similarity elements: 顺时针为负, 逆时针为正, 单位是弧度
+      for (int i = 0; i < img_num; i ++) {
+      // similarity elements: 顺时针为正, 逆时针为负, 单位是弧度
       // rotation: 顺时针为负, 逆时针为正, 单位是弧度
-        images_similarity_elements.theta = -img_rotations[i];
+        images_similarity_elements[i].theta = img_rotations[i];
       }
     } else if (0) {
       // // 2D method

@@ -174,7 +174,6 @@ Mat NISwGSP_Stitching::matching_match() {
       }
     }
   }
-  LOG("match finished");
   return result_1;
 }
 
