@@ -791,6 +791,11 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
 
     if (img_rotations.size() != 0) {
       // 有相机拍摄的数据
+      for (int i = 0; i < img_rotations.size(); i ++) {
+      // similarity elements: 顺时针为负, 逆时针为正, 单位是弧度
+      // rotation: 顺时针为负, 逆时针为正, 单位是弧度
+        images_similarity_elements.theta = -img_rotations[i];
+      }
     } else if (0) {
       // // 2D method
       class RotationNode {
