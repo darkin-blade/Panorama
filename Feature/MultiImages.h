@@ -76,7 +76,6 @@ public:
   // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点(实际上[m1][m2]与[m2][m1]重复(相反))
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配的特征点;
-  vector<vector<vector<Point2f> > >          feature_matches; /* [m1][m2][j], img1 j_th matches */
 
   // vector<vector<Point2f> >                  keypoints;// mesh点 + 过滤后的匹配点(原images_features)
   vector<ImageFeatures>             image_features;// 包含keypoints
@@ -117,7 +116,6 @@ public:
   vector<vector<double> > getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma);
   vector<vector<pair<double, double> > > & getImagesRelativeRotationRange();
   vector<CameraParams> getCameraParams();
-  vector<vector<vector<Point2f> > > getFeatureMatches();
   vector<Point2f> getImagesLinesProject(const int _from, const int _to);
   double getImagesMinimumLineDistortionRotation(const int _from, const int _to);
   vector<SimilarityElements> getImagesSimilarityElements();

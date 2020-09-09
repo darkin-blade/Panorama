@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
   // 读取图片
   MultiImages multi_images;
-  for (int i = 1; i <= 2; i ++) {
+  for (int i = 1; i <= 5; i ++) {
     sprintf(img_path, "%s/%d.jpg", app_path, i);
     multi_images.read_img(img_path);
     if (i != 1) {

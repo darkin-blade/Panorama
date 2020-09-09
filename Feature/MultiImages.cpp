@@ -707,30 +707,6 @@ vector<vector<pair<double, double> > > & MultiImages::getImagesRelativeRotationR
   return images_relative_rotation_range;
 }
 
-vector<vector<vector<Point2f> > > MultiImages::getFeatureMatches() {
-  if (feature_matches.empty()) {
-    // feature_pairs TODO
-    feature_matches.resize(img_num);
-    for (int i = 0; i < img_num; i ++) {
-      feature_matches[i].resize(img_num);
-    }
-    for (int i = 0; i < img_pairs.size(); i ++) {
-      const pair<int, int> & match_pair = img_pairs[i];
-      const int & m1 = match_pair.first, & m2 = match_pair.second;
-      feature_matches[m1][m2].reserve(feature_pairs[m1][m2].size());
-      feature_matches[m2][m1].reserve(feature_pairs[m1][m2].size());
-      const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;//
-      const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;//
-      assert(m2_fpts.empty() == false);
-      for (int j = 0; j < feature_pairs[m1][m2].size(); j ++) {
-        feature_matches[m1][m2].emplace_back(m1_fpts[feature_pairs[m1][m2][j].first ]);
-        feature_matches[m2][m1].emplace_back(m2_fpts[feature_pairs[m1][m2][j].second]);
-      }
-    }
-  }
-  return feature_matches;
-}
-
 vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _to) {
   if (images_lines_projects.empty()) {
     images_lines_projects.resize(img_num);
@@ -739,8 +715,8 @@ vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _t
     }
   }
   if (images_lines_projects[_from][_to].empty()) {
-    // const vector<vector<vector<Point2f> > > & feature_points = getFeatureMatches();
     const vector<LineData> & lines = imgs[_from]->getLines();
+    LOG("line size %ld", lines.size());
     vector<Point2f> points, project_points;
     points.reserve(lines.size() * EDGE_VERTEX_SIZE);
     for (int i = 0; i < lines.size(); i ++) {
@@ -749,7 +725,8 @@ vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _t
       }
     }
     vector<Mat> not_be_used;
-    // from to 过大
+    
+    // point 过大
     APAP_Stitching::apap_project(feature_points[_from][_to], feature_points[_to][_from], points, images_lines_projects[_from][_to], not_be_used);
   }
   return images_lines_projects[_from][_to];
@@ -977,8 +954,8 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
             decision_theta = guess_theta;
             weight = LAMBDA_GAMMA;
           } else {
-            decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
-            // decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
+            // decision_theta = getImagesMinimumLineDistortionRotation(m1, m2);
+            decision_theta = (images_relative_rotation_range[m1][m2].first + images_relative_rotation_range[m1][m2].second) / 2;// TODO
             weight = 1;
           }
           triplets.emplace_back(equation    , DIMENSION_2D * m1    , weight *  cos(decision_theta));
