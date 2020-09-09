@@ -6,6 +6,9 @@
 
 int main(int argc, char *argv[]) {
 
+  clock_t begin_time, end_time;
+  begin_time = clock();
+
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
@@ -32,7 +35,10 @@ int main(int argc, char *argv[]) {
   niswgsp.get_solution();
   Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
 
-  // niswgsp.show_img("3", result_3);
+  end_time = clock();
+  LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+
+  niswgsp.show_img("3", result_3);
 }
 
 #else

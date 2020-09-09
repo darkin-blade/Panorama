@@ -739,7 +739,7 @@ vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _t
     }
   }
   if (images_lines_projects[_from][_to].empty()) {
-    const vector<vector<vector<Point2f> > > & feature_matches = getFeatureMatches();
+    // const vector<vector<vector<Point2f> > > & feature_points = getFeatureMatches();
     const vector<LineData> & lines = imgs[_from]->getLines();
     vector<Point2f> points, project_points;
     points.reserve(lines.size() * EDGE_VERTEX_SIZE);
@@ -750,7 +750,7 @@ vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _t
     }
     vector<Mat> not_be_used;
     // from to 过大
-    APAP_Stitching::apap_project(feature_matches[_from][_to], feature_matches[_to][_from], points, images_lines_projects[_from][_to], not_be_used);
+    APAP_Stitching::apap_project(feature_points[_from][_to], feature_points[_to][_from], points, images_lines_projects[_from][_to], not_be_used);
   }
   return images_lines_projects[_from][_to];
 }
