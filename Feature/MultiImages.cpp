@@ -749,12 +749,14 @@ vector<Point2f> MultiImages::getImagesLinesProject(const int _from, const int _t
       }
     }
     vector<Mat> not_be_used;
+    // from to 过大
     APAP_Stitching::apap_project(feature_matches[_from][_to], feature_matches[_to][_from], points, images_lines_projects[_from][_to], not_be_used);
   }
   return images_lines_projects[_from][_to];
 }
 
 double MultiImages::getImagesMinimumLineDistortionRotation(const int _from, const int _to) {
+
   if (images_minimum_line_distortion_rotation.empty()) {
     images_minimum_line_distortion_rotation.resize(img_num);
     for (int i = 0; i < images_minimum_line_distortion_rotation.size(); i ++) {
@@ -837,10 +839,12 @@ double MultiImages::getImagesMinimumLineDistortionRotation(const int _from, cons
     images_minimum_line_distortion_rotation[_from][_to] = acos(dir.x / (norm(dir))) * (dir.y > 0 ? 1 : -1);
     images_minimum_line_distortion_rotation[_to][_from] = -images_minimum_line_distortion_rotation[_from][_to];
   }
+  
   return images_minimum_line_distortion_rotation[_from][_to];
 }
 
 vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
+
   if (0) {
     if (images_similarity_elements.empty()) {
       images_similarity_elements.resize(img_num);
@@ -950,6 +954,7 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
         }
       } else {
         // 3D method
+
         const int equations_count = (int)img_pairs.size() * DIMENSION_2D + DIMENSION_2D;
         SparseMatrix<double> A(equations_count, img_num * DIMENSION_2D);
         VectorXd b = VectorXd::Zero(equations_count);
@@ -966,9 +971,6 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
           const int & m1 = match_pair.first, & m2 = match_pair.second;
           const double guess_theta = images_similarity_elements[m2].theta - images_similarity_elements[m1].theta;// TODO
           double decision_theta, weight;
-          
-          LOG("%lf %lf", images_relative_rotation_range[m1][m2].first, images_relative_rotation_range[m1][m2].second);
-
           if (isRotationInTheRange(guess_theta,// TODO
                 images_relative_rotation_range[m1][m2].first,
                 images_relative_rotation_range[m1][m2].second)) {

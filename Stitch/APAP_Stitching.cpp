@@ -5,6 +5,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
                                   const vector<Point2f> & _src,
                                   vector<Point2f>       & _dst,
                                   vector<Mat>          & _homographies) {
+
   vector<Point2f> nf1, nf2, cf1, cf2;
   Mat N1, N2, C1, C2;
   // 归一化
@@ -15,8 +16,6 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
   C2 = getConditionerFromPts(nf2);
   cf1.reserve(nf1.size());
   cf2.reserve(nf2.size());
-
-  LOG("normalize and condition finished");
 
   for (int i = 0; i < nf1.size(); i ++) {
     cf1.emplace_back(nf1[i].x * C1.at<double>(0, 0) + C1.at<double>(0, 2),
@@ -31,8 +30,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
   _dst.reserve(_src.size());
   _homographies.reserve(_src.size());
 
-  // LOG("%ld %ld", A.rows(), A.cols());
-
+  LOG("%ld %ld", _src.size(), _p_src.size());
   for (int i = 0; i < _src.size(); i ++) {
     for (int j = 0; j < _p_src.size(); j ++) {
       Point2f d = _src[i] - _p_src[j];
@@ -73,5 +71,6 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
 #if !defined(UBUNTU)
     // LOG("process: [%d/%d]", i, (int) _src.size());
 #endif
+
   }
 }

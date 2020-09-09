@@ -45,8 +45,6 @@ Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
   Mat rotation = getRotationMatrix2D(center, angle / tmp, 1.0);
   Mat result_2;
   warpAffine(img, result_2, translate * rotation, Size(tmp_size, tmp_size));
-  show_img("0", img);
-  show_img("2", result_2);
 
   // 缩放变换
   // Mat result_3;
@@ -70,8 +68,6 @@ Mat NISwGSP_Stitching::feature_match() {
 
   // 特征点匹配(内含自动检测图片匹配)
   multi_images->getFeaturePairs();
-
-  LOG("get feature pairs");
 
   // 筛选所有图片的成功匹配的特征点
   multi_images->feature_points.resize(img_num);
@@ -140,7 +136,6 @@ Mat NISwGSP_Stitching::feature_match() {
       }
     }
   }
-  LOG("draw feature matching finished");
   return result_1;
 }
 
@@ -266,7 +261,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
              color, line_thickness, LINE_8);
       }
     }
-    show_img("border", imgs_border);
+    // show_img("border", imgs_border);
 
     return result;
   }
