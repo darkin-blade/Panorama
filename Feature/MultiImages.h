@@ -69,6 +69,7 @@ public:
   int img_num;
   int center_index;// 参照图片的索引
   vector<ImageData *> imgs;
+  vector<double> img_rotations;// 拍摄时的旋转角度
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   vector<vector<bool> >   images_match_graph;// 配对矩阵

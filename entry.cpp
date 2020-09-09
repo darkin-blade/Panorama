@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
   // 读取图片
   MultiImages multi_images;
-  for (int i = 1; i <= 5; i ++) {
+  for (int i = 1; i <= 2; i ++) {
     sprintf(img_path, "%s/%d.jpg", app_path, i);
     multi_images.read_img(img_path);
     if (i != 1) {
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
 JNIEnv * total_env;
 Mat method_openCV(vector<string>);
-Mat method_NISwGSP(vector<string>);
+Mat method_NISwGSP(vector<string>, vector<double>);
 
 extern "C" JNIEXPORT int JNICALL
 Java_com_example_niswgsp_11_MainActivity_main_1test(
@@ -74,6 +74,7 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
 
   // 读取图片路径
   vector<string> img_paths;
+  vector<double> img_rotations;
   for (int i = 0; i < str_len; i ++) {
     jstring tmp = (jstring) env->GetObjectArrayElement(imgPaths, i);
     const char *img_path = env->GetStringUTFChars(tmp, 0);
@@ -86,12 +87,12 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
 
   Mat result;
   if (1) {
-      result = method_NISwGSP(img_paths);
+      result = method_NISwGSP(img_paths, img_rotations);
   } else {
       result = method_openCV(img_paths);
       LOG("opencv result %d %d", result.cols, result.rows);
       if (result.cols <= 1) {
-          result = method_NISwGSP(img_paths);
+          result = method_NISwGSP(img_paths, img_rotations);
       }
   }
 
@@ -103,11 +104,12 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   return 0;
 }
 
-Mat method_NISwGSP(vector<string> img_paths) {
+Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
     MultiImages multi_images;
     for (int i = 0; i < img_paths.size(); i ++) {
         const char *img_path = img_paths[i].c_str();
         multi_images.read_img(img_path);
+        multi_images.img_rotations.push_back(img_rotations[i]);// 记录拍摄时的旋转角度
         if (i != 0) {
             // 自定义图片配对关系
             multi_images.img_pairs.emplace_back(make_pair(i - 1, i));

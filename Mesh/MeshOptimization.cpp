@@ -180,7 +180,6 @@ void MeshOptimization::prepareSimilarityTerm(vector<Triplet<double> > & _triplet
     const vector<vector<double> > images_grid_space_matching_pts_weight = multi_images->getImagesGridSpaceMatchingPointsWeight(global_similarity_weight_gamma);
 
     const vector<SimilarityElements> images_similarity_elements = multi_images->getImagesSimilarityElements();
-
     for (int i = 0; i < images_similarity_elements.size(); i ++) {
       LOG("[%d](%lf, %lf)", i, images_similarity_elements[i].scale, images_similarity_elements[i].theta);
     }
