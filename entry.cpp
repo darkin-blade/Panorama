@@ -28,17 +28,11 @@ int main(int argc, char *argv[]) {
   NISwGSP_Stitching niswgsp(multi_images);
 
   Mat result_1 = niswgsp.feature_match().clone();// 特征点
-  end_time = clock();
-  LOG("feature points %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
   Mat result_2 = niswgsp.matching_match().clone();// 匹配点
-  end_time = clock();
-  LOG("apap %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
   // niswgsp.show_img("1", result_1);
   // niswgsp.show_img("2", result_2);
 
   niswgsp.get_solution();
-  end_time = clock();
-  LOG("solution %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
   Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
 
   end_time = clock();
