@@ -3,57 +3,6 @@
 NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimization(_multi_images) {
 }
 
-void NISwGSP_Stitching::prepare() {
-  // 对图片预处理
-  int img_num = multi_images->img_num;
-
-  multi_images->imgs[0]->data = change_image(multi_images->imgs[0]->data, +0.00, 1.0).clone();
-  multi_images->imgs[1]->data = change_image(multi_images->imgs[1]->data, +1.57, 1.0).clone();
-  // multi_images->imgs[2]->data = change_image(multi_images->imgs[2]->data, -0.51, 1.0);
-  // multi_images->imgs[3]->data = change_image(multi_images->imgs[3]->data, +2.12, 1.3);
-  // multi_images->imgs[4]->data = change_image(multi_images->imgs[4]->data, +1.68, 1.2);
-}
-
-Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
-  double tmp = 3.1415926 / 180;
-
-  double width = img.cols;
-  double height = img.rows;
-  double diagonal = sqrt(width * width + height * height);
-
-  double new_width;
-  double new_height;
-  double tmp_angle = fabs(asin(sin(angle)));
-  new_width = diagonal * cos(asin(height / diagonal) - tmp_angle);
-  new_height = diagonal * cos(asin(width / diagonal) - tmp_angle);
-
-  // 平移变换
-  double width_offset = (new_width - width) / 2;
-  double height_offset = (new_height - height) / 2;
-  Mat translate = Mat::zeros(2, 3, CV_32FC1);
-  translate.at<float>(0, 0) = 1;
-  translate.at<float>(0, 2) = (new_width - width) / 2;// 水平偏移
-  translate.at<float>(1, 1) = 1;
-  translate.at<float>(1, 2) = (new_height - height) / 2;// 垂直偏移
-  Mat result_1;
-  double tmp_size = max(new_width, new_height);
-  // warpAffine(img, result_1, translate, Size(tmp_size, tmp_size));
-  // show_img("1", result_1);
-
-  // 旋转变换
-  Point2f center(tmp_size / 2, tmp_size / 2);
-  Mat rotation = getRotationMatrix2D(center, angle / tmp, 1.0);
-  Mat result_2;
-  warpAffine(img, result_2, translate * rotation, Size(tmp_size, tmp_size));
-
-  // 缩放变换
-  // Mat result_3;
-  // resize(result_2, result_3, Size(tmp_size * scale, tmp_size * scale), 0, 0, INTER_LINEAR);
-  // show_img("3", result_3);
-
-  return result_2;
-}
-
 Mat NISwGSP_Stitching::feature_match() {
   int img_num = multi_images->img_num;
 
@@ -260,32 +209,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
     //          color, line_thickness, LINE_8);
     //   }
     // }
-    // show_img("border", imgs_border);
 
     return result;
   }
-}
-
-void NISwGSP_Stitching::show_img(const char *window_name, Mat img) {
-#if defined(UBUNTU)
-  namedWindow(window_name, WINDOW_AUTOSIZE);
-  imshow(window_name, img);
-  waitKey(0);
-
-  // 保存图片
-  char img_name[128];
-  int savable = 0;
-  for (int i = 0; i < 100; i ++) {
-    sprintf(img_name, "../../result_%d.png", i);
-    if (fopen(img_name, "r") == NULL) {
-      savable = 1;
-      break;
-    }
-  }
-  if (savable) {
-    imwrite(img_name, img);
-  } else {
-    LOG("can't save img");
-  }
-#endif
 }

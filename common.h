@@ -28,6 +28,7 @@
 #include <opencv2/calib3d.hpp> /* findHomography */
 #include <opencv2/core.hpp>
 #include <opencv2/core/mat.hpp>
+#include <opencv2/core/utility.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -40,6 +41,16 @@
 #include <opencv2/stitching.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp>
 #include <opencv2/ximgproc/fast_line_detector.hpp>
+/* stitch */
+#include <opencv2/opencv_modules.hpp>
+#include <opencv2/stitching/detail/blenders.hpp>
+#include <opencv2/stitching/detail/timelapsers.hpp>
+#include <opencv2/stitching/detail/camera.hpp>
+#include <opencv2/stitching/detail/exposure_compensate.hpp>
+#include <opencv2/stitching/detail/matchers.hpp>
+#include <opencv2/stitching/detail/seam_finders.hpp>
+#include <opencv2/stitching/detail/warpers.hpp>
+#include <opencv2/stitching/warpers.hpp>
 
 #define LOG(format, ...) \
   print_message("[%s, %d] " format, __func__, __LINE__, ## __VA_ARGS__)
@@ -61,6 +72,7 @@ using namespace cv::xfeatures2d;
 
 void print_message(const char *fmt, ...);
 void set_progress(int progress);
+void show_img(const char *window_name, Mat img);
 
 /*****************************************************************************************/
 

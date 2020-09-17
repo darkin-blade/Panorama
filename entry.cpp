@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include "Stitch/NISwGSP_Stitching.h"
+#include "Stitch/OpenCV_Stitching.h"
 
 #if defined(UBUNTU)
 
@@ -12,33 +13,45 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
-  // 读取图片
-  MultiImages multi_images;
-  for (int i = 1; i <= 2; i ++) {
-    sprintf(img_path, "%s/%d.jpg", app_path, i);
-    multi_images.read_img(img_path);
-    if (i != 1) {
-        // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
-        multi_images.img_pairs.emplace_back(make_pair(i - 2, i - 1));
+  if (0) {
+    // 读取图片
+    MultiImages multi_images;
+    for (int i = 1; i <= 2; i ++) {
+        sprintf(img_path, "%s/%d.jpg", app_path, i);
+        multi_images.read_img(img_path);
+        if (i != 1) {
+            // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
+            multi_images.img_pairs.emplace_back(make_pair(i - 2, i - 1));
+        }
     }
+
+    multi_images.center_index = 0;// 参照图片的索引
+
+    NISwGSP_Stitching niswgsp(multi_images);
+
+    Mat result_1 = niswgsp.feature_match().clone();// 特征点
+    Mat result_2 = niswgsp.matching_match().clone();// 匹配点
+    // show_img("1", result_1);
+    // show_img("2", result_2);
+
+    niswgsp.get_solution();
+    Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
+
+    end_time = clock();
+    LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+
+    show_img("3", result_3);
+  } else {
+    vector<Mat> images;
+    for (int i = 1; i <= 2; i ++) {
+        sprintf(img_path, "%s/%d.jpg", app_path, i);
+        Mat tmp_img = imread(img_path);
+        images.push_back(tmp_img.clone());
+    }
+    Mat result_1 = OpenCV_Stitching::opencv_stitch(images);
+
+    show_img("1", result_1);
   }
-
-  multi_images.center_index = 0;// 参照图片的索引
-
-  NISwGSP_Stitching niswgsp(multi_images);
-
-  Mat result_1 = niswgsp.feature_match().clone();// 特征点
-  Mat result_2 = niswgsp.matching_match().clone();// 匹配点
-  // niswgsp.show_img("1", result_1);
-  // niswgsp.show_img("2", result_2);
-
-  niswgsp.get_solution();
-  Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
-
-  end_time = clock();
-  LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
-
-  niswgsp.show_img("3", result_3);
 }
 
 #else
