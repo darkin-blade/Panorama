@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
 
   end_time = clock();
-  LOG("texture mapping %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+  LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
   niswgsp.show_img("3", result_3);
 }
@@ -52,7 +52,9 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
     JNIEnv* env,
     jobject thiz,
     jobjectArray imgPaths,
-    jlong matBGR) {
+    jdoubleArray imgRotations,
+    jlong matBGR,
+    jint mode) {// mode: 0 for niswgsp, 1 for opencv
   total_env = env;
 //  if (total_env != NULL) {
 //    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
@@ -75,33 +77,37 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   // 读取图片路径
   vector<string> img_paths;
   vector<double> img_rotations;
+
+  jdouble *rotations = env->GetDoubleArrayElements(imgRotations, NULL);
   for (int i = 0; i < str_len; i ++) {
     jstring tmp = (jstring) env->GetObjectArrayElement(imgPaths, i);
     const char *img_path = env->GetStringUTFChars(tmp, 0);
     string tmp_path = img_path;
     img_paths.push_back(tmp_path);
+    img_rotations.push_back(rotations[i]);
   }
 
   clock_t begin_time, end_time;
   begin_time = clock();
 
-  Mat result;
-  if (1) {
-      result = method_NISwGSP(img_paths, img_rotations);
+  Mat result_img;
+  int result = 0;
+  if (mode == 0) {
+      result_img = method_NISwGSP(img_paths, img_rotations);
   } else {
-      result = method_openCV(img_paths);
-      LOG("opencv result %d %d", result.cols, result.rows);
-      if (result.cols <= 1) {
-          result = method_NISwGSP(img_paths, img_rotations);
-      }
+      result_img = method_openCV(img_paths);
+  }
+  if (result_img.cols <= 1 || result_img.rows <= 1) {
+      // 拼接失败
+      result = -1;
   }
 
   end_time = clock();
   LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
-  *(Mat *)matBGR = result.clone();// 图像拼接
+  *(Mat *)matBGR = result_img.clone();// 图像拼接
 
-  return 0;
+  return result;
 }
 
 Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
@@ -140,17 +146,19 @@ Mat method_openCV(vector<string> img_paths) {
         Mat img = imread(img_path);
         imgs.push_back(img);
     }
-    set_progress(5);
 
     Mat pano;
     Ptr<Stitcher> stitcher = Stitcher::create();
-    Stitcher::Status status = stitcher->stitch(imgs, pano);
-
-    if (status != Stitcher::OK) {
-        // 如果拼接失败返回空
+    try {
+        Stitcher::Status status = stitcher->stitch(imgs, pano);
+        if (status != Stitcher::OK) {
+            // 如果拼接失败返回空
+            return Mat::zeros(1, 1, CV_8UC3);
+        }
+    } catch (Exception e) {
+        LOG("error %s", e.what());
         return Mat::zeros(1, 1, CV_8UC3);
     }
-    set_progress(100);
 
     return pano;
 }

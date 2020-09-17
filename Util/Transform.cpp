@@ -115,6 +115,10 @@ vector<Rect_<T> > getVerticesRects(const vector<vector<Point_<T> > > & vertices)
     T min_ix = MAXFLOAT, max_ix = -MAXFLOAT;
     T min_iy = MAXFLOAT, max_iy = -MAXFLOAT;
     for(int j = 0; j < vertices[i].size(); ++j) {
+      // if (vertices[i][j].x > max_ix) LOG("%d max x %lf", i, (double)vertices[i][j].x);
+      // if (vertices[i][j].x < min_ix) LOG("%d min x %lf", i, (double)vertices[i][j].x);
+      // if (vertices[i][j].y > max_ix) LOG("%d max y %lf", i, (double)vertices[i][j].y);
+      // if (vertices[i][j].y < min_ix) LOG("%d min y %lf", i, (double)vertices[i][j].y);
       min_ix = min(min_ix, vertices[i][j].x);
       max_ix = max(max_ix, vertices[i][j].x);
       min_iy = min(min_iy, vertices[i][j].y);

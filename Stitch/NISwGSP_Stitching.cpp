@@ -3,9 +3,58 @@
 NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimization(_multi_images) {
 }
 
+void NISwGSP_Stitching::prepare() {
+  // 对图片预处理
+  int img_num = multi_images->img_num;
+
+  multi_images->imgs[0]->data = change_image(multi_images->imgs[0]->data, +0.00, 1.0).clone();
+  multi_images->imgs[1]->data = change_image(multi_images->imgs[1]->data, +1.57, 1.0).clone();
+  // multi_images->imgs[2]->data = change_image(multi_images->imgs[2]->data, -0.51, 1.0);
+  // multi_images->imgs[3]->data = change_image(multi_images->imgs[3]->data, +2.12, 1.3);
+  // multi_images->imgs[4]->data = change_image(multi_images->imgs[4]->data, +1.68, 1.2);
+}
+
+Mat NISwGSP_Stitching::change_image(Mat img, double angle, double scale) {
+  double tmp = 3.1415926 / 180;
+
+  double width = img.cols;
+  double height = img.rows;
+  double diagonal = sqrt(width * width + height * height);
+
+  double new_width;
+  double new_height;
+  double tmp_angle = fabs(asin(sin(angle)));
+  new_width = diagonal * cos(asin(height / diagonal) - tmp_angle);
+  new_height = diagonal * cos(asin(width / diagonal) - tmp_angle);
+
+  // 平移变换
+  double width_offset = (new_width - width) / 2;
+  double height_offset = (new_height - height) / 2;
+  Mat translate = Mat::zeros(2, 3, CV_32FC1);
+  translate.at<float>(0, 0) = 1;
+  translate.at<float>(0, 2) = (new_width - width) / 2;// 水平偏移
+  translate.at<float>(1, 1) = 1;
+  translate.at<float>(1, 2) = (new_height - height) / 2;// 垂直偏移
+  Mat result_1;
+  double tmp_size = max(new_width, new_height);
+  // warpAffine(img, result_1, translate, Size(tmp_size, tmp_size));
+  // show_img("1", result_1);
+
+  // 旋转变换
+  Point2f center(tmp_size / 2, tmp_size / 2);
+  Mat rotation = getRotationMatrix2D(center, angle / tmp, 1.0);
+  Mat result_2;
+  warpAffine(img, result_2, translate * rotation, Size(tmp_size, tmp_size));
+
+  // 缩放变换
+  // Mat result_3;
+  // resize(result_2, result_3, Size(tmp_size * scale, tmp_size * scale), 0, 0, INTER_LINEAR);
+  // show_img("3", result_3);
+
+  return result_2;
+}
+
 Mat NISwGSP_Stitching::feature_match() {
-  clock_t begin_time, end_time;
-  begin_time = clock();
   int img_num = multi_images->img_num;
 
   for (int i = 0; i < img_num; i ++) {
@@ -17,7 +66,7 @@ Mat NISwGSP_Stitching::feature_match() {
     LOG("[picture %d] feature points: %ld", i, multi_images->imgs[i]->feature_points.size());
   }
 
-  // 特征点匹配
+  // 特征点匹配(内含自动检测图片匹配)
   multi_images->getFeaturePairs();
 
   // 筛选所有图片的成功匹配的特征点
@@ -38,8 +87,6 @@ Mat NISwGSP_Stitching::feature_match() {
       multi_images->feature_points[m2][m1].emplace_back(m2_fpts[it.second]);
     }
   }
-  end_time = clock();
-  LOG("texture mapping %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
 
   // 描绘特征点
@@ -75,7 +122,7 @@ Mat NISwGSP_Stitching::feature_match() {
         line(result_1, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
         circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
       }
-    } else if (0) {
+    } else {
       // 描绘所有特征点
       for (int i = 0; i < multi_images->imgs[m1]->feature_points.size(); i ++) {
         Point2f src_p = multi_images->imgs[m1]->feature_points[i];
@@ -113,7 +160,7 @@ Mat NISwGSP_Stitching::matching_match() {
 
     if (0) {
       // 描绘匹配点配对
-    } else if (0) {
+    } else {
       // 描绘所有匹配点
       for (int i = 0; i < multi_images->imgs[m1]->getVertices().size(); i ++) {
         Point2f src_p, dst_p;
