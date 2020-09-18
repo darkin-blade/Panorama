@@ -11,7 +11,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   double seam_megapix = 0.1;
   double compose_megapix = -1;
   // 判断两张图片在一个全景中的threshold
-  float conf_thresh = 1.f;
+  float conf_thresh = 0.3f;
   string features_type = "surf";// orb, akaze, surf, sift
   string matcher_type = "homography";
   string estimator_type = "homography";
@@ -26,7 +26,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   int expos_comp_nr_filtering = 2;
   int expos_comp_block_size = 32;
   // 特征匹配时的置信度, 不同方法默认值不一样
-  float match_conf = 0.65f;
+  float match_conf = 0.35f;
   string seam_find_type = "gc_color";
   int blend_type = Blender::MULTI_BAND;
   int timelapse_type = Timelapser::AS_IS;
@@ -34,12 +34,14 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   bool timelapse = false;
   int range_width = -1;
 
+  Mat failed_result = Mat::zeros(1, 1, CV_8UC3);
+
   double work_scale = 1, seam_scale = 1, compose_scale = 1;
   bool is_work_scale_set = false, is_seam_scale_set = false, is_compose_scale_set = false;
 
   int num_images = static_cast<int>(_images.size());
   if (num_images < 2) {
-    assert(0);
+    return failed_result;
   }
 
   // 寻找特征点,参考: https://blog.csdn.net/zhaocj/article/details/78798687
@@ -53,7 +55,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   } else if (features_type == "sift") {
     finder = xfeatures2d::SIFT::create();
   } else {
-    assert(0);
+    return failed_result;
   }
 
   Mat full_img, img;
@@ -124,7 +126,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   // Check if we still have enough images
   num_images = static_cast<int>(img_subset.size());
   if (num_images < 2) {
-    assert(0);
+    return failed_result;
   }
 
   // 相机参数评估,参考: https://blog.csdn.net/zhaocj/article/details/78809143
@@ -136,7 +138,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
 
   vector<CameraParams> cameras;
   if (!(*estimator)(features, pairwise_matches, cameras)) {
-    assert(0);
+    return failed_result;
   }
 
   for (size_t i = 0; i < cameras.size(); ++i) {
@@ -152,7 +154,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   else if (ba_cost_func == "affine") adjuster = makePtr<detail::BundleAdjusterAffinePartial>();
   else if (ba_cost_func == "no") adjuster = makePtr<NoBundleAdjuster>();
   else {
-    assert(0);
+    return failed_result;
   }
   adjuster->setConfThresh(conf_thresh);
   Mat_<uchar> refine_mask = Mat::zeros(3, 3, CV_8U);
@@ -163,7 +165,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   if (ba_refine_mask[4] == 'x') refine_mask(1,2) = 1;
   adjuster->setRefinementMask(refine_mask);
   if (!(*adjuster)(features, pairwise_matches, cameras)) {
-    assert(0);
+    return failed_result;
   }
 
   // Find median focal length
@@ -254,7 +256,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   }
 
   if (!warper_creator) {
-    assert(0);
+    return failed_result;
   }
 
   Ptr<RotationWarper> warper = warper_creator->create(static_cast<float>(warped_image_scale * seam_work_aspect));
@@ -327,7 +329,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   else if (seam_find_type == "dp_colorgrad")
     seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR_GRAD);
   if (!seam_finder) {
-    assert(0);
+    return failed_result;
   }
 
   seam_finder->find(images_warped_f, corners, masks_warped);

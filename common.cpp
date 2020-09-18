@@ -43,15 +43,15 @@ void print_message(const char *fmt, ...) {
 #endif
 }
 
-void set_progress(const int progress) {
+void set_progress(const int progress, const int mode) {
 #if !defined(UBUNTU)
   // 修改进度条
   if (total_env != NULL) {
     jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
     if (clazz != NULL) {
-        jmethodID id = total_env->GetStaticMethodID(clazz, "jniProgress", "(I)V");
+        jmethodID id = total_env->GetStaticMethodID(clazz, "jniProgress", "(II)V");
         if (id != NULL) {
-            total_env->CallStaticVoidMethod(clazz, id, (jint)progress);
+            total_env->CallStaticVoidMethod(clazz, id, (jint)progress, (jint)mode);
         } else {
             assert(0);
         }

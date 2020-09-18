@@ -105,13 +105,15 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
 
   Mat result_img;
   int result = 0;
-  if (mode == 0) {
+  if (mode == 1) {
       result_img = method_NISwGSP(img_paths, img_rotations);
-  } else {
+  } else if (mode == 2) {
       result_img = method_openCV(img_paths);
   }
+  LOG("result size %ld %ld", result_img.cols, result_img.rows);
   if (result_img.cols <= 1 || result_img.rows <= 1) {
       // 拼接失败
+      set_progress(-100, mode);
       result = -1;
   }
 
@@ -137,19 +139,21 @@ Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
     multi_images.center_index = 0;// 参照图片的索引
 
     NISwGSP_Stitching niswgsp(multi_images);
-    set_progress(5);
+    set_progress(5, 1);
 
     // *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
     // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
     niswgsp.feature_match();// 特征点
-    set_progress(30);
+    set_progress(30, 1);
     niswgsp.matching_match();// 匹配点
-    set_progress(65);
+    set_progress(65, 1);
 
     niswgsp.get_solution();// 获取最优解
-    set_progress(100);
+    set_progress(90, 1);
+    Mat result = niswgsp.texture_mapping();// 纹理映射
+    set_progress(100, 1);
 
-    return niswgsp.texture_mapping();
+    return result;
 }
 
 Mat method_openCV(vector<string> img_paths) {
@@ -159,21 +163,11 @@ Mat method_openCV(vector<string> img_paths) {
         Mat img = imread(img_path);
         imgs.push_back(img);
     }
+    set_progress(15, 2);
+    Mat result = OpenCV_Stitching::opencv_stitch(imgs);
+    set_progress(100, 2);
 
-    Mat pano;
-    Ptr<Stitcher> stitcher = Stitcher::create();
-    try {
-        Stitcher::Status status = stitcher->stitch(imgs, pano);
-        if (status != Stitcher::OK) {
-            // 如果拼接失败返回空
-            return Mat::zeros(1, 1, CV_8UC3);
-        }
-    } catch (Exception e) {
-        LOG("error %s", e.what());
-        return Mat::zeros(1, 1, CV_8UC3);
-    }
-
-    return pano;
+    return result;
 }
 
 void print_message(const char *msg) {

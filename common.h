@@ -71,7 +71,7 @@ using namespace cv::xfeatures2d;
 /************************************** 自定义 ********************************************/
 
 void print_message(const char *fmt, ...);
-void set_progress(int progress);
+void set_progress(int progress, int mode);
 void show_img(const char *window_name, Mat img);
 
 /*****************************************************************************************/
