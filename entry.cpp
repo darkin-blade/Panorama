@@ -17,15 +17,16 @@ int main(int argc, char *argv[]) {
     // 读取图片
     MultiImages multi_images;
     for (int i = 1; i <= 4; i ++) {
-        sprintf(img_path, "%s/%d.png", app_path, i);
+        sprintf(img_path, "%s/%d.jpg", app_path, i);
         multi_images.read_img(img_path);
-        if (i != 1) {
-            // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
-            multi_images.img_pairs.emplace_back(make_pair(i - 2, i - 1));
-        }
     }
-
-    multi_images.center_index = 0;// 参照图片的索引
+    // for (int i = 1; i < multi_images.img_num; i ++) {
+    //   // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
+    //   multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
+    // }
+    multi_images.img_pairs.emplace_back(make_pair(0, 2));
+    multi_images.img_pairs.emplace_back(make_pair(1, 2));
+    multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
     NISwGSP_Stitching niswgsp(multi_images);
 
@@ -136,7 +137,6 @@ Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
             multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
         }
     }
-    multi_images.center_index = 0;// 参照图片的索引
 
     NISwGSP_Stitching niswgsp(multi_images);
     set_progress(5, 1);

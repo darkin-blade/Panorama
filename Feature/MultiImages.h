@@ -67,7 +67,7 @@ public:
   MultiImages();
 
   int img_num;
-  int center_index;// 参照图片的索引
+  int center_index = 0;// 参照图片的索引
   vector<ImageData *> imgs;
   vector<double> img_rotations;// 拍摄时的旋转角度
 
