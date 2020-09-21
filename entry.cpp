@@ -16,8 +16,8 @@ int main(int argc, char *argv[]) {
   if (1) {
     // 读取图片
     MultiImages multi_images;
-    for (int i = 1; i <= 2; i ++) {
-        sprintf(img_path, "%s/%d.jpg", app_path, i);
+    for (int i = 1; i <= 4; i ++) {
+        sprintf(img_path, "%s/%d.png", app_path, i);
         multi_images.read_img(img_path);
         if (i != 1) {
             // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
