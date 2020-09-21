@@ -378,6 +378,7 @@ vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(cons
 }
 
 vector<CameraParams> MultiImages::getCameraParams() {
+  // 获取图像焦距
   if (camera_params.empty()) {
     camera_params.resize(img_num);
     /*** Focal Length ***/
