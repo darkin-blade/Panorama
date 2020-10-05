@@ -10,6 +10,8 @@ public:
 
   Mat feature_match();
   Mat matching_match();
-  void get_solution();
+  void get_mesh();
+  // TODO 寻找接缝线
+  void get_seam();
   Mat texture_mapping();
 };

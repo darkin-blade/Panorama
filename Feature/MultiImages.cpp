@@ -614,7 +614,6 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
 Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
     int _blend_method) {
   Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
-  vector<Mat> warp_images;// 存放wrap后的Mat
 
   vector<Mat> weight_mask, new_weight_mask;
   vector<Point2f> origins;
@@ -630,7 +629,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
-  warp_images.reserve(_vertices.size());
+  images_warped.reserve(_vertices.size());// 图片数
   origins.reserve(_vertices.size());
   new_weight_mask.reserve(_vertices.size());
 
@@ -705,18 +704,17 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
       }
     }
 
-    warp_images.emplace_back(image);
+    images_warped.emplace_back(image);
+    show_img("warped", image);
     origins.emplace_back(rects[i].x, rects[i].y);
     if (_blend_method) {// linear
       new_weight_mask.emplace_back(w_mask);
     }
   }
 
-  LOG("%ld", warp_images.size());
+  LOG("%ld", images_warped.size());
 
-  // return warp_images[1];
-
-  return Blending(warp_images,
+  return Blending(images_warped,
       origins,
       target_size,
       new_weight_mask,

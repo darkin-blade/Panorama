@@ -126,7 +126,7 @@ Mat NISwGSP_Stitching::matching_match() {
   return result_1;
 }
 
-void NISwGSP_Stitching::get_solution() {
+void NISwGSP_Stitching::get_mesh() {
   alignment_weight               = 1;
   local_similarity_weight        = 0.56;
   global_similarity_weight_beta  = 6;
@@ -146,6 +146,23 @@ void NISwGSP_Stitching::get_solution() {
   prepareSimilarityTerm(triplets, b_vector);
 
   getImageVerticesBySolving(triplets, b_vector);
+}
+
+void NISwGSP_Stitching::get_seam() {
+  // 先手动对图像进行形变
+  vector<UMat> images_warped, masks_warped;
+  for (int i = 0; i < multi_images->img_num; i ++) {
+    UMat tmp_img, tmp_mask;
+    multi_images->imgs[i]->data.copyTo(tmp_img);
+    multi_images->imgs[i]->data.copyTo(tmp_mask);
+    tmp_mask.setTo(255);
+    LOG("%d:(%lf, %lf)(%lf, %lf)", multi_images->image_mesh_points[i][0].x,
+      multi_images->image_mesh_points[i][0].y,
+      multi_images->image_mesh_points[i][multi_images->image_mesh_points[i].size() - 1].x,
+      multi_images->image_mesh_points[i][multi_images->image_mesh_points[i].size() - 1].y);
+  }
+  // 曝光补偿
+  Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用分块增益补偿
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
