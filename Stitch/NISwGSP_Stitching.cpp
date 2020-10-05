@@ -148,19 +148,6 @@ void NISwGSP_Stitching::get_mesh() {
   getImageVerticesBySolving(triplets, b_vector);
 }
 
-void NISwGSP_Stitching::get_seam() {
-  // 先手动对图像进行形变
-  multi_images->warpImages(1);
-  // 曝光补偿
-  vector<UMat> images_warped, masks_warped;
-  for (int i = 0; i < multi_images->img_num; i ++) {
-    UMat tmp_img, tmp_mask;
-    show_img("image", multi_images->images_warped[i]);
-    show_img("mask", multi_images->masks_warped[i]);
-  }
-  Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用分块增益补偿
-}
-
 Mat NISwGSP_Stitching::texture_mapping() {
   // vector<vector<Point2f> > result_1;
   // result_1.resize(2);
@@ -176,6 +163,11 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];// TODO
   //   result_1[0].push_back(tmp_mesh);
   // }
+
+  // 先手动对图像进行形变
+  multi_images->warpImages(1);
+  // 再寻找接缝线
+  multi_images->getSeam();
 
   if (0) {
     // 只绘制最终mesh点
