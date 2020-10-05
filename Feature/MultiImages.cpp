@@ -586,10 +586,9 @@ vector<CameraParams> MultiImages::getCameraParams() {
 
 vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
   if (images_similarity_elements.empty()) {
-    img_rotations.emplace_back(0.0099);
-    img_rotations.emplace_back(0.0188);
-    img_rotations.emplace_back(-0.0185);
-    img_rotations.emplace_back(-0.0113);
+    // TODO 自定义旋转角度
+    img_rotations.emplace_back(0.0);
+    img_rotations.emplace_back(0.0);
     if (img_rotations.size() < img_num) {
       for (int i = img_rotations.size(); i < img_num; i ++) {
         img_rotations.emplace_back(0);// 全部置为0
