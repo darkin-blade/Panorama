@@ -150,18 +150,14 @@ void NISwGSP_Stitching::get_mesh() {
 
 void NISwGSP_Stitching::get_seam() {
   // 先手动对图像进行形变
+  multi_images->warpImages(1);
+  // 曝光补偿
   vector<UMat> images_warped, masks_warped;
   for (int i = 0; i < multi_images->img_num; i ++) {
     UMat tmp_img, tmp_mask;
-    multi_images->imgs[i]->data.copyTo(tmp_img);
-    multi_images->imgs[i]->data.copyTo(tmp_mask);
-    tmp_mask.setTo(255);
-    LOG("%d:(%lf, %lf)(%lf, %lf)", multi_images->image_mesh_points[i][0].x,
-      multi_images->image_mesh_points[i][0].y,
-      multi_images->image_mesh_points[i][multi_images->image_mesh_points[i].size() - 1].x,
-      multi_images->image_mesh_points[i][multi_images->image_mesh_points[i].size() - 1].y);
+    show_img("image", multi_images->images_warped[i]);
+    show_img("mask", multi_images->masks_warped[i]);
   }
-  // 曝光补偿
   Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用分块增益补偿
 }
 
@@ -199,7 +195,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
     }
     return result_1;
   } else {
-    Mat result = multi_images->textureMapping(multi_images->image_mesh_points, 1);
+    Mat result = multi_images->textureMapping(1);
 
     // 图像描边
     // int line_thickness = 1;// 描边的线宽

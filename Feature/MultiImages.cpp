@@ -611,13 +611,11 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
   return images_similarity_elements;
 }
 
-Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所有图片的匹配点
-    int _blend_method) {
-  Size2f target_size = normalizeVertices(_vertices);// 最终Mat大小
+void MultiImages::warpImages(int _blend_method) {
+  vector<vector<Point2f> > vertices(image_mesh_points);
 
-  vector<Mat> weight_mask, new_weight_mask;
-  vector<Point2f> origins;
-  vector<Rect2f> rects = getVerticesRects<float>(_vertices);// 获取每幅图片的矩形大小(height, width, x, y)
+  vector<Mat> weight_mask;
+  vector<Rect2f> rects = getVerticesRects<float>(vertices);// 获取每幅图片的矩形大小(height, width, x, y)
 
 
   vector<Mat> tmp_imgs;
@@ -629,9 +627,10 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
-  images_warped.reserve(_vertices.size());// 图片数
-  origins.reserve(_vertices.size());
-  new_weight_mask.reserve(_vertices.size());
+  images_warped.reserve(vertices.size());// 图片数
+  masks_warped.reserve(vertices.size());
+  corners.reserve(vertices.size());
+  blend_weight_mask.reserve(vertices.size());
 
   const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
   const int SCALE = pow(2, PRECISION);
@@ -649,9 +648,9 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
       for (int k = 0; k < imgs[i]->getTriangulationIndices().size(); k ++) {// 分两次填充矩形区域
         const vector<int> index = imgs[i]->getTriangulationIndices()[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
         const Point2i contour[] = {
-          (_vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
-          (_vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
-          (_vertices[i][polygons_indices[j][index[2]]] - origin) * SCALE,
+          (vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
+          (vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
+          (vertices[i][polygons_indices[j][index[2]]] - origin) * SCALE,
         };
         // 多边形填充
         fillConvexPoly(polygon_index_mask, // img 绘制后的图像Mat
@@ -661,9 +660,9 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
             LINE_AA,            // lineType = LINE_8
             PRECISION);         // shift = 0
         Point2f src[] = {
-          _vertices[i][polygons_indices[j][index[0]]] - origin,
-          _vertices[i][polygons_indices[j][index[1]]] - origin,
-          _vertices[i][polygons_indices[j][index[2]]] - origin
+          vertices[i][polygons_indices[j][index[0]]] - origin,
+          vertices[i][polygons_indices[j][index[1]]] - origin,
+          vertices[i][polygons_indices[j][index[2]]] - origin
         };// mesh点经过单应变换后的坐标
         Point2f dst[] = {
           src_vertices[polygons_indices[j][index[0]]],
@@ -678,6 +677,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
     LOG("%d affine", i);
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);// 新建空图
+    Mat image_mask = image.clone();// 图像的mask
     Mat w_mask = Mat();
 
     if (_blend_method) {// linear
@@ -695,6 +695,7 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
             Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
+            image_mask.at<Vec4b>(y, x) = Vec4b(255, 255, 255, 1);// TODO 保存图像的mask
 
             if (_blend_method) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
@@ -705,18 +706,20 @@ Mat MultiImages::textureMapping(vector<vector<Point2f> > &_vertices,// 对应所
     }
 
     images_warped.emplace_back(image);
-    show_img("warped", image);
-    origins.emplace_back(rects[i].x, rects[i].y);
+    masks_warped.emplace_back(image_mask);
+    corners.emplace_back(rects[i].x, rects[i].y);
     if (_blend_method) {// linear
-      new_weight_mask.emplace_back(w_mask);
+      blend_weight_mask.emplace_back(w_mask);
     }
   }
+}
 
-  LOG("%ld", images_warped.size());
+Mat MultiImages::textureMapping(int _blend_method) {
+  Size2f target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
 
   return Blending(images_warped,
-      origins,
+      corners,
       target_size,
-      new_weight_mask,
+      blend_weight_mask,
       1 - _blend_method);// TODO
 }

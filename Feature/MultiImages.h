@@ -100,12 +100,16 @@ public:
 
   vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
 
+  /* Blending */
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)
-  vector<Mat>              images_warped;// 存放wrap后的Mat
+  vector<Mat>              images_warped;// 存放wrap后图片
+  vector<Mat>              masks_warped;// 存放wrap后mask
+
+  vector<Point2f>          corners;// origins, 每幅warped图像的初始坐标
+  vector<Mat>              blend_weight_mask;// new_weight_mask
 
   /* Line */
-  vector<vector<double> >           images_minimum_line_distortion_rotation;
-  vector<vector<vector<Point2f> > > images_lines_projects; /* [m1][m2] img1 lines project on img2 */
+  // 已删除
 
   void read_img(const char *img_path);
   void getFeaturePairs();
@@ -120,8 +124,8 @@ public:
   vector<SimilarityElements> getImagesSimilarityElements();
 
   void do_matching();
-  Mat textureMapping(vector<vector<Point2f> > &_vertices,
-                     int _blend_method);
+  void warpImages(int _blend_method);
+  Mat textureMapping(int _blend_method);
 };
 
 #endif
