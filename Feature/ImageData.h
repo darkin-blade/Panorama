@@ -96,14 +96,14 @@ class ImageData {
     vector<Point2f> getVertices();// 所有mesh点
     vector<vector<int> > getPolygonsIndices();// 所有mesh点线性索引
     vector<vector<int> > getTriangulationIndices();// 将矩形区域划分为两个三角形
-    vector<Edge> getEdges();// TODO
-    vector<vector<int> > getPolygonsNeighbors();// TODO
-    vector<Point2f> getPolygonsCenter();// TODO
-    vector<vector<int> > getVertexStructures();// TODO
-    vector<vector<int> > getEdgeStructures();// TODO
+    vector<Edge> getEdges();
+    vector<vector<int> > getPolygonsNeighbors();
+    vector<Point2f> getPolygonsCenter();
+    vector<vector<int> > getVertexStructures();
+    vector<vector<int> > getEdgeStructures();
     InterpolateVertex getInterpolateVertex(const Point2f & _p);
     /** ImageData **/
-    vector<LineData> getLines();
+    // 已删除
 };
 
 #endif

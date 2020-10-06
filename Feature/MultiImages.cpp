@@ -71,7 +71,7 @@ void MultiImages::do_matching() {
   }
 
   // 所有mesh点都算作keypoint
-  image_features.resize(img_num);// TODO
+  image_features.resize(img_num);
   image_features_mask.resize(img_num);
   keypoints_pairs.resize(img_num);
   apap_overlap_mask.resize(img_num);
@@ -611,7 +611,7 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
   return images_similarity_elements;
 }
 
-void MultiImages::warpImages(int _blend_method) {
+void MultiImages::warpImages() {
   vector<vector<Point2f> > vertices(image_mesh_points);
 
   vector<Mat> weight_mask;
@@ -623,7 +623,7 @@ void MultiImages::warpImages(int _blend_method) {
     tmp_imgs.push_back(imgs[i]->data);
   }
 
-  if (_blend_method) {// linear
+  if (!using_seam_finder) {// linear
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
@@ -680,7 +680,7 @@ void MultiImages::warpImages(int _blend_method) {
     Mat image_mask = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC1);// 图像的mask
     Mat w_mask = Mat();
 
-    if (_blend_method) {// linear
+    if (!using_seam_finder) {// linear
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
 
@@ -697,7 +697,7 @@ void MultiImages::warpImages(int _blend_method) {
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
             image_mask.at<uchar>(y, x) = 255;// 保存图像的mask
 
-            if (_blend_method) {// linear
+            if (!using_seam_finder) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             }
           }
@@ -708,7 +708,7 @@ void MultiImages::warpImages(int _blend_method) {
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
     origins.emplace_back(rects[i].x, rects[i].y);
-    if (_blend_method) {// linear
+    if (!using_seam_finder) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
   }
@@ -743,20 +743,44 @@ void MultiImages::getSeam() {
   Ptr<SeamFinder> seam_finder;
   seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
   seam_finder->find(gpu_images_warped, corners, gpu_masks_warped);
-  for (int i = 0; i < 2; i ++) {
-    Mat tmp_mask;
-    gpu_masks_warped[i].copyTo(tmp_mask);
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, tmp_mask);
-  }
+  // TODO
 }
 
-Mat MultiImages::textureMapping(int _blend_method) {
+Mat MultiImages::textureMapping() {
   Size2f target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
+
+  // 修改blend权重
+  for (int i = 0; i < img_num; i ++) {
+    gpu_masks_warped[i].copyTo(masks_warped[i]);
+    show_img("mask", masks_warped[i]);
+    show_img("weight", blend_weight_mask[i]);
+  }
+
+  double mask_max = -9999;
+  double mask_min = 99999;
+  int channels = masks_warped[0].channels();
+  int rows = masks_warped[0].rows;
+  int cols = masks_warped[0].cols * channels;
+  if (masks_warped[0].isContinuous()) {
+    cols *= rows;
+    rows = 1;
+  }
+  for (int i = 0; i < rows; i ++) {
+    uchar *p = masks_warped[0].ptr<uchar>(i);
+    for (int j = 0; j < cols; j ++) {
+      if (p[j] > mask_max) {
+        mask_max = p[j];
+      }
+      if (p[j] < mask_min) {
+        mask_min = p[j];
+      }
+    }
+  }
+  LOG("%lf %lf", mask_min, mask_max);
 
   return Blending(images_warped,
       origins,
       target_size,
-      blend_weight_mask,
-      1 - _blend_method);// TODO
+      blend_weight_mask, // 最小0, 最大255
+      using_seam_finder);
 }

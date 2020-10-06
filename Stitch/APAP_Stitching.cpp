@@ -56,7 +56,7 @@ void APAP_Stitching::apap_project(const vector<Point2f> & _p_src,
     // (row, col)
     for (int j = 0; j < V.rows(); j ++) {// 0 to 8
       // [0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]
-      H.at<double>(j / 3, j % 3) = V(j, V.rows() - 1);// TODO
+      H.at<double>(j / 3, j % 3) = V(j, V.rows() - 1);
     }
 
     // decondition

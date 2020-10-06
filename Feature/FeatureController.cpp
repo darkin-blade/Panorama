@@ -24,7 +24,7 @@ double FeatureController::getDistance(
 }
 
 void FeatureController::detect(
-    const Mat & _grey_img,// TODO
+    const Mat & _grey_img,
     vector<Point2f> & _feature_points,
     vector<vector<Mat> > & _feature_descriptors) {
   Mat grey_img_float = _grey_img.clone();

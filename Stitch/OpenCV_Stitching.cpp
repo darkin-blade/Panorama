@@ -182,7 +182,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   else
     warped_image_scale = static_cast<float>(focals[focals.size() / 2 - 1] + focals[focals.size() / 2]) * 0.5f;
 
-  // TODO 波形矫正
+  // 波形矫正
   if (do_wave_correct) {
     vector<Mat> rmats;
     for (size_t i = 0; i < cameras.size(); ++i)
@@ -279,7 +279,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   for (int i = 0; i < num_images; ++i)
     images_warped[i].convertTo(images_warped_f[i], CV_32F);
 
-  // TODO 曝光补偿
+  // 曝光补偿
   Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(expos_comp_type);
   if (dynamic_cast<GainCompensator*>(compensator.get())) {
     GainCompensator* gcompensator = dynamic_cast<GainCompensator*>(compensator.get());
@@ -300,7 +300,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
 
   compensator->feed(corners, images_warped, masks_warped);
 
-  // TODO 寻找接缝线,参考: https://blog.csdn.net/zhaocj/article/details/78944867
+  // 寻找接缝线,参考: https://blog.csdn.net/zhaocj/article/details/78944867
   Ptr<SeamFinder> seam_finder;
   if (seam_find_type == "no")
     seam_finder = makePtr<detail::NoSeamFinder>();
@@ -340,7 +340,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   images_warped_f.clear();
   masks.clear();
 
-  // TODO 图像融合,参考: https://blog.csdn.net/zhaocj/article/details/78960325
+  // 图像融合,参考: https://blog.csdn.net/zhaocj/article/details/78960325
   Mat img_warped, img_warped_s;
   Mat dilated_mask, seam_mask, mask, mask_warped;
   Ptr<Blender> blender;// 图像融合的基类
@@ -350,7 +350,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
 
   for (int img_idx = 0; img_idx < num_images; ++img_idx) {
     // Read image and resize it if necessary
-    full_img = _images[img_idx].clone();// TODO 读取图片
+    full_img = _images[img_idx].clone();// 读取图片
     if (!is_compose_scale_set) {
       if (compose_megapix > 0)
         compose_scale = min(1.0, sqrt(compose_megapix * 1e6 / full_img.size().area()));

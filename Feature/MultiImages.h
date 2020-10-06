@@ -101,6 +101,8 @@ public:
   vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
 
   /* Blending */
+  int using_seam_finder;// 使用接缝线进行图像拼接
+
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)
   vector<Mat>              images_warped;// 存放wrap后图片
   vector<Mat>              masks_warped;// 存放wrap后mask
@@ -127,10 +129,10 @@ public:
   vector<SimilarityElements> getImagesSimilarityElements();
 
   void do_matching();
-  void warpImages(int _blend_method);
+  void warpImages();
   void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
-  Mat textureMapping(int _blend_method);
+  Mat textureMapping();
 };
 
 #endif

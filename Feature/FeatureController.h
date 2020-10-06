@@ -12,7 +12,7 @@ public:
     const vector<Mat> & _descriptor2,
     const double _threshold);
   static void detect(
-    const Mat & _grey_img,// TODO
+    const Mat & _grey_img,
     vector<Point2f> & _feature_points,
     vector<vector<Mat> > & _feature_descriptors);
 };

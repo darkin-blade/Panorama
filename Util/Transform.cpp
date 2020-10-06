@@ -195,25 +195,6 @@ bool isEdgeIntersection(const Point_<T> & src_1, const Point_<T> & dst_1,
       tmp_scale_2 >= 0 && tmp_scale_2 <= 1);
 }
 
-template <typename T>
-bool isRotationInTheRange(const T rotation, const T min_rotation, const T max_rotation) {
-  /**
-   * TODO
-   */
-//   return true;// 判断角度是否在范围内
-  /**
-   * TODO
-   */
-  const Point_<T> b(cos(rotation), sin(rotation));
-  const Point_<T> a(cos(min_rotation), sin(min_rotation));
-  const Point_<T> c(cos(max_rotation), sin(max_rotation));
-  const T direction_a_b = a.x * b.y - a.y * b.x;
-  const T direction_a_c = a.x * c.y - a.y * c.x;
-  const T direction_b_c = b.x * c.y - b.y * c.x;
-
-  return (direction_a_b * direction_a_c >= 0) && (direction_a_b * direction_b_c >= 0);
-}
-
 template  float normalizeAngle< float>( float x);
 template double normalizeAngle<double>(double x);
 
@@ -247,6 +228,3 @@ template bool isEdgeIntersection< float>(const Point_< float> & src_1, const Poi
 template bool isEdgeIntersection<double>(const Point_<double> & src_1, const Point_<double> & dst_1,
     const Point_<double> & src_2, const Point_<double> & dst_2,
     double * scale_1, double * scale_2);
-
-template bool isRotationInTheRange< float>(const  float rotation, const  float min_rotation, const  float max_rotation);
-template bool isRotationInTheRange<double>(const double rotation, const double min_rotation, const double max_rotation);
