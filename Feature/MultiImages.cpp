@@ -677,7 +677,7 @@ void MultiImages::warpImages(int _blend_method) {
     LOG("%d affine", i);
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);// 新建空图
-    Mat image_mask = image.clone();// 图像的mask
+    Mat image_mask = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC1);// 图像的mask
     Mat w_mask = Mat();
 
     if (_blend_method) {// linear
@@ -695,7 +695,7 @@ void MultiImages::warpImages(int _blend_method) {
             Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
-            image_mask.at<Vec4b>(y, x) = Vec4b(255, 255, 255, 1);// 保存图像的mask
+            image_mask.at<uchar>(y, x) = 255;// 保存图像的mask
 
             if (_blend_method) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
@@ -716,26 +716,29 @@ void MultiImages::warpImages(int _blend_method) {
 
 void MultiImages::getSeam() {
   // 寻找接缝线
-
+  // 去除透明通道
   vector<UMat> u_images_warped, u_masks_warped;
   vector<Point2i> corners_int;
   for (int i = 0; i < img_num; i ++) {
     corners_int.emplace_back((int) corners[i].x, (int) corners[i].y);
     UMat tmp_img, tmp_mask;
-    show_img("image", images_warped[i]);
-    show_img("mask", masks_warped[i]);
+    // show_img("image", images_warped[i]);
+    // show_img("mask", masks_warped[i]);
     images_warped[i].copyTo(tmp_img);
     masks_warped[i].copyTo(tmp_mask);
+    tmp_img.convertTo(tmp_img, CV_8UC3);
+    LOG("%d", tmp_img.channels());
     u_images_warped.emplace_back(tmp_img);
     u_masks_warped.emplace_back(tmp_mask);
+    LOG("%d (%d, %d)", i, corners_int[i].x, corners_int[i].y);
   }
   
   // 曝光补偿
-  Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用分块增益补偿
+  Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用增益补偿
   compensator->feed(corners_int, u_images_warped, u_masks_warped);
   for (int i = 0; i < img_num; i ++) {
     compensator->apply(i, corners[i], u_images_warped[i], u_masks_warped[i]);
-    images_warped[i] = u_images_warped[i].getMat(ACCESS_RW);
+    u_images_warped[i].copyTo(images_warped[i]);
   }
 }
 
