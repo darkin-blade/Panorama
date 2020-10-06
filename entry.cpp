@@ -35,7 +35,6 @@ int main(int argc, char *argv[]) {
 
     niswgsp.get_mesh();
     Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
-    circle(result_3, niswgsp.multi_images->image_mesh_points[0][1], CIRCLE_SIZE, Scalar(0, 0, 255), -1);// TODO 删掉
 
     end_time = clock();
     LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);

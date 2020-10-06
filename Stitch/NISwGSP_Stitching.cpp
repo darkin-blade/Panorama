@@ -168,9 +168,9 @@ Mat NISwGSP_Stitching::texture_mapping() {
   // 手动对图像进行形变
   multi_images->warpImages();
   // 曝光补偿
-  multi_images->exposureCompensate();
+  // multi_images->exposureCompensate();
   // 寻找接缝线
-  multi_images->getSeam();
+  // multi_images->getSeam();
 
   if (0) {
     // 只绘制最终mesh点
@@ -189,34 +189,42 @@ Mat NISwGSP_Stitching::texture_mapping() {
       }
     }
     return result_1;
+  } else if (0) {
+    Mat result = multi_images->textureMapping();
+    // 图像描边
+    int line_thickness = 1;// 描边的线宽
+    Mat imgs_border(result.size() + Size(line_thickness * 6, line_thickness * 6), CV_8UC4);
+    Point2f shift(line_thickness * 3, line_thickness * 3);// 偏移
+    Rect rect(shift, result.size());
+    result.copyTo(imgs_border);
+    for (int i = 0; i < multi_images->img_num; i ++) {
+      Scalar color(255, 255. * i / (multi_images->img_num - 1), 255 - 255. * i / (multi_images->img_num - 1), 255);
+      vector<Edge> edges = multi_images->imgs[i]->getEdges();
+      vector<int> edge_indices;
+      if (0) {// 只描绘边框
+        edge_indices = multi_images->imgs[i]->getBoundaryVertexIndices();
+      } else {// 描绘网格
+        edge_indices.reserve(edges.size());
+        for (int j = 0; j < edges.size(); j ++) {
+          edge_indices.emplace_back(j);
+        }
+      }
+      for (int j = 0; j < edge_indices.size(); j ++) {
+        line(imgs_border,
+             multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[0]] + shift,
+             multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[1]] + shift,
+             color, line_thickness, LINE_8);
+      }
+    }
   } else if (1) {
     Mat result = multi_images->textureMapping();
 
-    // 图像描边
-    // int line_thickness = 1;// 描边的线宽
-    // Mat imgs_border(result.size() + Size(line_thickness * 6, line_thickness * 6), CV_8UC4);
-    // Point2f shift(line_thickness * 3, line_thickness * 3);// 偏移
-    // Rect rect(shift, result.size());
-    // result.copyTo(imgs_border);
-    // for (int i = 0; i < multi_images->img_num; i ++) {
-    //   Scalar color(255, 255. * i / (multi_images->img_num - 1), 255 - 255. * i / (multi_images->img_num - 1), 255);
-    //   vector<Edge> edges = multi_images->imgs[i]->getEdges();
-    //   vector<int> edge_indices;
-    //   if (0) {// 只描绘边框
-    //     edge_indices = multi_images->imgs[i]->getBoundaryVertexIndices();
-    //   } else {// 描绘网格
-    //     edge_indices.reserve(edges.size());
-    //     for (int j = 0; j < edges.size(); j ++) {
-    //       edge_indices.emplace_back(j);
-    //     }
-    //   }
-    //   for (int j = 0; j < edge_indices.size(); j ++) {
-    //     line(imgs_border,
-    //          multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[0]] + shift,
-    //          multi_images->image_mesh_points[i][edges[edge_indices[j]].indices[1]] + shift,
-    //          color, line_thickness, LINE_8);
-    //   }
-    // }
+    for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
+      circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
+    }
+    for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
+      circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
+    }
 
     return result;
   }

@@ -684,6 +684,7 @@ void MultiImages::warpImages() {
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
 
+
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
@@ -749,38 +750,57 @@ void MultiImages::getSeam() {
 Mat MultiImages::textureMapping() {
   Size2f target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
 
-  // 修改blend权重
+  // Mat reulst_1 = Blending(images_warped, origins, target_size, blend_weight_mask, using_seam_finder);
+
   for (int i = 0; i < img_num; i ++) {
     gpu_masks_warped[i].copyTo(masks_warped[i]);
-    show_img("mask", masks_warped[i]);
-    show_img("weight", blend_weight_mask[i]);
-  }
 
-  double mask_max = -9999;
-  double mask_min = 99999;
-  int channels = masks_warped[0].channels();
-  int rows = masks_warped[0].rows;
-  int cols = masks_warped[0].cols * channels;
-  if (masks_warped[0].isContinuous()) {
-    cols *= rows;
-    rows = 1;
-  }
-  for (int i = 0; i < rows; i ++) {
-    uchar *p = masks_warped[0].ptr<uchar>(i);
-    for (int j = 0; j < cols; j ++) {
-      if (p[j] > mask_max) {
-        mask_max = p[j];
-      }
-      if (p[j] < mask_min) {
-        mask_min = p[j];
+    if (using_seam_finder) {
+      blend_weight_mask.emplace_back(Mat::zeros(masks_warped[i].size(), CV_32FC1));
+      assert(1 == masks_warped[i].channels());
+      // 修改blend权重
+      int rows = blend_weight_mask[i].rows;
+      int cols = blend_weight_mask[i].cols;
+      for (int j = 0; j < rows; j ++) {
+        float *weight_p = blend_weight_mask[i].ptr<float>(j);
+        uchar *mask_p = masks_warped[i].ptr<uchar>(j);
+        for (int k = 0; k < cols; k ++) {
+          if (mask_p[k] == 255 && i == 0) {
+            weight_p[k] = 12000;
+          } else {
+            weight_p[k] = 0;
+          }
+        }
       }
     }
   }
-  LOG("%lf %lf", mask_min, mask_max);
 
-  return Blending(images_warped,
+  // double mask_max = -9999;
+  // double mask_min = 99999;
+  // int channels = blend_weight_mask[0].channels();
+  // int rows = blend_weight_mask[0].rows;
+  // int cols = blend_weight_mask[0].cols * channels;
+  // if (blend_weight_mask[0].isContinuous()) {
+  //   cols *= rows;
+  //   rows = 1;
+  // }
+  // for (int i = 0; i < rows; i ++) {
+  //   float *p = blend_weight_mask[0].ptr<float>(i);
+  //   for (int j = 0; j < cols; j ++) {
+  //     if (p[j] > mask_max) {
+  //       mask_max = p[j];
+  //     }
+  //     if (p[j] < mask_min) {
+  //       mask_min = p[j];
+  //     }
+  //   }
+  // }
+  // LOG("%lf %lf", mask_min, mask_max);
+
+  return Blending(
+      images_warped,
       origins,
       target_size,
-      blend_weight_mask, // 最小0, 最大255
+      blend_weight_mask, // 最小0, 最大12000
       using_seam_finder);
 }

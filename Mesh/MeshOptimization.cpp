@@ -146,19 +146,19 @@ void MeshOptimization::prepareAlignmentTerm(vector<Triplet<double> > & _triplets
         }
 
         for (int j = 0; j < multi_images->keypoints_pairs[n1][n2].size(); j ++) {
-          const pair<int, int> D_Match = multi_images->keypoints_pairs[n1][n2][j];// TODO
+          const pair<int, int> D_Match = multi_images->keypoints_pairs[n1][n2][j];
 
           for (int dim = 0; dim < DIMENSION_2D; dim ++) {
             for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m1
               _triplets.emplace_back(equation + eq_count + dim,
                   images_vertices_start_index[m1] + dim + 
-                  DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),// TODO
+                  DIMENSION_2D * (polygons_indices_1[mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].polygon][k]),
                   alignment_weight * mesh_interpolate_vertex_of_matching_pts[m1][D_Match.first].weights[k]);
             }
             for (int k = 0; k < GRID_VERTEX_SIZE; k ++) {// m2
               _triplets.emplace_back(equation + eq_count + dim,
                   images_vertices_start_index[m2] + dim + 
-                  DIMENSION_2D * (polygons_indices_2[mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].polygon][k]),// TODO
+                  DIMENSION_2D * (polygons_indices_2[mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].polygon][k]),
                   -alignment_weight * mesh_interpolate_vertex_of_matching_pts[m2][D_Match.second].weights[k]);
             }
           }
