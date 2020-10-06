@@ -149,21 +149,6 @@ void NISwGSP_Stitching::get_mesh() {
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
-  // vector<vector<Point2f> > result_1;
-  // result_1.resize(2);
-  // 2->1
-  // result_1[0] = multi_images->imgs[0]->getVertices();// 图1的mesh
-  // for (int i = 0; i < multi_images->imgs[1]->matching_points[0].size(); i ++) {// 图2的mesh
-  //   Point2f tmp_mesh = multi_images->imgs[1]->matching_points[0][i];
-  //   result_1[1].push_back(tmp_mesh);
-  // }
-  // 1->2
-  // result_1[1] = multi_images->imgs[1]->getVertices();// 图1的mesh
-  // for (int i = 0; i < multi_images->imgs[0]->matching_points[1].size(); i ++) {// 图2的mesh
-  //   Point2f tmp_mesh = multi_images->imgs[0]->matching_points[1][i];
-  //   result_1[0].push_back(tmp_mesh);
-  // }
-
   multi_images->using_seam_finder = false;// 如果启用, 那么Blending不会平滑过渡
   // 手动对图像进行形变
   multi_images->warpImages();
