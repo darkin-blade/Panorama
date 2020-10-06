@@ -164,10 +164,12 @@ Mat NISwGSP_Stitching::texture_mapping() {
   //   result_1[0].push_back(tmp_mesh);
   // }
 
-  // 先手动对图像进行形变
+  // 手动对图像进行形变
   multi_images->warpImages(1);
-  // 再寻找接缝线
-  // multi_images->getSeam();
+  // 曝光补偿
+  multi_images->exposureCompensate();
+  // 寻找接缝线
+  multi_images->getSeam();
 
   if (0) {
     // 只绘制最终mesh点

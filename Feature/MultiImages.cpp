@@ -714,24 +714,16 @@ void MultiImages::warpImages(int _blend_method) {
   }
 }
 
-void MultiImages::getSeam() {
-  // 寻找接缝线
-  char tmp_name[32];
+void MultiImages::exposureCompensate() {
   // 去除透明通道
   vector<UMat> u_images_warped, u_masks_warped;
   vector<Point2i> corners_int;
   for (int i = 0; i < img_num; i ++) {
     corners_int.emplace_back((int) corners[i].x, (int) corners[i].y);
     UMat tmp_img, tmp_mask;
-    sprintf(tmp_name, "img%d", i);
-    show_img(tmp_name, images_warped[i]);
-    // show_img("mask", masks_warped[i]);
-    cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);
-    sprintf(tmp_name, "new%d", i);
-    show_img(tmp_name, tmp_img.getMat(ACCESS_READ));
-    masks_warped[i].copyTo(tmp_mask);
-    
-    LOG("%d", tmp_img.channels());
+    cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);// 不要使用convertTo
+    masks_warped[i].copyTo(tmp_mask);// 不要使用getMat, 否则会产生关联
+
     u_images_warped.emplace_back(tmp_img);
     u_masks_warped.emplace_back(tmp_mask);
     LOG("%d (%d, %d)", i, corners_int[i].x, corners_int[i].y);
@@ -742,8 +734,12 @@ void MultiImages::getSeam() {
   compensator->feed(corners_int, u_images_warped, u_masks_warped);
   for (int i = 0; i < img_num; i ++) {
     compensator->apply(i, corners[i], u_images_warped[i], u_masks_warped[i]);
-    u_images_warped[i].copyTo(images_warped[i]);
+    cvtColor(u_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 要添加透明通道
   }
+}
+
+void MultiImages::getSeam() {
+  // 寻找接缝线
 }
 
 Mat MultiImages::textureMapping(int _blend_method) {

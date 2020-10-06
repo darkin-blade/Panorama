@@ -125,6 +125,7 @@ public:
 
   void do_matching();
   void warpImages(int _blend_method);
+  void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
   Mat textureMapping(int _blend_method);
 };
