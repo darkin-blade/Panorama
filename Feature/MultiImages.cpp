@@ -801,7 +801,9 @@ Mat MultiImages::textureMapping() {
   //   Mat tmp_weight;
   //   blend_weight_mask[i].convertTo(tmp_weight, CV_8UC4);
   //   show_img("weight", tmp_weight);
-  }
+  // }
+
+  Ptr<Blender> blender;
 
   return Blending(
       images_warped,

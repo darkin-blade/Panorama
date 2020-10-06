@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
-  if (1) {
+  if (0) {
     // 读取图片
     MultiImages multi_images;
     for (int i = 1; i <= 2; i ++) {

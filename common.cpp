@@ -70,7 +70,8 @@ void show_img(const char *window_name, Mat img) {
     return;
   }
 
-  namedWindow(window_name, WINDOW_AUTOSIZE);
+  namedWindow(window_name, WINDOW_NORMAL);
+  resizeWindow(window_name, 1280, 720);
   imshow(window_name, img);
   waitKey(0);
 
