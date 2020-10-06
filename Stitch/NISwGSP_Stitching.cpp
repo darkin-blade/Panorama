@@ -210,7 +210,6 @@ Mat NISwGSP_Stitching::texture_mapping() {
     for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
       circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
     }
-    circle(result, Point2i(0, 0), CIRCLE_SIZE, Scalar(0, 255, 0, 255), -1);
 
     return result;
   }
