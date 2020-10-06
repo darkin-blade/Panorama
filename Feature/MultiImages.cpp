@@ -804,14 +804,39 @@ Mat MultiImages::textureMapping() {
   // }
 
   Ptr<Blender> blender;
+  blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
+  MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
+  mb->setNumBands(8);// TODO 根据图像调整
+  // 为结果生成区域
+  vector<Size> sizes;
   for (int i = 0; i < img_num; i ++) {
-    
+    sizes.emplace_back(gpu_images_warped[i].size());
   }
+  blender->prepare(corners, sizes);
+  // 纹理映射
+  for (int i = 0; i < img_num; i ++) {
+    // 膨胀运算
+    Mat dilated_mask, seam_mask;
+    gpu_images_warped[i].copyTo(seam_mask);
+    dilate(gpu_masks_warped[i], dilated_mask, Mat());
+    // 统一Mat的大小
+    resize(dilated_mask, seam_mask, seam_mask.size(), 0, 0, INTER_LINEAR_EXACT);
+    seam_mask = seam_mask & dilated_mask;
+    // 转换图像格式
+    Mat images_warped_s;
+    gpu_images_warped[i].convertTo(images_warped_s, CV_16S);
+    blender->feed(images_warped_s, seam_mask, corners[i]);
+  }
+  Mat blend_result, blend_mask;
+  blender->blend(blend_result, blend_mask);
+  blend_result.convertTo(blend_result, CV_8UC3);
+  cvtColor(blend_result, blend_result, COLOR_RGB2RGBA);
+  return blend_result;
 
-  return Blending(
-      images_warped,
-      origins,
-      target_size,
-      blend_weight_mask, // 最小0, 最大12000
-      false);// 不能ignore
+  // return Blending(
+  //     images_warped,
+  //     origins,
+  //     target_size,
+  //     blend_weight_mask, // 最小0, 最大12000
+  //     false);// 不能ignore
 }

@@ -408,6 +408,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
     img.release();
     mask.release();
 
+    // 膨胀运算
     dilate(masks_warped[img_idx], dilated_mask, Mat());
     resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
     mask_warped = seam_mask & mask_warped;
@@ -435,7 +436,7 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   blender->blend(result, result_mask);
   result.convertTo(result, CV_8UC3);
   cvtColor(result, result, COLOR_RGB2RGBA);
-  result_RGBA = Mat::zeros(result.cols, result.rows, CV_8UC4);
+  result_RGBA = Mat::zeros(result.cols, result.rows, CV_8UC4);// TODO 多余?
   result.copyTo(result_RGBA, result_mask);
 
   return result_RGBA;
