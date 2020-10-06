@@ -742,11 +742,23 @@ void MultiImages::exposureCompensate() {
 
 void MultiImages::getSeam() {
   // 寻找接缝线
-  char tmp_name[32];
   Ptr<SeamFinder> seam_finder;
-  seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
-  seam_finder->find(gpu_images_warped, corners, gpu_masks_warped);
-  // TODO
+  // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
+  seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+  // 图像类型转换
+  vector<UMat> images_warped_f(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    gpu_images_warped[i].convertTo(images_warped_f[i], CV_32F);
+  }
+  seam_finder->find(images_warped_f, corners, gpu_masks_warped);
+  // 显示结果
+  char tmp_name[32];
+  for (int i = 0; i < img_num; i ++) {
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, gpu_masks_warped[i].getMat(ACCESS_READ));
+    sprintf(tmp_name, "img%d", i);
+    show_img(tmp_name, gpu_images_warped[i].getMat(ACCESS_READ));
+  }
 }
 
 Mat MultiImages::textureMapping() {
@@ -803,14 +815,22 @@ Mat MultiImages::textureMapping() {
   //   show_img("weight", tmp_weight);
   // }
 
-  Ptr<Blender> blender;
-  blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
-  MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
-  mb->setNumBands(8);// TODO 根据图像调整
-  // 为结果生成区域
   vector<Size> sizes;
   for (int i = 0; i < img_num; i ++) {
     sizes.emplace_back(gpu_images_warped[i].size());
+  }
+  // 为结果生成区域
+  Size dst_sz = resultRoi(corners, sizes).size();
+  float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
+  Ptr<Blender> blender;
+  if (0) {
+    blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
+    MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
+    mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
+  } else {
+    blender = Blender::createDefault(Blender::FEATHER);
+    FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
+    fb->setSharpness(1.f/blend_width);
   }
   blender->prepare(corners, sizes);
   // 纹理映射
