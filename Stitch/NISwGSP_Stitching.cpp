@@ -204,12 +204,12 @@ Mat NISwGSP_Stitching::texture_mapping() {
   } else if (1) {
     Mat result = multi_images->textureMapping();
 
-    for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
-      circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
-    }
-    for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
-      circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
-    }
+    // for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
+    //   circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
+    // }
+    // for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
+    //   circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
+    // }
 
     return result;
   }

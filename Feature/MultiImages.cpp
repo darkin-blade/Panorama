@@ -626,7 +626,7 @@ void MultiImages::warpImages() {
     tmp_imgs.push_back(imgs[i]->data);
   }
 
-  if (!using_seam_finder) {// linear
+  if (true) {// linear
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
@@ -683,10 +683,9 @@ void MultiImages::warpImages() {
     Mat image_mask = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC1);// 图像的mask
     Mat w_mask = Mat();
 
-    if (!using_seam_finder) {// linear
+    if (true) {// linear
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
-
 
     for (int y = 0; y < image.rows; y ++) {
       for (int x = 0; x < image.cols; x ++) {
@@ -701,7 +700,7 @@ void MultiImages::warpImages() {
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
             image_mask.at<uchar>(y, x) = 255;// 保存图像的mask
 
-            if (!using_seam_finder) {// linear
+            if (true) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             }
           }
@@ -712,7 +711,7 @@ void MultiImages::warpImages() {
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
     origins.emplace_back(rects[i].x, rects[i].y);
-    if (!using_seam_finder) {// linear
+    if (true) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
   }
@@ -752,62 +751,62 @@ void MultiImages::getSeam() {
 
 Mat MultiImages::textureMapping() {
 
-  vector<Mat> borders_warped;
-  Vec4b colors[3] = { Vec4b(255, 0, 0, 255), Vec4b(0, 0, 255, 255), Vec4b(0, 255, 0, 255) };
-  for (int i = 0; i < img_num; i ++) {
-    // 将图片改成纯色
-    borders_warped.emplace_back(Mat::zeros(masks_warped[i].size(), CV_8UC4));
+  // 将图片改成纯色
+  // vector<Mat> borders_warped;
+  // Vec4b colors[3] = { Vec4b(255, 0, 0, 255), Vec4b(0, 0, 255, 255), Vec4b(0, 255, 0, 255) };
+  // for (int i = 0; i < img_num; i ++) {
+  //   borders_warped.emplace_back(Mat::zeros(masks_warped[i].size(), CV_8UC4));
+  //   int channels = masks_warped[0].channels();
+  //   int rows = masks_warped[i].rows;
+  //   int cols = masks_warped[i].cols * channels;
+  //   if (masks_warped[0].isContinuous()) {
+  //     cols *= rows;
+  //     rows = 1;
+  //   }
+  //   for (int j = 0; j < rows; j ++) {
+  //     uchar *weight_p = masks_warped[i].ptr<uchar>(j);
+  //     Vec4b *border_p = borders_warped[i].ptr<Vec4b>(j);
+  //     for (int k = 0; k < cols; k ++) {
+  //       if (weight_p[k] == 255) {
+  //         border_p[k] = colors[i % 3];
+  //       }
+  //     }
+  //   }
+  //   show_img("mask", masks_warped[i]);
+  //   show_img("border", borders_warped[i]);
+  // }
 
-    int channels = masks_warped[0].channels();
-    int rows = masks_warped[i].rows;
-    int cols = masks_warped[i].cols * channels;
-    if (masks_warped[0].isContinuous()) {
-      cols *= rows;
-      rows = 1;
-    }
-    for (int j = 0; j < rows; j ++) {
-      uchar *weight_p = masks_warped[i].ptr<uchar>(j);
-      Vec4b *border_p = borders_warped[i].ptr<Vec4b>(j);
-      for (int k = 0; k < cols; k ++) {
-        if (weight_p[k] == 255) {
-          border_p[k] = colors[i % 3];
-        }
-      }
-    }
-    show_img("mask", masks_warped[i]);
-    show_img("border", borders_warped[i]);
-  }
-
-  for (int i = 0; i < img_num; i ++) {
-    gpu_masks_warped[i].copyTo(masks_warped[i]);
-    if (using_seam_finder) {
-      blend_weight_mask.emplace_back(Mat::zeros(masks_warped[i].size(), CV_32FC1));
-      assert(1 == masks_warped[i].channels());
-      // 修改blend权重
-      int rows = blend_weight_mask[i].rows;
-      int cols = blend_weight_mask[i].cols * 1;
-      for (int j = 0; j < rows; j ++) {
-        uchar *mask_p = masks_warped[i].ptr<uchar>(j);
-        float *weight_p = blend_weight_mask[i].ptr<float>(j);
-        for (int k = 0; k < cols; k ++) {
-          if (mask_p[k] == 255) {
-            weight_p[k] = 12000;
-          } else {
-            weight_p[k] = 0;
-          }
-        }
-      }
-    }
-    Mat tmp_weight;
-    blend_weight_mask[i].convertTo(tmp_weight, CV_8UC4);
-    show_img("weight", tmp_weight);
+  // 修改blend权重
+  // for (int i = 0; i < img_num; i ++) {
+  //   gpu_masks_warped[i].copyTo(masks_warped[i]);
+  //   if (using_seam_finder) {
+  //     // blend_weight_mask.emplace_back(Mat::zeros(masks_warped[i].size(), CV_32FC1));
+  //     assert(1 == masks_warped[i].channels());
+  //     int rows = blend_weight_mask[i].rows;
+  //     int cols = blend_weight_mask[i].cols * 1;
+  //     for (int j = 0; j < rows; j ++) {
+  //       uchar *mask_p = masks_warped[i].ptr<uchar>(j);
+  //       float *weight_p = blend_weight_mask[i].ptr<float>(j);
+  //       for (int k = 0; k < cols; k ++) {
+  //         if (mask_p[k] == 255) {
+  //           weight_p[k] = 12000;
+  //         } else if (k > 0 && mask_p[k - 1] == 255) {
+  //           weight_p[k] = 12000;
+  //         } else {
+  //           weight_p[k] = 0;
+  //         }
+  //       }
+  //     }
+  //   }
+  //   Mat tmp_weight;
+  //   blend_weight_mask[i].convertTo(tmp_weight, CV_8UC4);
+  //   show_img("weight", tmp_weight);
   }
 
   return Blending(
-      // images_warped,
-      borders_warped,
+      images_warped,
       origins,
       target_size,
       blend_weight_mask, // 最小0, 最大12000
-      true);
+      false);// 不能ignore
 }
