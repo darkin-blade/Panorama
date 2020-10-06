@@ -38,6 +38,7 @@
 #include <opencv2/stitching/detail/camera.hpp>
 #include <opencv2/stitching/detail/matchers.hpp>
 #include <opencv2/stitching/detail/motion_estimators.hpp>
+#include <opencv2/stitching/detail/seam_finders.hpp>
 #include <opencv2/stitching.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp>
 #include <opencv2/ximgproc/fast_line_detector.hpp>

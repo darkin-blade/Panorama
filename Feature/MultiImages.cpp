@@ -629,7 +629,7 @@ void MultiImages::warpImages(int _blend_method) {
 
   images_warped.reserve(vertices.size());// 图片数
   masks_warped.reserve(vertices.size());
-  corners.reserve(vertices.size());
+  origins.reserve(vertices.size());
   blend_weight_mask.reserve(vertices.size());
 
   const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
@@ -707,46 +707,55 @@ void MultiImages::warpImages(int _blend_method) {
 
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
-    corners.emplace_back(rects[i].x, rects[i].y);
+    origins.emplace_back(rects[i].x, rects[i].y);
     if (_blend_method) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
   }
-}
 
-void MultiImages::exposureCompensate() {
+  // 预处理, 获取UMat
   // 去除透明通道
-  vector<UMat> u_images_warped, u_masks_warped;
-  vector<Point2i> corners_int;
   for (int i = 0; i < img_num; i ++) {
-    corners_int.emplace_back((int) corners[i].x, (int) corners[i].y);
+    corners.emplace_back((int) origins[i].x, (int) origins[i].y);
     UMat tmp_img, tmp_mask;
     cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);// 不要使用convertTo
     masks_warped[i].copyTo(tmp_mask);// 不要使用getMat, 否则会产生关联
 
-    u_images_warped.emplace_back(tmp_img);
-    u_masks_warped.emplace_back(tmp_mask);
-    LOG("%d (%d, %d)", i, corners_int[i].x, corners_int[i].y);
+    gpu_images_warped.emplace_back(tmp_img);
+    gpu_masks_warped.emplace_back(tmp_mask);
+    LOG("%d (%d, %d)", i, corners[i].x, corners[i].y);
   }
-  
+}
+
+void MultiImages::exposureCompensate() {
   // 曝光补偿
   Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用增益补偿
-  compensator->feed(corners_int, u_images_warped, u_masks_warped);
+  compensator->feed(corners, gpu_images_warped, gpu_masks_warped);
   for (int i = 0; i < img_num; i ++) {
-    compensator->apply(i, corners[i], u_images_warped[i], u_masks_warped[i]);
-    cvtColor(u_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 要添加透明通道
+    compensator->apply(i, origins[i], gpu_images_warped[i], gpu_masks_warped[i]);
+    cvtColor(gpu_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 要添加透明通道
   }
 }
 
 void MultiImages::getSeam() {
   // 寻找接缝线
+  char tmp_name[32];
+  Ptr<SeamFinder> seam_finder;
+  seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
+  seam_finder->find(gpu_images_warped, corners, gpu_masks_warped);
+  for (int i = 0; i < 2; i ++) {
+    Mat tmp_mask;
+    gpu_masks_warped[i].copyTo(tmp_mask);
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, tmp_mask);
+  }
 }
 
 Mat MultiImages::textureMapping(int _blend_method) {
   Size2f target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
 
   return Blending(images_warped,
-      corners,
+      origins,
       target_size,
       blend_weight_mask,
       1 - _blend_method);// TODO

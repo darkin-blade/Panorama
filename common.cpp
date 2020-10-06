@@ -65,6 +65,11 @@ void set_progress(const int progress, const int mode) {
 
 void show_img(const char *window_name, Mat img) {
 #if defined(UBUNTU)
+  if (img.rows * img.cols <= 0) {
+    LOG("invalid img %s", window_name);
+    return;
+  }
+
   namedWindow(window_name, WINDOW_AUTOSIZE);
   imshow(window_name, img);
   waitKey(0);

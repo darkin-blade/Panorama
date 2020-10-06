@@ -104,8 +104,11 @@ public:
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)
   vector<Mat>              images_warped;// 存放wrap后图片
   vector<Mat>              masks_warped;// 存放wrap后mask
+  vector<UMat>             gpu_images_warped;
+  vector<UMat>             gpu_masks_warped;
 
-  vector<Point2f>          corners;// origins, 每幅warped图像的初始坐标
+  vector<Point2f>          origins;// 每幅warped图像的初始坐标
+  vector<Point2i>          corners;// 初始坐标的整数形式
   vector<Mat>              blend_weight_mask;// new_weight_mask
 
   /* Line */

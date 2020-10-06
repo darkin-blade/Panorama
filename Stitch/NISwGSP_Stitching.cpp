@@ -188,7 +188,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
       }
     }
     return result_1;
-  } else {
+  } else if (1) {
     Mat result = multi_images->textureMapping(1);
 
     // 图像描边
