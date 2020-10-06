@@ -149,13 +149,13 @@ void NISwGSP_Stitching::get_mesh() {
 }
 
 Mat NISwGSP_Stitching::texture_mapping() {
-  multi_images->using_seam_finder = false;// 如果启用, 那么Blending不会平滑过渡
+  multi_images->using_seam_finder = true;// 如果启用, 那么Blending不会平滑过渡
   // 手动对图像进行形变
   multi_images->warpImages();
   // 曝光补偿
-  // multi_images->exposureCompensate();
+  multi_images->exposureCompensate();
   // 寻找接缝线
-  // multi_images->getSeam();
+  multi_images->getSeam();
 
   if (0) {
     // 只绘制最终mesh点
@@ -210,6 +210,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
     for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
       circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
     }
+    circle(result, Point2i(0, 0), CIRCLE_SIZE, Scalar(0, 255, 0, 255), -1);
 
     return result;
   }

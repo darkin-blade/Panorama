@@ -102,6 +102,7 @@ public:
 
   /* Blending */
   int using_seam_finder;// 使用接缝线进行图像拼接
+  Size2f target_size;// 最终Mat大小
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)
   vector<Mat>              images_warped;// 存放wrap后图片

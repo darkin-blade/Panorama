@@ -612,6 +612,9 @@ vector<SimilarityElements> MultiImages::getImagesSimilarityElements() {
 }
 
 void MultiImages::warpImages() {
+  // 对mesh顶点归一化(去除负值), 必须在计算图像左上角原点之前计算
+  target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
+
   vector<vector<Point2f> > vertices(image_mesh_points);
 
   vector<Mat> weight_mask;
@@ -714,8 +717,8 @@ void MultiImages::warpImages() {
     }
   }
 
-  // 预处理, 获取UMat
-  // 去除透明通道
+  // 预处理
+  // 去除透明通道, 获取UMat
   for (int i = 0; i < img_num; i ++) {
     corners.emplace_back((int) origins[i].x, (int) origins[i].y);
     UMat tmp_img, tmp_mask;
@@ -748,8 +751,6 @@ void MultiImages::getSeam() {
 }
 
 Mat MultiImages::textureMapping() {
-  Size2f target_size = normalizeVertices(image_mesh_points);// 最终Mat大小
-
   // Mat reulst_1 = Blending(images_warped, origins, target_size, blend_weight_mask, using_seam_finder);
 
   for (int i = 0; i < img_num; i ++) {
@@ -802,5 +803,5 @@ Mat MultiImages::textureMapping() {
       origins,
       target_size,
       blend_weight_mask, // 最小0, 最大12000
-      using_seam_finder);
+      true);
 }
