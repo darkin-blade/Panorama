@@ -167,7 +167,7 @@ Mat NISwGSP_Stitching::texture_mapping() {
   // 先手动对图像进行形变
   multi_images->warpImages(1);
   // 再寻找接缝线
-  multi_images->getSeam();
+  // multi_images->getSeam();
 
   if (0) {
     // 只绘制最终mesh点

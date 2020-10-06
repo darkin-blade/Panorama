@@ -716,17 +716,21 @@ void MultiImages::warpImages(int _blend_method) {
 
 void MultiImages::getSeam() {
   // 寻找接缝线
+  char tmp_name[32];
   // 去除透明通道
   vector<UMat> u_images_warped, u_masks_warped;
   vector<Point2i> corners_int;
   for (int i = 0; i < img_num; i ++) {
     corners_int.emplace_back((int) corners[i].x, (int) corners[i].y);
     UMat tmp_img, tmp_mask;
-    // show_img("image", images_warped[i]);
+    sprintf(tmp_name, "img%d", i);
+    show_img(tmp_name, images_warped[i]);
     // show_img("mask", masks_warped[i]);
-    images_warped[i].copyTo(tmp_img);
+    cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);
+    sprintf(tmp_name, "new%d", i);
+    show_img(tmp_name, tmp_img.getMat(ACCESS_READ));
     masks_warped[i].copyTo(tmp_mask);
-    tmp_img.convertTo(tmp_img, CV_8UC3);
+    
     LOG("%d", tmp_img.channels());
     u_images_warped.emplace_back(tmp_img);
     u_masks_warped.emplace_back(tmp_mask);
