@@ -29,7 +29,6 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   float match_conf = 0.35f;
   string seam_find_type = "gc_color";
   int blend_type = Blender::MULTI_BAND;
-  int timelapse_type = Timelapser::AS_IS;
   float blend_strength = 5;
   int range_width = -1;
 
@@ -343,7 +342,6 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
   Mat img_warped, img_warped_s;
   Mat dilated_mask, seam_mask, mask, mask_warped;
   Ptr<Blender> blender;// 图像融合的基类
-  Ptr<Timelapser> timelapser;
   //double compose_seam_aspect = 1;
   double compose_work_aspect = 1;
 
@@ -428,9 +426,6 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
         fb->setSharpness(1.f/blend_width);
       }
       blender->prepare(corners, sizes);
-    } else if (!timelapser) {
-      timelapser = Timelapser::createDefault(timelapse_type);
-      timelapser->initialize(corners, sizes);
     }
 
     blender->feed(img_warped_s, mask_warped, corners[img_idx]);

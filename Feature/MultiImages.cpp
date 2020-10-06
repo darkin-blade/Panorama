@@ -804,6 +804,9 @@ Mat MultiImages::textureMapping() {
   // }
 
   Ptr<Blender> blender;
+  for (int i = 0; i < img_num; i ++) {
+    
+  }
 
   return Blending(
       images_warped,
