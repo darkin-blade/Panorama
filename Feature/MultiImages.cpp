@@ -743,8 +743,9 @@ void MultiImages::exposureCompensate() {
 void MultiImages::getSeam() {
   // 寻找接缝线
   Ptr<SeamFinder> seam_finder;
+  seam_finder = makePtr<detail::VoronoiSeamFinder>();
   // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
-  seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+  // seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
   // 图像类型转换
   vector<UMat> images_warped_f(img_num);
   for (int i = 0; i < img_num; i ++) {
@@ -756,8 +757,8 @@ void MultiImages::getSeam() {
   for (int i = 0; i < img_num; i ++) {
     sprintf(tmp_name, "mask%d", i);
     show_img(tmp_name, gpu_masks_warped[i].getMat(ACCESS_READ));
-    sprintf(tmp_name, "img%d", i);
-    show_img(tmp_name, gpu_images_warped[i].getMat(ACCESS_READ));
+    // sprintf(tmp_name, "img%d", i);
+    // show_img(tmp_name, gpu_images_warped[i].getMat(ACCESS_READ));
   }
 }
 
@@ -823,11 +824,13 @@ Mat MultiImages::textureMapping() {
   Size dst_sz = resultRoi(corners, sizes).size();
   float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
   Ptr<Blender> blender;
-  if (0) {
+  if (true) {
+    // 多频带融合
     blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
     MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
     mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
   } else {
+    // 羽化融合
     blender = Blender::createDefault(Blender::FEATHER);
     FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
     fb->setSharpness(1.f/blend_width);
@@ -836,16 +839,16 @@ Mat MultiImages::textureMapping() {
   // 纹理映射
   for (int i = 0; i < img_num; i ++) {
     // 膨胀运算
-    Mat dilated_mask, seam_mask;
-    gpu_images_warped[i].copyTo(seam_mask);
+    Mat dilated_mask, seam_mask, mask_warped;
+    gpu_images_warped[i].copyTo(mask_warped);
     dilate(gpu_masks_warped[i], dilated_mask, Mat());
     // 统一Mat的大小
-    resize(dilated_mask, seam_mask, seam_mask.size(), 0, 0, INTER_LINEAR_EXACT);
-    seam_mask = seam_mask & dilated_mask;
+    resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
+    mask_warped = seam_mask & dilated_mask;
     // 转换图像格式
     Mat images_warped_s;
     gpu_images_warped[i].convertTo(images_warped_s, CV_16S);
-    blender->feed(images_warped_s, seam_mask, corners[i]);
+    blender->feed(images_warped_s, mask_warped, corners[i]);
   }
   Mat blend_result, blend_mask;
   blender->blend(blend_result, blend_mask);

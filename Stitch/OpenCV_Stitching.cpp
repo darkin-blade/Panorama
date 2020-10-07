@@ -400,8 +400,6 @@ Mat OpenCV_Stitching::opencv_stitch(vector<Mat> _images) {
     mask.setTo(Scalar::all(255));
     warper->warp(mask, K, cameras[img_idx].R, INTER_NEAREST, BORDER_CONSTANT, mask_warped);
 
-    show_img("mask", mask_warped);
-
     // Compensate exposure
     compensator->apply(img_idx, corners[img_idx], img_warped, mask_warped);
 

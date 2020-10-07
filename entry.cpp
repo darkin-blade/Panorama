@@ -20,11 +20,13 @@ int main(int argc, char *argv[]) {
         sprintf(img_path, "%s/%d.jpg", app_path, i);
         multi_images.read_img(img_path);
     }
-    // for (int i = 1; i < multi_images.img_num; i ++) {
-    //   // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
-    //   multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
-    // }
-    multi_images.img_pairs.emplace_back(make_pair(0, 1));
+    // 自动从前往后匹配
+    for (int i = 1; i < multi_images.img_num; i ++) {
+      // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
+      multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
+    }
+    // 手动匹配
+    // multi_images.img_pairs.emplace_back(make_pair(0, 1));
 
     NISwGSP_Stitching niswgsp(multi_images);
 
