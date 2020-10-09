@@ -750,18 +750,82 @@ void MultiImages::getSeam() {
   char tmp_name[32];
   // 对mask进行平移
   for (int i = 0; i < img_num; i ++) {
-    Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
-    Mat dst_mask = Mat(pano_mask, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    Mat mask_translated = Mat::zeros(target_size, CV_8UC1);
+    Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
     masks_warped[i].copyTo(dst_mask);
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, pano_mask);
+    pano_masks_warped.emplace_back(mask_translated);
   }
   // 根据像素相似度修改图像的mask
+  Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
+  Mat pano_index = Mat::zeros(target_size, CV_8UC1);// 每个像素点对应图片的索引
+  int pano_rows = pano_mask.rows;
+  int pano_cols = pano_mask.cols * 1;
+  int pix_delta = 0;
+  for (int i = 0; i < img_num; i ++) {
+    // 求mask的交集
+    Mat intersect_mask = pano_mask & pano_masks_warped[i];
+    // 缩减图像的mask
+    assert(1 == intersect_mask.channels());
+    int count = countNonZero(intersect_mask);
+    for (int j = 0; j < pano_rows; j ++) {
+      uchar *intersect_p = intersect_mask.ptr<uchar>(j);
+      uchar *mask_p = pano_masks_warped[i].ptr<uchar>(j);
+      uchar *index_p = pano_index.ptr<uchar>(j);
+      for (int k = 0; k < pano_cols; k ++) {
+        if (intersect_p[k] > 0) {
+          // 存在交集, 检查像素相似度
+          uchar img_index = index_p[k];
+          assert(img_index < i);
+          Vec4b pano_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
+          Vec4b img_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
+          pix_delta = abs(pano_pix[0] - img_pix[0]) + abs(pano_pix[1] - img_pix[1]) + abs(pano_pix[2] - img_pix[2]);
+          if (pix_delta > 500) {
+            // 进行过滤
+            mask_p[k] = 0;
+          }
+          count --;
+          if (count <= 0) {
+            break;
+          }
+        }
+      }
+      if (count <= 0) {
+        break;
+      }
+    }
+    // 将削减过后的mask还原到无偏移的Mat, 同步UMat
+    Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    src_mask.copyTo(masks_warped[i]);
+    masks_warped[i].copyTo(gpu_masks_warped[i]);
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, masks_warped[i]);
+    // 将mask加入到全景中
+    pano_mask |= pano_masks_warped[i];
+    // 保存图像的索引
+    count = countNonZero(pano_masks_warped[i]);
+    for (int j = 0; j < pano_rows; j ++) {
+      uchar *mask_p = pano_masks_warped[i].ptr<uchar>(j);
+      uchar *index_p = pano_index.ptr<uchar>(j);
+      for (int k = 0; k < pano_cols; k ++) {
+        if (mask_p[k] > 0) {
+          // TODO 是否覆盖
+          index_p[k] = i;// 保存索引
+          count --;
+          if (count <= 0) {
+            break;
+          }
+        }
+      }
+      if (count <= 0) {
+        break;
+      }
+    }
+  }
 
   Ptr<SeamFinder> seam_finder;
-  seam_finder = makePtr<detail::VoronoiSeamFinder>();
+  // seam_finder = makePtr<detail::VoronoiSeamFinder>();
   // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
-  // seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+  seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR_GRAD);// 图割法
   // 图像类型转换
   vector<UMat> images_warped_f(img_num);
   for (int i = 0; i < img_num; i ++) {
