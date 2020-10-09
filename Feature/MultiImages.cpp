@@ -757,6 +757,7 @@ void MultiImages::getSeam() {
     pano_masks_warped.emplace_back(mask_translated);
     // 计算图像中心
     centers_warped.emplace_back((corners[i].x + masks_warped[i].cols)/2, (corners[i].y + masks_warped[i].rows)/2);
+    LOG("%d %d %d", i, centers_warped[i].x, centers_warped[i].y);
   }
   // 根据像素相似度修改图像的mask
   Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
@@ -765,14 +766,12 @@ void MultiImages::getSeam() {
   int pano_cols = pano_mask.cols * 1;
   int pix_delta = 0;
   for (int i = 0; i < img_num; i ++) {
-    // 求mask的交集
-    Mat intersect_mask = pano_mask & pano_masks_warped[i];
-    // 缩减图像的mask
+    Mat intersect_mask = pano_mask & pano_masks_warped[i];// mask的交集
     assert(1 == intersect_mask.channels());
+    
     int count = countNonZero(intersect_mask);
     for (int j = 0; j < pano_rows; j ++) {// 从左往右
       uchar *intersect_p = intersect_mask.ptr<uchar>(j);
-      uchar *mask_p = pano_masks_warped[i].ptr<uchar>(j);
       uchar *index_p = pano_index.ptr<uchar>(j);
       for (int k = 0; k < pano_cols; k ++) {// 从上往下
         if (intersect_p[k] > 0) {
@@ -782,15 +781,10 @@ void MultiImages::getSeam() {
           Vec4b pano_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
           Vec4b img_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
           pix_delta = abs(pano_pix[0] - img_pix[0]) + abs(pano_pix[1] - img_pix[1]) + abs(pano_pix[2] - img_pix[2]);
-          if (pix_delta > 500) {
-            // TODO 进行过滤, 对半分
-            int dis_to_pano = abs(j - centers_warped[img_index].x) + abs(k - centers_warped[img_index].y);
-            int dis_to_img = abs(j - centers_warped[i].x) + abs(k - centers_warped[i].y);
-            if (dis_to_pano < dis_to_img) {
-              mask_p[k] = 0;
-            } else {
-              pano_masks_warped[img_index].at<uchar>(j, k) = 0;
-            }
+          if (pix_delta > 400) {
+          // 对冲突区域进行过滤
+            pano_masks_warped[img_index].at<uchar>(j, k) = 0;
+            pano_masks_warped[i].at<uchar>(j, k) = 0;
           }
           count --;
           if (count <= 0) {
@@ -802,6 +796,7 @@ void MultiImages::getSeam() {
         break;
       }
     }
+
     // 将mask加入到全景中
     pano_mask |= pano_masks_warped[i];
     // 保存图像的索引
@@ -825,13 +820,11 @@ void MultiImages::getSeam() {
     }
   }
 
+  // 将削减过后的mask还原到无偏移的Mat, 同步UMat
   for (int i = 0; i < img_num; i ++) {
-    // 将削减过后的mask还原到无偏移的Mat, 同步UMat
     Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
     src_mask.copyTo(masks_warped[i]);
     masks_warped[i].copyTo(gpu_masks_warped[i]);
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, masks_warped[i]);
   }
 
   Ptr<SeamFinder> seam_finder;
@@ -844,7 +837,96 @@ void MultiImages::getSeam() {
     gpu_images_warped[i].convertTo(images_warped_f[i], CV_32F);
   }
   seam_finder->find(images_warped_f, corners, gpu_masks_warped);
+  // 同步Mat和UMat
+  for (int i = 0; i < img_num; i ++) {
+    gpu_masks_warped[i].copyTo(masks_warped[i]);
+  }
   // 显示结果
+}
+
+void MultiImages::fillMat(const Mat &src, Mat &visit, const int _row, const int _col) {
+  assert(_row >= 0 && _row < visit.rows && _col >= 0 && _col < visit.cols);
+  assert(src.rows == visit.rows && src.cols == visit.cols);
+  visit.at<uchar>(_row, _col) = 0;
+  int steps[4][2] = { {_row - 1, _col}, {_row + 1, _col}, {_row, _col - 1}, {_row, _col + 1} };
+  for (int i = 0; i < 4; i ++) {
+    int next_row = steps[i][0];
+    int next_col = steps[i][1];
+    if (next_row >= 0 && next_row < visit.rows && next_col >= 0 && next_col < visit.cols) {
+      if (visit.at<uchar>(next_row, next_col) == 255 && src.at<uchar>(next_row, next_col) == 0) {
+        fillMat(src, visit, next_row, next_col);
+      }
+    }
+  }
+}
+
+Mat MultiImages::blending() {
+  char tmp_name[32];
+  // 对图像进行填补
+  for (int i = 0; i < img_num; i ++) {
+    int rows = masks_warped[i].rows;
+    int cols = masks_warped[i].cols * 1;
+    if (masks_warped[0].isContinuous()) {
+      cols *= rows;
+      rows = 1;
+    }
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, masks_warped[i]);
+    Mat visit = Mat::zeros(masks_warped[i].size(), CV_8UC1);
+    visit.setTo(Scalar::all(255));
+    for (int j = 0; j < rows; j ++) {
+      for (int k = 0; k < cols; k ++) {
+        if ((j == 0 || j == (rows - 1) || (k == 0 || k == (cols - 1)))) {
+          if (visit.at<uchar>(j, k) == 255 && masks_warped[0].at<uchar>(j, k) == 0) {
+            fillMat(masks_warped[i], visit, j, k);
+          }
+        }
+      }
+    }
+    show_img(tmp_name, visit);
+  }
+
+  // 为结果生成区域
+  vector<Size> sizes;
+  for (int i = 0; i < img_num; i ++) {
+    sizes.emplace_back(gpu_images_warped[i].size());
+  }
+  Size dst_sz = resultRoi(corners, sizes).size();
+  float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
+  Ptr<Blender> blender;
+  if (true) {
+    // 多频带融合
+    blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
+    MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
+    mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
+  } else {
+    // 羽化融合
+    blender = Blender::createDefault(Blender::FEATHER);
+    FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
+    fb->setSharpness(1.f/blend_width);
+  }
+  blender->prepare(corners, sizes);
+
+  // 纹理映射
+  for (int i = 0; i < img_num; i ++) {
+    // 膨胀运算
+    Mat dilated_mask, seam_mask, mask_warped;
+    gpu_images_warped[i].copyTo(mask_warped);
+    dilate(gpu_masks_warped[i], dilated_mask, Mat());
+    // 统一Mat的大小
+    resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
+    mask_warped = seam_mask & dilated_mask;
+    // 转换图像格式
+    Mat images_warped_s;
+    gpu_images_warped[i].convertTo(images_warped_s, CV_16S);
+    blender->feed(images_warped_s, mask_warped, corners[i]);
+  }
+  Mat blend_result, blend_mask;
+  blender->blend(blend_result, blend_mask);
+  blend_result.convertTo(blend_result, CV_8UC3);
+  cvtColor(blend_result, blend_result, COLOR_RGB2RGBA);
+
+  return blend_result;
 }
 
 Mat MultiImages::textureMapping() {
@@ -900,51 +982,11 @@ Mat MultiImages::textureMapping() {
   //   blend_weight_mask[i].convertTo(tmp_weight, CV_8UC4);
   //   show_img("weight", tmp_weight);
   // }
-
-  vector<Size> sizes;
-  for (int i = 0; i < img_num; i ++) {
-    sizes.emplace_back(gpu_images_warped[i].size());
-  }
-  // 为结果生成区域
-  Size dst_sz = resultRoi(corners, sizes).size();
-  float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
-  Ptr<Blender> blender;
-  if (true) {
-    // 多频带融合
-    blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
-    MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
-    mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
-  } else {
-    // 羽化融合
-    blender = Blender::createDefault(Blender::FEATHER);
-    FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
-    fb->setSharpness(1.f/blend_width);
-  }
-  blender->prepare(corners, sizes);
-  // 纹理映射
-  for (int i = 0; i < img_num; i ++) {
-    // 膨胀运算
-    Mat dilated_mask, seam_mask, mask_warped;
-    gpu_images_warped[i].copyTo(mask_warped);
-    dilate(gpu_masks_warped[i], dilated_mask, Mat());
-    // 统一Mat的大小
-    resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
-    mask_warped = seam_mask & dilated_mask;
-    // 转换图像格式
-    Mat images_warped_s;
-    gpu_images_warped[i].convertTo(images_warped_s, CV_16S);
-    blender->feed(images_warped_s, mask_warped, corners[i]);
-  }
-  Mat blend_result, blend_mask;
-  blender->blend(blend_result, blend_mask);
-  blend_result.convertTo(blend_result, CV_8UC3);
-  cvtColor(blend_result, blend_result, COLOR_RGB2RGBA);
-  return blend_result;
-
-  // return Blending(
-  //     images_warped,
-  //     origins,
-  //     target_size,
-  //     blend_weight_mask, // 最小0, 最大12000
-  //     false);// 不能ignore
+  
+  return Blending(
+      images_warped,
+      origins,
+      target_size,
+      blend_weight_mask, // 最小0, 最大12000
+      false);// 不能ignore
 }

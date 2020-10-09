@@ -76,20 +76,20 @@ Mat NISwGSP_Stitching::textureMapping() {
   if (0) {
     // 只绘制最终mesh点
     Size2f target_size = normalizeVertices(multi_images->image_mesh_points);
-    Mat result_1;
-    result_1 = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
+    Mat result;
+    result = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
     vector<vector<Point2f> > & image_mesh_points = multi_images->image_mesh_points;
     for (int i = 0; i < multi_images->img_num; i ++) {
       for (int j = 0; j < image_mesh_points[i].size(); j ++) {
         Point2f tmp = image_mesh_points[i][j];
         if (i) {
-          circle(result_1, tmp, CIRCLE_SIZE, Scalar(255, 0, 0), -1);
+          circle(result, tmp, CIRCLE_SIZE, Scalar(255, 0, 0), -1);
         } else {
-          circle(result_1, tmp, CIRCLE_SIZE, Scalar(255, 255, 0), -1);
+          circle(result, tmp, CIRCLE_SIZE, Scalar(255, 255, 0), -1);
         }
       }
     }
-    return result_1;
+    return result;
   } else if (0) {
     Mat result = multi_images->textureMapping();
     // 图像描边
@@ -117,10 +117,18 @@ Mat NISwGSP_Stitching::textureMapping() {
              color, line_thickness, LINE_8);
       }
     }
+    return result;
   } else if (1) {
-    Mat result = multi_images->textureMapping();
+    // Mat result = multi_images->textureMapping();
+    Mat result = multi_images->blending();
+
+    // 图像中心
+    // for (int i = 0; i < multi_images->centers_warped.size(); i ++) {
+    //   circle(result, multi_images->centers_warped[i], CIRCLE_SIZE, Scalar(0, 255, 0, 255), -1);
+    // }
 
     LOG("%ld %ld", result.rows, result.cols);
+    // 图像warp
     // for (int i = 0; i < multi_images->origin_point.size(); i ++) {
     //   Point2i origin_p = multi_images->origin_point[i] + multi_images->corners[1];
     //   circle(result, origin_p, CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);

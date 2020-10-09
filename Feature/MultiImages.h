@@ -145,6 +145,8 @@ public:
   void warpImages();
   void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
+  void fillMat(const Mat &src, Mat &visit, const int row, const int col);// 图像填补
+  Mat blending();
   Mat textureMapping();
 };
 
