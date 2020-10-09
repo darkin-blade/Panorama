@@ -844,41 +844,41 @@ void MultiImages::getSeam() {
   // 显示结果
 }
 
-void MultiImages::fillMat(const Mat &src, Mat &visit, const int _row, const int _col) {
-  assert(_row >= 0 && _row < visit.rows && _col >= 0 && _col < visit.cols);
-  assert(src.rows == visit.rows && src.cols == visit.cols);
-  visit.at<uchar>(_row, _col) = 0;
-  int steps[4][2] = { {_row - 1, _col}, {_row + 1, _col}, {_row, _col - 1}, {_row, _col + 1} };
-  for (int i = 0; i < 4; i ++) {
-    int next_row = steps[i][0];
-    int next_col = steps[i][1];
-    if (next_row >= 0 && next_row < visit.rows && next_col >= 0 && next_col < visit.cols) {
-      if (visit.at<uchar>(next_row, next_col) == 255 && src.at<uchar>(next_row, next_col) == 0) {
-        fillMat(src, visit, next_row, next_col);
-      }
-    }
-  }
-}
-
 Mat MultiImages::blending() {
   char tmp_name[32];
   // 对图像进行填补
   for (int i = 0; i < img_num; i ++) {
     int rows = masks_warped[i].rows;
     int cols = masks_warped[i].cols * 1;
-    if (masks_warped[0].isContinuous()) {
-      cols *= rows;
-      rows = 1;
-    }
+    // 不要使用Continus加速
     sprintf(tmp_name, "mask%d", i);
     show_img(tmp_name, masks_warped[i]);
+
     Mat visit = Mat::zeros(masks_warped[i].size(), CV_8UC1);
     visit.setTo(Scalar::all(255));
+    queue<pair<int, int> > que;
+    int steps[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
     for (int j = 0; j < rows; j ++) {
       for (int k = 0; k < cols; k ++) {
-        if ((j == 0 || j == (rows - 1) || (k == 0 || k == (cols - 1)))) {
-          if (visit.at<uchar>(j, k) == 255 && masks_warped[0].at<uchar>(j, k) == 0) {
-            fillMat(masks_warped[i], visit, j, k);
+        if (j == 0 || j == (rows - 1) || k == 0 || k == (cols - 1)) {
+          if (visit.at<uchar>(j, k) == 255 && masks_warped[i].at<uchar>(j, k) == 0) {
+            visit.at<uchar>(j, k) = 0;
+            que.push(make_pair(j, k));
+            while (que.empty() == 0) {
+              pair<int, int> node = que.front();
+              que.pop();
+              for (int p = 0; p < 4; p ++) {
+                int next_row = node.first + steps[p][0];
+                int next_col = node.second + steps[p][1];
+                if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
+                  if (visit.at<uchar>(next_row, next_col) == 255 && masks_warped[i].at<uchar>(next_row, next_col) == 0) {
+                    // 未被访问
+                    visit.at<uchar>(next_row, next_col) = 0;
+                    que.push(make_pair(next_row, next_col));
+                  } 
+                }
+              }
+            }
           }
         }
       }
