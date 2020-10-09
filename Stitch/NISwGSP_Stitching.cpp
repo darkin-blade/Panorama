@@ -121,17 +121,15 @@ Mat NISwGSP_Stitching::textureMapping() {
   } else if (1) {
     Mat result = multi_images->textureMapping();
 
-    show_img("image features", drawFeatureMatch());
-
     LOG("%ld %ld", result.rows, result.cols);
-    for (int i = 0; i < multi_images->origin_point.size(); i ++) {
-      Point2i origin_p = multi_images->origin_point[i] + multi_images->corners[1];
-      circle(result, origin_p, CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
-    }
-    for (int i = 0; i < multi_images->warped_point.size(); i ++) {
-      Point2f warped_p = multi_images->warped_point[i] + multi_images->origins[1];
-      circle(result, warped_p, CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
-    }
+    // for (int i = 0; i < multi_images->origin_point.size(); i ++) {
+    //   Point2i origin_p = multi_images->origin_point[i] + multi_images->corners[1];
+    //   circle(result, origin_p, CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
+    // }
+    // for (int i = 0; i < multi_images->warped_point.size(); i ++) {
+    //   Point2f warped_p = multi_images->warped_point[i] + multi_images->origins[1];
+    //   circle(result, warped_p, CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
+    // }
 
     // for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
     //   circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
@@ -160,7 +158,7 @@ Mat NISwGSP_Stitching::drawFeatureMatch() {
     img1.copyTo(left_1);
     img2.copyTo(right_1);
 
-    if (0) {
+    if (1) {
       // 匹配RANSAC之后的所有特征点
       for (int i = 0; i < multi_images->feature_pairs[m1][m2].size(); i ++) {
         // 计算索引

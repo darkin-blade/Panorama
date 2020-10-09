@@ -77,7 +77,7 @@ public:
 
   /* Features */
   // [m1][m2]<i, j>,第m1张图片的第i个特征点对应第m2张图片的第j个特征点(实际上[m1][m2]与[m2][m1]重复(相反))
-  vector<vector<vector<pair<int, int> > > > initial_pairs;// RANSAC之前的特征点配对信息
+  vector<vector<vector<pair<int, int> > > > initial_pairs;// debug, RANSAC之前的特征点配对信息
   vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
@@ -141,7 +141,6 @@ public:
 
   void do_matching();
   void warpImages();
-  void warpFeaturePoints();
   void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
   Mat textureMapping();

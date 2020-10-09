@@ -722,7 +722,7 @@ void MultiImages::warpImages() {
   }
 
   // 预处理
-  // 去除透明通道, 获取UMat
+  // 去除透明通道, 同步UMat和Mat
   for (int i = 0; i < img_num; i ++) {
     corners.emplace_back((int) origins[i].x, (int) origins[i].y);// 不要用括号把x, y括起来
     UMat tmp_img, tmp_mask;
@@ -735,48 +735,20 @@ void MultiImages::warpImages() {
   }
 }
 
-void MultiImages::warpFeaturePoints() {
-  // 将原图像上的特征点单应变换到warped图像上
-  for (int i = 0; i < img_num; i ++) {
-    Mat polygon_index_mask = polygon_index_masks[i];
-    vector<Mat> affine_transform = affine_transforms[i];
-
-    for (int j = 0; j < imgs[i]->feature_points.size(); j ++) {
-      int x = (int) imgs[i]->feature_points[j].x;
-      int y = (int) imgs[i]->feature_points[j].y;
-      // int x = (int) image_features[i].keypoints[j].pt.x;
-
-      int polygon_index = polygon_index_mask.at<int>(y, x);
-      if (polygon_index != NO_GRID) {// -1
-        Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);
-        if (i == 1) {
-          // origin_point.emplace_back(x, y);
-          // warped_point.emplace_back(p_f);
-        }
-        if (p_f.x >= 0 && p_f.y >= 0 &&
-            p_f.x <= imgs[i]->data.cols &&
-            p_f.y <= imgs[i]->data.rows) {
-          ;
-        } else {
-          LOG("out");
-        }
-      }
-    }
-  }
-}
-
 void MultiImages::exposureCompensate() {
   // 曝光补偿
   Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用增益补偿
   compensator->feed(corners, gpu_images_warped, gpu_masks_warped);
   for (int i = 0; i < img_num; i ++) {
     compensator->apply(i, origins[i], gpu_images_warped[i], gpu_masks_warped[i]);
-    cvtColor(gpu_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 要添加透明通道
+    cvtColor(gpu_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 同步UMat和Mat, Mat要添加透明通道
   }
 }
 
 void MultiImages::getSeam() {
   // 寻找接缝线
+  // 根据像素相似度修改图像的mask
+
   Ptr<SeamFinder> seam_finder;
   seam_finder = makePtr<detail::VoronoiSeamFinder>();
   // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
