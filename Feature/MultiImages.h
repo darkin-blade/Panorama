@@ -70,17 +70,18 @@ public:
   int img_num;
   int center_index = 0;// 参照图片的索引
   vector<ImageData *> imgs;
-  vector<double> img_rotations;// 拍摄时的旋转角度
+  vector<double>      img_rotations;// 拍摄时的旋转角度
 
-  /* Features */
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   vector<vector<bool> >   images_match_graph;// 配对矩阵
 
-  // 两辆图片的配对信息:[m1][m2],第m1张图片为参照,与第m2张图片为目标
-  vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点(实际上[m1][m2]与[m2][m1]重复(相反))
-  vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配的特征点;
+  /* Features */
+  // [m1][m2]<i, j>,第m1张图片的第i个特征点对应第m2张图片的第j个特征点(实际上[m1][m2]与[m2][m1]重复(相反))
+  vector<vector<vector<pair<int, int> > > > initial_pairs;// RANSAC之前的特征点配对信息
+  vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
+  vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
-  vector<ImageFeatures>             image_features;// 包含keypoints
+  vector<ImageFeatures>             image_features;// TODO 包含keypoints, 包含匹配点和特征点, 函数调用时用
   vector<MatchesInfo>               pairwise_matches;// TODO, 临时构建, 只用于调库函数
   vector<CameraParams>              camera_params;
   vector<vector<bool> >             image_features_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
@@ -104,7 +105,7 @@ public:
   int using_seam_finder;// 使用接缝线进行图像拼接
   Size2f target_size;// 最终Mat大小
 
-  vector<Mat>     polygon_index_masks;// 整个图片所有像素对应的三角形区域索引
+  vector<Mat>              polygon_index_masks;// 整个图片所有像素对应的三角形区域索引
   vector<vector<Mat> >     affine_transforms;// 每个图片的每个mesh(分成两个三角形)内部的单应矩阵变换
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)

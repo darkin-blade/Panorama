@@ -262,8 +262,10 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
 void MultiImages::getFeaturePairs() {
   // 获取feature points下标的配对信息
   // 初始化vector大小
+  initial_pairs.resize(img_num);
   feature_pairs.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
+    initial_pairs[i].resize(img_num);
     feature_pairs[i].resize(img_num);
   }
 
@@ -283,12 +285,12 @@ void MultiImages::getFeaturePairs() {
       X.emplace_back(m1_fpts[it.first ]);
       Y.emplace_back(m2_fpts[it.second]);
     }
+    initial_pairs[m1][m2] = initial_indices;
     feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
-    // feature_pairs[m1][m2] = initial_indices;
 
     LOG("%d %d has feature pairs %ld", m1, m2, feature_pairs[m1][m2].size());
 
-    // 记录反向的pairs
+    // TODO 记录反向的pairs
     for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
       feature_pairs[m2][m1].emplace_back(make_pair(feature_pairs[m1][m2][k].second, feature_pairs[m1][m2][k].first));
     }
@@ -326,7 +328,7 @@ vector<int> MultiImages::getImagesVerticesStartIndex() {
 vector<vector<double> > MultiImages::getImagesGridSpaceMatchingPointsWeight(const double _global_weight_gamma) {
   if (_global_weight_gamma && images_polygon_space_matching_pts_weight.empty()) {
     images_polygon_space_matching_pts_weight.resize(img_num);
-    const vector<vector<bool> > images_features_mask = image_features_mask;// TODO
+    const vector<vector<bool> > images_features_mask = image_features_mask;
     const vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts = getInterpolateVerticesOfMatchingPoints();
     for (int i = 0; i < images_polygon_space_matching_pts_weight.size(); i ++) {
       const int polygons_count = (int)imgs[i]->getPolygonsIndices().size();
@@ -691,12 +693,6 @@ void MultiImages::warpImages() {
         int polygon_index = polygon_index_mask.at<int>(y, x);
         if (polygon_index != NO_GRID) {// -1
           Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);
-          /* debug */
-          if ((x % 100 == 0)&&(y % 100 == 0)&&(i == 1)) {
-            origin_point.emplace_back(Point2i(x, y));
-            warped_point.emplace_back(p_f);
-          }
-          /* debug */
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->data.cols &&
               p_f.y <= imgs[i]->data.rows) {
@@ -741,6 +737,32 @@ void MultiImages::warpImages() {
 
 void MultiImages::warpFeaturePoints() {
   // 将原图像上的特征点单应变换到warped图像上
+  for (int i = 0; i < img_num; i ++) {
+    Mat polygon_index_mask = polygon_index_masks[i];
+    vector<Mat> affine_transform = affine_transforms[i];
+
+    for (int j = 0; j < imgs[i]->feature_points.size(); j ++) {
+      int x = (int) imgs[i]->feature_points[j].x;
+      int y = (int) imgs[i]->feature_points[j].y;
+      // int x = (int) image_features[i].keypoints[j].pt.x;
+
+      int polygon_index = polygon_index_mask.at<int>(y, x);
+      if (polygon_index != NO_GRID) {// -1
+        Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);
+        if (i == 1) {
+          // origin_point.emplace_back(x, y);
+          // warped_point.emplace_back(p_f);
+        }
+        if (p_f.x >= 0 && p_f.y >= 0 &&
+            p_f.x <= imgs[i]->data.cols &&
+            p_f.y <= imgs[i]->data.rows) {
+          ;
+        } else {
+          LOG("out");
+        }
+      }
+    }
+  }
 }
 
 void MultiImages::exposureCompensate() {

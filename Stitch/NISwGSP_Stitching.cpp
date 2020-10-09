@@ -121,6 +121,8 @@ Mat NISwGSP_Stitching::textureMapping() {
   } else if (1) {
     Mat result = multi_images->textureMapping();
 
+    show_img("image features", drawFeatureMatch());
+
     LOG("%ld %ld", result.rows, result.cols);
     for (int i = 0; i < multi_images->origin_point.size(); i ++) {
       Point2i origin_p = multi_images->origin_point[i] + multi_images->corners[1];
@@ -159,11 +161,29 @@ Mat NISwGSP_Stitching::drawFeatureMatch() {
     img2.copyTo(right_1);
 
     if (0) {
-      // 匹配所有特征点
+      // 匹配RANSAC之后的所有特征点
       for (int i = 0; i < multi_images->feature_pairs[m1][m2].size(); i ++) {
         // 计算索引
         int src = multi_images->feature_pairs[m1][m2][i].first;
         int dst = multi_images->feature_pairs[m1][m2][i].second;
+
+        // 获取特征点
+        Point2f src_p, dst_p;
+        src_p = multi_images->imgs[m1]->feature_points[src];
+        dst_p = multi_images->imgs[m2]->feature_points[dst];
+
+        // 描绘
+        Scalar color(rand() % 256, rand() % 256, rand() % 256);
+        circle(result_1, src_p, CIRCLE_SIZE, color, -1);
+        line(result_1, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
+        circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+      }
+    } else if (1) {
+      // 匹配RANSAC之前的所有特征点
+      for (int i = 0; i < multi_images->initial_pairs[m1][m2].size(); i ++) {
+        // 计算索引
+        int src = multi_images->initial_pairs[m1][m2][i].first;
+        int dst = multi_images->initial_pairs[m1][m2][i].second;
 
         // 获取特征点
         Point2f src_p, dst_p;
