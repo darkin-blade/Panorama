@@ -748,12 +748,15 @@ void MultiImages::exposureCompensate() {
 void MultiImages::getSeam() {
   // 寻找接缝线
   char tmp_name[32];
-  // 对mask进行平移
+  // 初始化
   for (int i = 0; i < img_num; i ++) {
+    // 对mask进行平移
     Mat mask_translated = Mat::zeros(target_size, CV_8UC1);
     Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
     masks_warped[i].copyTo(dst_mask);
     pano_masks_warped.emplace_back(mask_translated);
+    // 计算图像中心
+    centers_warped.emplace_back((corners[i].x + masks_warped[i].cols)/2, (corners[i].y + masks_warped[i].rows)/2);
   }
   // 根据像素相似度修改图像的mask
   Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
@@ -767,11 +770,11 @@ void MultiImages::getSeam() {
     // 缩减图像的mask
     assert(1 == intersect_mask.channels());
     int count = countNonZero(intersect_mask);
-    for (int j = 0; j < pano_rows; j ++) {
+    for (int j = 0; j < pano_rows; j ++) {// 从左往右
       uchar *intersect_p = intersect_mask.ptr<uchar>(j);
       uchar *mask_p = pano_masks_warped[i].ptr<uchar>(j);
       uchar *index_p = pano_index.ptr<uchar>(j);
-      for (int k = 0; k < pano_cols; k ++) {
+      for (int k = 0; k < pano_cols; k ++) {// 从上往下
         if (intersect_p[k] > 0) {
           // 存在交集, 检查像素相似度
           uchar img_index = index_p[k];
@@ -780,9 +783,14 @@ void MultiImages::getSeam() {
           Vec4b img_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
           pix_delta = abs(pano_pix[0] - img_pix[0]) + abs(pano_pix[1] - img_pix[1]) + abs(pano_pix[2] - img_pix[2]);
           if (pix_delta > 500) {
-            // 进行过滤
-            mask_p[k] = 0;
-            pano_masks_warped[img_index].at<uchar>(j, k) = 0;
+            // TODO 进行过滤, 对半分
+            int dis_to_pano = abs(j - centers_warped[img_index].x) + abs(k - centers_warped[img_index].y);
+            int dis_to_img = abs(j - centers_warped[i].x) + abs(k - centers_warped[i].y);
+            if (dis_to_pano < dis_to_img) {
+              mask_p[k] = 0;
+            } else {
+              pano_masks_warped[img_index].at<uchar>(j, k) = 0;
+            }
           }
           count --;
           if (count <= 0) {

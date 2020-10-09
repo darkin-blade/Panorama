@@ -120,6 +120,7 @@ public:
 
   /* Seam */
   vector<Mat>              pano_masks_warped;// 在全景中的mask(进行了平移)
+  vector<Point2i>          centers_warped;// 在全景图中的图像中心
 
   /* Line */
   // 已删除
