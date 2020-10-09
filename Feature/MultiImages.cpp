@@ -782,6 +782,7 @@ void MultiImages::getSeam() {
           if (pix_delta > 500) {
             // 进行过滤
             mask_p[k] = 0;
+            pano_masks_warped[img_index].at<uchar>(j, k) = 0;
           }
           count --;
           if (count <= 0) {
@@ -793,12 +794,6 @@ void MultiImages::getSeam() {
         break;
       }
     }
-    // 将削减过后的mask还原到无偏移的Mat, 同步UMat
-    Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
-    src_mask.copyTo(masks_warped[i]);
-    masks_warped[i].copyTo(gpu_masks_warped[i]);
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, masks_warped[i]);
     // 将mask加入到全景中
     pano_mask |= pano_masks_warped[i];
     // 保存图像的索引
@@ -820,6 +815,15 @@ void MultiImages::getSeam() {
         break;
       }
     }
+  }
+
+  for (int i = 0; i < img_num; i ++) {
+    // 将削减过后的mask还原到无偏移的Mat, 同步UMat
+    Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    src_mask.copyTo(masks_warped[i]);
+    masks_warped[i].copyTo(gpu_masks_warped[i]);
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, masks_warped[i]);
   }
 
   Ptr<SeamFinder> seam_finder;
