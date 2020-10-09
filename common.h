@@ -79,6 +79,9 @@ void show_img(const char *window_name, Mat img);
 /** MeshGrid.cpp **/
 const int GRID_VERTEX_SIZE = 4;
 
+/** MultiImages textureMapping **/
+const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
+
 /*****************************************************************************************/
 
 /*** data setting ***/

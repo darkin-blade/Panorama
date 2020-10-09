@@ -16,19 +16,19 @@ int main(int argc, char *argv[]) {
   if (true) {
     // 读取图片
     MultiImages multi_images;
-    for (int i = 1; i <= 4; i ++) {
-        sprintf(img_path, "%s/%d.png", app_path, i);
+    for (int i = 1; i <= 2; i ++) {
+        sprintf(img_path, "%s/%d.jpg", app_path, i);
         multi_images.read_img(img_path);
     }
     // 自动从前往后匹配
-    // for (int i = 1; i < multi_images.img_num; i ++) {
-    //   // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
-    //   multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
-    // }
+    for (int i = 1; i < multi_images.img_num; i ++) {
+      // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
+      multi_images.img_pairs.emplace_back(make_pair(i - 1, i));
+    }
     // 手动匹配
-    multi_images.img_pairs.emplace_back(make_pair(0, 3));
-    multi_images.img_pairs.emplace_back(make_pair(1, 3));
-    multi_images.img_pairs.emplace_back(make_pair(2, 3));
+    // multi_images.img_pairs.emplace_back(make_pair(0, 3));
+    // multi_images.img_pairs.emplace_back(make_pair(1, 3));
+    // multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
     NISwGSP_Stitching niswgsp(multi_images);
 

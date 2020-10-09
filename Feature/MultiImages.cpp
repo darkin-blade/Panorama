@@ -80,7 +80,7 @@ void MultiImages::do_matching() {
     image_features_mask[i].resize(tmp_points.size());
     keypoints_pairs[i].resize(img_num);
     for (int j = 0; j < tmp_points.size(); j ++) {
-      image_features[i].keypoints.emplace_back(tmp_points[j], 0);// TODO keypoints
+      image_features[i].keypoints.emplace_back(tmp_points[j], 0);
     }
     apap_overlap_mask[i].resize(img_num);
     for (int j = 0; j < img_num; j ++) {
@@ -109,7 +109,7 @@ void MultiImages::do_matching() {
         apap_overlap_mask[m1][m2][k] = true;
 
         image_features_mask[m1][k] = true;// TODO 标记可行
-        image_features[m2].keypoints.emplace_back(tmp_points[k], 0);// TODO keypoints
+        image_features[m2].keypoints.emplace_back(tmp_points[k], 0);
       }
     }
     // 反向配对
@@ -125,7 +125,7 @@ void MultiImages::do_matching() {
         apap_overlap_mask[m2][m1][k] = true;
 
         image_features_mask[m2][k] = true;// TODO 标记可行
-        image_features[m1].keypoints.emplace_back(tmp_points[k], 0);// TODO keypoints
+        image_features[m1].keypoints.emplace_back(tmp_points[k], 0);
       }
     }
   }
@@ -149,7 +149,7 @@ vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const i
   vector<FeatureDistance> feature_pairs_result;
   for (int f1 = 0; f1 < feature_size[0]; f1 ++) {
     set<FeatureDistance> feature_distance_set;// set 中每个元素都唯一, 降序
-    feature_distance_set.insert(FeatureDistance(MAXFLOAT, 0, -1, -1));// TODO 存放计算结果
+    feature_distance_set.insert(FeatureDistance(MAXFLOAT, 0, -1, -1));// 存放计算结果
     for (int f2 = 0; f2 < feature_size[1]; f2 ++) {
       const double dist = FeatureController::getDistance(feature_descriptors_1[f1],
           feature_descriptors_2[f2],
@@ -436,8 +436,7 @@ vector<CameraParams> MultiImages::getCameraParams() {
       const double & focal1 = camera_params[m1].focal;
       const double & focal2 = camera_params[m2].focal;
 
-      MatrixXd A = MatrixXd::Zero((keypoints_pairs[m1][m2].size() + keypoints_pairs[m2][m1].size()) * DIMENSION_2D,// TODO num_inliers:两者的匹配点
-          HOMOGRAPHY_VARIABLES_COUNT);
+      MatrixXd A = MatrixXd::Zero((keypoints_pairs[m1][m2].size() + keypoints_pairs[m2][m1].size()) * DIMENSION_2D, HOMOGRAPHY_VARIABLES_COUNT);
       
       // 正向
       for (int j = 0; j < keypoints_pairs[m1][m2].size(); j ++) {
@@ -630,33 +629,35 @@ void MultiImages::warpImages() {
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
-  images_warped.reserve(vertices.size());// 图片数
-  masks_warped.reserve(vertices.size());
-  origins.reserve(vertices.size());
-  blend_weight_mask.reserve(vertices.size());
+  assert(vertices.size() == img_num);
+  images_warped.reserve(img_num);// 图片数
+  masks_warped.reserve(img_num);
+  origins.reserve(img_num);
+  blend_weight_mask.reserve(img_num);
 
-  const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
+  const bool isLinear = true;
   const int SCALE = pow(2, PRECISION);
 
   for (int i = 0; i < img_num; i ++) {
     const vector<Point2f> src_vertices = imgs[i]->getVertices();// 所有mesh点
     const vector<vector<int> > polygons_indices = imgs[i]->getPolygonsIndices();// TODO mesh点的线性索引
     const Point2f origin(rects[i].x, rects[i].y);// 矩形坐标(左上角)
-    const Point2f shift(0, 0);// 原值为0.5, 不知道有什么用
-    vector<Mat> affine_transforms;
-    affine_transforms.reserve(polygons_indices.size() * (imgs[i]->getTriangulationIndices().size()));// TODO
-    Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));
+    const Point2f shift(0, 0);// TODO 原值为0.5, 不知道有什么用
+    vector<Mat> affine_transform;
+    affine_transform.reserve(polygons_indices.size() * (imgs[i]->getTriangulationIndices().size()));// 每个(三角形)区域的单应变换矩阵
+    Mat polygon_index_mask(rects[i].height + shift.y, rects[i].width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 图片每个像素对应的(三角形)区域索引
     int label = 0;
+    // 计算每个网格的但应变换
     for (int j = 0; j < polygons_indices.size(); j ++) {
-      for (int k = 0; k < imgs[i]->getTriangulationIndices().size(); k ++) {// 分两次填充矩形区域
+      for (int k = 0; k < imgs[i]->getTriangulationIndices().size(); k ++) {// 分两次填充一个矩形mesh区域
         const vector<int> index = imgs[i]->getTriangulationIndices()[k];// 每次填充矩形的一半(两个邻边加上对角线所构成的三角形部分)
         const Point2i contour[] = {
           (vertices[i][polygons_indices[j][index[0]]] - origin) * SCALE,
           (vertices[i][polygons_indices[j][index[1]]] - origin) * SCALE,
           (vertices[i][polygons_indices[j][index[2]]] - origin) * SCALE,
         };
-        // 多边形填充
-        fillConvexPoly(polygon_index_mask, // img 绘制后的图像Mat
+        // 创造一个图片大小的索引矩阵, 里面填充成对应像素所在的区域的索引
+        fillConvexPoly(polygon_index_mask, // 总的索引矩阵
             contour,            // pts 三角形区域
             TRIANGLE_COUNT,     // npts
             label,              // color
@@ -672,18 +673,16 @@ void MultiImages::warpImages() {
           src_vertices[polygons_indices[j][index[1]]],
           src_vertices[polygons_indices[j][index[2]]]
         };// mesh点原始坐标
-        affine_transforms.emplace_back(getAffineTransform(src, dst));
+        affine_transform.emplace_back(getAffineTransform(src, dst));
         label ++;
       }
     }
-
-    LOG("%d affine", i);
 
     Mat image = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC4);// 新建空图
     Mat image_mask = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC1);// 图像的mask
     Mat w_mask = Mat();
 
-    if (true) {// linear
+    if (isLinear) {// linear
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
 
@@ -691,16 +690,22 @@ void MultiImages::warpImages() {
       for (int x = 0; x < image.cols; x ++) {
         int polygon_index = polygon_index_mask.at<int>(y, x);
         if (polygon_index != NO_GRID) {// -1
-          Point2f p_f = applyTransform2x3<float>(x, y, affine_transforms[polygon_index]);
+          Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);
+          /* debug */
+          if ((x % 100 == 0)&&(y % 100 == 0)&&(i == 1)) {
+            origin_point.emplace_back(Point2i(x, y));
+            warped_point.emplace_back(p_f);
+          }
+          /* debug */
           if (p_f.x >= 0 && p_f.y >= 0 &&
               p_f.x <= imgs[i]->data.cols &&
               p_f.y <= imgs[i]->data.rows) {
-            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO
+            Vec<uchar, 1> alpha = getSubpix<uchar, 1>(imgs[i]->alpha_mask, p_f);// TODO 透明度掩码好像没改过
             Vec3b c = getSubpix<uchar, 3>(imgs[i]->data, p_f);
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
             image_mask.at<uchar>(y, x) = 255;// 保存图像的mask
 
-            if (true) {// linear
+            if (isLinear) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             }
           }
@@ -708,18 +713,22 @@ void MultiImages::warpImages() {
       }
     }
 
+    polygon_index_masks.emplace_back(polygon_index_mask);// 保存区域索引 bug
+    affine_transforms.emplace_back(affine_transform);// 保存单应矩阵变换
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
     origins.emplace_back(rects[i].x, rects[i].y);
-    if (true) {// linear
+    if (isLinear) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
+
+    LOG("%d warped", i);
   }
 
   // 预处理
   // 去除透明通道, 获取UMat
   for (int i = 0; i < img_num; i ++) {
-    corners.emplace_back((int) origins[i].x, (int) origins[i].y);
+    corners.emplace_back((int) origins[i].x, (int) origins[i].y);// 不要用括号把x, y括起来
     UMat tmp_img, tmp_mask;
     cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);// 不要使用convertTo
     masks_warped[i].copyTo(tmp_mask);// 不要使用getMat, 否则会产生关联
@@ -728,6 +737,10 @@ void MultiImages::warpImages() {
     gpu_masks_warped.emplace_back(tmp_mask);
     LOG("%d (%d, %d)", i, corners[i].x, corners[i].y);
   }
+}
+
+void MultiImages::warpFeaturePoints() {
+  // 将原图像上的特征点单应变换到warped图像上
 }
 
 void MultiImages::exposureCompensate() {

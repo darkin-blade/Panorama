@@ -66,11 +66,13 @@ class MultiImages {// 注意reserve与resize的区别
 public:
   MultiImages();
 
+  /* Base */
   int img_num;
   int center_index = 0;// 参照图片的索引
   vector<ImageData *> imgs;
   vector<double> img_rotations;// 拍摄时的旋转角度
 
+  /* Features */
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   vector<vector<bool> >   images_match_graph;// 配对矩阵
 
@@ -78,31 +80,32 @@ public:
   vector<vector<vector<pair<int, int> > > > feature_pairs;// 特征点配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点(实际上[m1][m2]与[m2][m1]重复(相反))
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配的特征点;
 
-  // vector<vector<Point2f> >                  keypoints;// mesh点 + 过滤后的匹配点(原images_features)
   vector<ImageFeatures>             image_features;// 包含keypoints
-  vector<MatchesInfo>               pairwise_matches;// 只用于调库函数
+  vector<MatchesInfo>               pairwise_matches;// TODO, 临时构建, 只用于调库函数
   vector<CameraParams>              camera_params;
-
   vector<vector<bool> >             image_features_mask;// [m1][i],第m1张的第i个匹配点是否可行(只要对任意一张图片可行则可行)
 
+  /* APAP */
   vector<vector<vector<pair<int, int> > > > keypoints_pairs;// (pairwise_matches)(mesh点 + 匹配点)配对信息:[m1][m2]<i, j>,第m1张图片的第i个网格点对应第m2张图片的第j个匹配点
 
   vector<vector<vector<Mat> > >     apap_homographies;
   vector<vector<vector<bool> > >    apap_overlap_mask;
   vector<vector<vector<Point2f> > > apap_matching_points;
 
-  vector<vector<InterpolateVertex> > mesh_interpolate_vertex_of_matching_pts;// TODO
+  /* Optimization */
+  vector<vector<InterpolateVertex> >      mesh_interpolate_vertex_of_matching_pts;// TODO
+  vector<int>                             images_vertices_start_index;// 每个图像第一个顶点的总索引
+  vector<vector<pair<double, double> > >  images_relative_rotation_range;// 旋转角度范围
+  vector<vector<double> >                 images_polygon_space_matching_pts_weight;// TODO
 
-  vector<int>                             images_vertices_start_index;// TODO
-  vector<vector<pair<double, double> > >  images_relative_rotation_range;// TODO 旋转角度范围
-
-  vector<vector<double> >            images_polygon_space_matching_pts_weight;// TODO
-
-  vector<SimilarityElements> images_similarity_elements;// 旋转角度和缩放比
+  vector<SimilarityElements>              images_similarity_elements;// 旋转角度和缩放比
 
   /* Blending */
   int using_seam_finder;// 使用接缝线进行图像拼接
   Size2f target_size;// 最终Mat大小
+
+  vector<Mat>     polygon_index_masks;// 整个图片所有像素对应的三角形区域索引
+  vector<vector<Mat> >     affine_transforms;// 每个图片的每个mesh(分成两个三角形)内部的单应矩阵变换
 
   vector<vector<Point2f> > image_mesh_points;// 最终结果(从上往下, 从左往右)
   vector<Mat>              images_warped;// 存放wrap后图片
@@ -114,8 +117,14 @@ public:
   vector<Point2i>          corners;// 初始坐标的整数形式
   vector<Mat>              blend_weight_mask;// new_weight_mask
 
+  /* Seam */
+
   /* Line */
   // 已删除
+
+  /* Debug */
+  vector<Point2i>      origin_point;
+  vector<Point2f>      warped_point;
 
   void read_img(const char *img_path);
   void getFeaturePairs();
@@ -131,6 +140,7 @@ public:
 
   void do_matching();
   void warpImages();
+  void warpFeaturePoints();
   void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
   Mat textureMapping();
