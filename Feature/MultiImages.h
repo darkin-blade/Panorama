@@ -67,8 +67,8 @@ public:
   MultiImages();
 
   /* Base */
-  int img_num;
   int center_index = 0;// 参照图片的索引
+  int img_num;
   vector<ImageData *> imgs;
   vector<double>      img_rotations;// 拍摄时的旋转角度
 
@@ -102,7 +102,7 @@ public:
   vector<SimilarityElements>              images_similarity_elements;// 旋转角度和缩放比
 
   /* Blending */
-  int using_seam_finder;// 使用接缝线进行图像拼接
+  int    using_seam_finder;// 使用接缝线进行图像拼接
   Size2f target_size;// 最终Mat大小
 
   vector<Mat>              polygon_index_masks;// 整个图片所有像素对应的三角形区域索引
@@ -119,6 +119,7 @@ public:
   vector<Mat>              blend_weight_mask;// new_weight_mask
 
   /* Seam */
+  vector<Mat>              pano_masks_warped;// 在全景中的mask(进行了平移)
 
   /* Line */
   // 已删除

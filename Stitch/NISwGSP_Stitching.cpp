@@ -71,7 +71,6 @@ Mat NISwGSP_Stitching::textureMapping() {
   // 曝光补偿
   multi_images->exposureCompensate();
   // 寻找接缝线
-  multi_images->warpFeaturePoints();
   multi_images->getSeam();
 
   if (0) {

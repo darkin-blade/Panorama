@@ -747,6 +747,15 @@ void MultiImages::exposureCompensate() {
 
 void MultiImages::getSeam() {
   // 寻找接缝线
+  char tmp_name[32];
+  // 对mask进行平移
+  for (int i = 0; i < img_num; i ++) {
+    Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
+    Mat dst_mask = Mat(pano_mask, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    masks_warped[i].copyTo(dst_mask);
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, pano_mask);
+  }
   // 根据像素相似度修改图像的mask
 
   Ptr<SeamFinder> seam_finder;
@@ -760,13 +769,6 @@ void MultiImages::getSeam() {
   }
   seam_finder->find(images_warped_f, corners, gpu_masks_warped);
   // 显示结果
-  char tmp_name[32];
-  for (int i = 0; i < img_num; i ++) {
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, gpu_masks_warped[i].getMat(ACCESS_READ));
-    // sprintf(tmp_name, "img%d", i);
-    // show_img(tmp_name, gpu_images_warped[i].getMat(ACCESS_READ));
-  }
 }
 
 Mat MultiImages::textureMapping() {
