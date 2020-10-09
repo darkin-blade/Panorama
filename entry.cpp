@@ -30,13 +30,11 @@ int main(int argc, char *argv[]) {
 
     NISwGSP_Stitching niswgsp(multi_images);
 
-    Mat result_1 = niswgsp.feature_match().clone();// 特征点
-    Mat result_2 = niswgsp.matching_match().clone();// 匹配点
-    // show_img("1", result_1);
-    // show_img("2", result_2);
+    niswgsp.featureMatch();// 特征点
+    niswgsp.matchingMatch();// 匹配点
 
-    niswgsp.get_mesh();
-    Mat result_3 = niswgsp.texture_mapping().clone();// 图像拼接
+    niswgsp.getMesh();
+    Mat result_3 = niswgsp.textureMapping().clone();// 图像拼接
 
     end_time = clock();
     LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
@@ -142,16 +140,14 @@ Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
     NISwGSP_Stitching niswgsp(multi_images);
     set_progress(5, 1);
 
-    // *(Mat *)matBGR = niswgsp.feature_match().clone();// 特征点
-    // *(Mat *)matBGR = niswgsp.matching_match().clone();// 匹配点
-    niswgsp.feature_match();// 特征点
+    niswgsp.featureMatch();// 特征点
     set_progress(30, 1);
-    niswgsp.matching_match();// 匹配点
+    niswgsp.matchingMatch();// 匹配点
     set_progress(65, 1);
 
-    niswgsp.get_mesh();// 获取最优解
+    niswgsp.getMesh();// 获取最优解
     set_progress(90, 1);
-    Mat result = niswgsp.texture_mapping();// 纹理映射
+    Mat result = niswgsp.textureMapping();// 纹理映射
     set_progress(100, 1);
 
     return result;

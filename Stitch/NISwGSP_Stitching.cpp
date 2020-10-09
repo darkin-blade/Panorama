@@ -3,7 +3,7 @@
 NISwGSP_Stitching::NISwGSP_Stitching(MultiImages & _multi_images) : MeshOptimization(_multi_images) {
 }
 
-Mat NISwGSP_Stitching::feature_match() {
+void NISwGSP_Stitching::featureMatch() {
   int img_num = multi_images->img_num;
 
   for (int i = 0; i < img_num; i ++) {
@@ -36,97 +36,13 @@ Mat NISwGSP_Stitching::feature_match() {
       multi_images->feature_points[m2][m1].emplace_back(m2_fpts[it.second]);
     }
   }
-
-
-  // 描绘特征点
-  Mat result_1;// 存储结果
-  Mat left_1, right_1;// 分割矩阵
-  // if (multi_images->img_pairs.size() > 0) {
-  //   int m1 = multi_images->img_pairs[0].first;
-  //   int m2 = multi_images->img_pairs[0].second;
-  //   Mat img1 = multi_images->imgs[m1]->data;
-  //   Mat img2 = multi_images->imgs[m2]->data;
-  //   result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-  //   left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
-  //   right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
-  //   // 复制图片
-  //   img1.copyTo(left_1);
-  //   img2.copyTo(right_1);
-
-  //   if (0) {
-  //     // 匹配所有特征点
-  //     for (int i = 0; i < multi_images->feature_pairs[m1][m2].size(); i ++) {
-  //       // 计算索引
-  //       int src = multi_images->feature_pairs[m1][m2][i].first;
-  //       int dst = multi_images->feature_pairs[m1][m2][i].second;
-
-  //       // 获取特征点
-  //       Point2f src_p, dst_p;
-  //       src_p = multi_images->imgs[m1]->feature_points[src];
-  //       dst_p = multi_images->imgs[m2]->feature_points[dst];
-
-  //       // 描绘
-  //       Scalar color(rand() % 256, rand() % 256, rand() % 256);
-  //       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
-  //       line(result_1, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
-  //       circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
-  //     }
-  //   } else {
-  //     // 描绘所有特征点
-  //     for (int i = 0; i < multi_images->imgs[m1]->feature_points.size(); i ++) {
-  //       Point2f src_p = multi_images->imgs[m1]->feature_points[i];
-  //       Scalar color(255, 0, 0);
-  //       circle(result_1, src_p, CIRCLE_SIZE, color, -1);
-  //     }
-  //     for (int i = 0; i < multi_images->imgs[m2]->feature_points.size(); i ++) {
-  //       Point2f src_p = multi_images->imgs[m2]->feature_points[i];
-  //       Scalar color(255, 0, 0);
-  //       circle(result_1, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
-  //     }
-  //   }
-  // }
-  return result_1;
 }
 
-Mat NISwGSP_Stitching::matching_match() {
+void NISwGSP_Stitching::matchingMatch() {
   multi_images->do_matching();
-
-  // 描绘匹配点
-  Mat result_1;// 存储结果
-  // Mat left_1, right_1;// 分割矩阵
-  // if (multi_images->img_pairs.size() > 0) {
-  //   int m1 = multi_images->img_pairs[0].first;
-  //   int m2 = multi_images->img_pairs[0].second;
-
-  //   Mat img1 = multi_images->imgs[m1]->data;
-  //   Mat img2 = multi_images->imgs[m2]->data;
-  //   result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-  //   left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
-  //   right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
-  //   // 复制图片
-  //   img1.copyTo(left_1);
-  //   img2.copyTo(right_1);
-
-  //   if (0) {
-  //     // 描绘匹配点配对
-  //   } else {
-  //     // 描绘所有匹配点
-  //     for (int i = 0; i < multi_images->imgs[m1]->getVertices().size(); i ++) {
-  //       Point2f src_p, dst_p;
-  //       src_p = multi_images->imgs[m1]->getVertices()[i];
-  //       dst_p = multi_images->imgs[m1]->matching_points[m2][i];
-
-  //       Scalar color1(255, 0, 0);
-  //       circle(result_1, src_p, CIRCLE_SIZE, color1, -1);
-  //       Scalar color2(0, 0, 255);
-  //       circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
-  //     }
-  //   }
-  // }
-  return result_1;
 }
 
-void NISwGSP_Stitching::get_mesh() {
+void NISwGSP_Stitching::getMesh() {
   alignment_weight               = 1;
   local_similarity_weight        = 0.56;
   global_similarity_weight_beta  = 6;
@@ -148,7 +64,7 @@ void NISwGSP_Stitching::get_mesh() {
   getImageVerticesBySolving(triplets, b_vector);
 }
 
-Mat NISwGSP_Stitching::texture_mapping() {
+Mat NISwGSP_Stitching::textureMapping() {
   multi_images->using_seam_finder = true;// 如果启用, 那么Blending不会平滑过渡
   // 手动对图像进行形变
   multi_images->warpImages();
@@ -213,4 +129,91 @@ Mat NISwGSP_Stitching::texture_mapping() {
 
     return result;
   }
+}
+
+Mat NISwGSP_Stitching::drawFeatureMatch() {
+  // 描绘特征点
+  Mat result_1;// 存储结果
+  Mat left_1, right_1;// 分割矩阵
+  if (multi_images->img_pairs.size() > 0) {
+    int m1 = multi_images->img_pairs[0].first;
+    int m2 = multi_images->img_pairs[0].second;
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
+    right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
+    // 复制图片
+    img1.copyTo(left_1);
+    img2.copyTo(right_1);
+
+    if (0) {
+      // 匹配所有特征点
+      for (int i = 0; i < multi_images->feature_pairs[m1][m2].size(); i ++) {
+        // 计算索引
+        int src = multi_images->feature_pairs[m1][m2][i].first;
+        int dst = multi_images->feature_pairs[m1][m2][i].second;
+
+        // 获取特征点
+        Point2f src_p, dst_p;
+        src_p = multi_images->imgs[m1]->feature_points[src];
+        dst_p = multi_images->imgs[m2]->feature_points[dst];
+
+        // 描绘
+        Scalar color(rand() % 256, rand() % 256, rand() % 256);
+        circle(result_1, src_p, CIRCLE_SIZE, color, -1);
+        line(result_1, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
+        circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+      }
+    } else {
+      // 描绘所有特征点
+      for (int i = 0; i < multi_images->imgs[m1]->feature_points.size(); i ++) {
+        Point2f src_p = multi_images->imgs[m1]->feature_points[i];
+        Scalar color(255, 0, 0);
+        circle(result_1, src_p, CIRCLE_SIZE, color, -1);
+      }
+      for (int i = 0; i < multi_images->imgs[m2]->feature_points.size(); i ++) {
+        Point2f src_p = multi_images->imgs[m2]->feature_points[i];
+        Scalar color(255, 0, 0);
+        circle(result_1, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+      }
+    }
+  }
+  return result_1;
+}
+
+Mat NISwGSP_Stitching::drawMatchingMatch() {
+  // 描绘匹配点
+  Mat result_1;// 存储结果
+  Mat left_1, right_1;// 分割矩阵
+  if (multi_images->img_pairs.size() > 0) {
+    int m1 = multi_images->img_pairs[0].first;
+    int m2 = multi_images->img_pairs[0].second;
+
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    result_1 = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    left_1  = Mat(result_1, Rect(0, 0, img1.cols, img1.rows));
+    right_1 = Mat(result_1, Rect(img1.cols, 0, img2.cols, img2.rows));
+    // 复制图片
+    img1.copyTo(left_1);
+    img2.copyTo(right_1);
+
+    if (0) {
+      // 描绘匹配点配对
+    } else {
+      // 描绘所有匹配点
+      for (int i = 0; i < multi_images->imgs[m1]->getVertices().size(); i ++) {
+        Point2f src_p, dst_p;
+        src_p = multi_images->imgs[m1]->getVertices()[i];
+        dst_p = multi_images->imgs[m1]->matching_points[m2][i];
+
+        Scalar color1(255, 0, 0);
+        circle(result_1, src_p, CIRCLE_SIZE, color1, -1);
+        Scalar color2(0, 0, 255);
+        circle(result_1, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+      }
+    }
+  }
+  return result_1;
 }

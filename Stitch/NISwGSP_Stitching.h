@@ -8,8 +8,12 @@ class NISwGSP_Stitching : public MeshOptimization {
 public:
   NISwGSP_Stitching(MultiImages & _multi_images);
 
-  Mat feature_match();
-  Mat matching_match();
-  void get_mesh();
-  Mat texture_mapping();
+  void featureMatch();
+  void matchingMatch();
+  void getMesh();
+  Mat textureMapping();
+
+  // DEBUG 用
+  Mat drawFeatureMatch();
+  Mat drawMatchingMatch();
 };
