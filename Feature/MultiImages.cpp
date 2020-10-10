@@ -745,9 +745,8 @@ void MultiImages::exposureCompensate() {
   }
 }
 
-void MultiImages::getSeam() {
-  // 寻找接缝线
-  char tmp_name[32];
+void::MultiImages::getMark() {
+  // 使用分水岭算法对图像进行分块
   // 初始化
   for (int i = 0; i < img_num; i ++) {
     // 对mask进行平移
@@ -755,10 +754,51 @@ void MultiImages::getSeam() {
     Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
     masks_warped[i].copyTo(dst_mask);
     pano_masks_warped.emplace_back(mask_translated);
-    // 计算图像中心
-    centers_warped.emplace_back((corners[i].x + masks_warped[i].cols)/2, (corners[i].y + masks_warped[i].rows)/2);
-    LOG("%d %d %d", i, centers_warped[i].x, centers_warped[i].y);
+
+    // 图像灰度化
+    Mat imgGray;
+    cvtColor(pano_masks_warped[i], imgGray, CV_RGB2GRAY);
+    // TODO 高斯滤波
+    GaussianBlur(imgGray, imgGray, Size(5, 5), 2);
+    // 边缘检测, threshold1: 如果小于下限值, 则被抛弃, threshold2: 如果高于上限值, 则认为是边缘像素
+    Canny(imgGray, imgGray, 80, 250);
+
+    // 轮廓检测
+    vector<vector<Point> > contours;  
+    vector<Vec4i> hierarchy;  
+    findContours(imgGray, 
+                 contours, 
+                 hierarchy, 
+                 RETR_TREE, 
+                 CHAIN_APPROX_SIMPLE, 
+                 Point());  
+    Mat marks(imgGray.size(), CV_32S);// 分水岭算法第二个矩阵参数
+    marks = Scalar::all(0);
+    // 轮廓标记
+    for(int index = 0, compCount = 0; index >= 0; compCount ++) {
+      // 设置注水点, 有多少轮廓, 就有多少注水点
+      drawContours(marks,
+                   contours,  // 所有轮廓组
+                   index,     // 需要绘制的轮廓组的index, 如果为负, 则表示所有轮廓组都要绘制
+                   Scalar::all(compCount + 1), 
+                   1,         // 线宽, 负数表示填充内部
+                   8,         // 线型
+                   hierarchy, // TODO 不知道什么用
+                   INT_MAX);
+      index = hierarchy[index][0];
+    }
+
+    // 分水岭算法之后的矩阵marks
+    watershed(pano_masks_warped[i], marks);
+    Mat afterWatershed;
+    convertScaleAbs(marks, afterWatershed);
+    show_img("After Watershed", afterWatershed);
   }
+}
+
+void MultiImages::getSeam() {
+  // 寻找接缝线
+  char tmp_name[32];
   // 根据像素相似度修改图像的mask
   Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
   Mat pano_index = Mat::zeros(target_size, CV_8UC1);// 每个像素点对应图片的索引
@@ -845,45 +885,6 @@ void MultiImages::getSeam() {
 }
 
 Mat MultiImages::blending() {
-  char tmp_name[32];
-  // 对图像进行填补
-  for (int i = 0; i < img_num; i ++) {
-    int rows = masks_warped[i].rows;
-    int cols = masks_warped[i].cols * 1;
-    // 不要使用Continus加速
-    // sprintf(tmp_name, "mask%d", i);
-    // show_img(tmp_name, masks_warped[i]);
-
-    Mat visit = Mat::zeros(masks_warped[i].size(), CV_8UC1);
-    visit.setTo(Scalar::all(255));
-    queue<pair<int, int> > que;
-    int steps[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
-    for (int j = 0; j < rows; j ++) {
-      for (int k = 0; k < cols; k ++) {
-        if (j == 0 || j == (rows - 1) || k == 0 || k == (cols - 1)) {
-          if (visit.at<uchar>(j, k) == 255 && masks_warped[i].at<uchar>(j, k) == 0) {
-            visit.at<uchar>(j, k) = 0;
-            que.push(make_pair(j, k));
-            while (que.empty() == 0) {
-              pair<int, int> node = que.front();
-              que.pop();
-              for (int p = 0; p < 4; p ++) {
-                int next_row = node.first + steps[p][0];
-                int next_col = node.second + steps[p][1];
-                if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
-                  if (visit.at<uchar>(next_row, next_col) == 255 && masks_warped[i].at<uchar>(next_row, next_col) == 0) {
-                    // 未被访问
-                    visit.at<uchar>(next_row, next_col) = 0;
-                    que.push(make_pair(next_row, next_col));
-                  } 
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 
   // 为结果生成区域
   vector<Size> sizes;

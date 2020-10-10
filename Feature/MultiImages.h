@@ -120,7 +120,7 @@ public:
 
   /* Seam */
   vector<Mat>              pano_masks_warped;// 在全景中的mask(进行了平移)
-  vector<Point2i>          centers_warped;// 在全景图中的图像中心
+  vector<Mat>              marks_warped;// 分水岭之后的图像分区
 
   /* Line */
   // 已删除
@@ -144,6 +144,7 @@ public:
   void do_matching();
   void warpImages();
   void exposureCompensate();// 曝光补偿
+  void getMark();
   void getSeam();// 寻找接缝线
   Mat blending();
   Mat textureMapping();

@@ -70,6 +70,8 @@ Mat NISwGSP_Stitching::textureMapping() {
   multi_images->warpImages();
   // 曝光补偿
   multi_images->exposureCompensate();
+  // 图像分块
+  multi_images->getMark();
   // 寻找接缝线
   multi_images->getSeam();
 
@@ -121,11 +123,6 @@ Mat NISwGSP_Stitching::textureMapping() {
   } else if (1) {
     // Mat result = multi_images->textureMapping();
     Mat result = multi_images->blending();
-
-    // 图像中心
-    // for (int i = 0; i < multi_images->centers_warped.size(); i ++) {
-    //   circle(result, multi_images->centers_warped[i], CIRCLE_SIZE, Scalar(0, 255, 0, 255), -1);
-    // }
 
     LOG("%ld %ld", result.rows, result.cols);
     // 图像warp
