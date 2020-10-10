@@ -86,7 +86,7 @@ const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
 /*****************************************************************************************/
 
 /*** data setting ***/
-const int GRID_SIZE = 40;
+const int GRID_SIZE = 40;// 40
 const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 600;
 
 /*** APAP ***/

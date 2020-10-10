@@ -43,10 +43,10 @@ void NISwGSP_Stitching::matchingMatch() {
 }
 
 void NISwGSP_Stitching::getMesh() {
-  alignment_weight               = 1;
-  local_similarity_weight        = 0.56;
-  global_similarity_weight_beta  = 6;
-  global_similarity_weight_gamma = 20;
+  alignment_weight               = 1;// 1
+  local_similarity_weight        = 0.56;// 0.56
+  global_similarity_weight_beta  = 6;// 6
+  global_similarity_weight_gamma = 20;// 20
 
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;

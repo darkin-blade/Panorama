@@ -781,9 +781,9 @@ void MultiImages::getSeam() {
           Vec4b pano_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
           Vec4b img_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
           pix_delta = abs(pano_pix[0] - img_pix[0]) + abs(pano_pix[1] - img_pix[1]) + abs(pano_pix[2] - img_pix[2]);
-          if (pix_delta > 400) {
-          // 对冲突区域进行过滤
-            pano_masks_warped[img_index].at<uchar>(j, k) = 0;
+          if (pix_delta > 500) {
+            // TODO 对冲突区域进行过滤
+            // pano_masks_warped[img_index].at<uchar>(j, k) = 0;
             pano_masks_warped[i].at<uchar>(j, k) = 0;
           }
           count --;
@@ -851,8 +851,8 @@ Mat MultiImages::blending() {
     int rows = masks_warped[i].rows;
     int cols = masks_warped[i].cols * 1;
     // 不要使用Continus加速
-    sprintf(tmp_name, "mask%d", i);
-    show_img(tmp_name, masks_warped[i]);
+    // sprintf(tmp_name, "mask%d", i);
+    // show_img(tmp_name, masks_warped[i]);
 
     Mat visit = Mat::zeros(masks_warped[i].size(), CV_8UC1);
     visit.setTo(Scalar::all(255));
@@ -883,7 +883,6 @@ Mat MultiImages::blending() {
         }
       }
     }
-    show_img(tmp_name, visit);
   }
 
   // 为结果生成区域

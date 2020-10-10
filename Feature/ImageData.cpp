@@ -43,6 +43,8 @@ void ImageData::get_img(const char *img_path) {
 void ImageData::get_size() {
   nw = data.cols / GRID_SIZE + (data.cols % GRID_SIZE != 0);
   nh = data.rows / GRID_SIZE + (data.rows % GRID_SIZE != 0);
+  // nw = 4;
+  // nh = 4;
   lw = data.cols / (double)nw;
   lh = data.rows / (double)nh;
 }
