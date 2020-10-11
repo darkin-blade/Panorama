@@ -786,10 +786,10 @@ void::MultiImages::getBlock() {
     Mat afterWatershed;
     cvtColor(images_warped[i], afterWatershed, CV_RGBA2RGB);
     watershed(afterWatershed, marks);
-    blocks_warped.emplace_back(marks);// TODO 保存mark, 32S
     // 线性转换marks并查看
     convertScaleAbs(marks, afterWatershed);
-    show_img("After Watershed", afterWatershed);
+    blocks_warped.emplace_back(afterWatershed);// TODO 保存mark, 32S/8U
+    // show_img("After Watershed", afterWatershed);
   }
 }
 
@@ -808,7 +808,7 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
   int is_cutted;
   // 先遍历src, 再遍历dst
   visit = Mat::zeros(images_warped[_src_idx].size(), CV_8UC1);
-  mark = blocks_warped[_src_idx].at<int>(_row - corners[_src_idx].x, _col - corners[_src_idx].y);// 32S, 无偏移
+  mark = blocks_warped[_src_idx].at<uchar>(_row - corners[_src_idx].x, _col - corners[_src_idx].y);// 32S, 无偏移
   rows = images_warped[_src_idx].rows;
   cols = images_warped[_src_idx].cols;
   mask_remove = Mat::zeros(target_size, CV_8UC1);
@@ -830,15 +830,15 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
         // 未出界
         if (visit.at<uchar>(next_row, next_col) == 0) {
           // 未被访问
-          if (blocks_warped[_src_idx].at<int>(next_row, next_col) == mark) {
+          if (blocks_warped[_src_idx].at<uchar>(next_row, next_col) == mark) {
             // 同一个mark区域, 无偏移
             visit.at<uchar>(next_row, next_col) = 255;
-            que.push(next_row_warped, next_col_warped);
+            que.push(make_pair(next_row_warped, next_col_warped));
             // 制作mask
             mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
             if (_intersect.at<uchar>(next_row, next_col) == 0) {
               // 超出交集区域
-              is_cutted = 1
+              is_cutted = 1;
             }
           }
         }
@@ -852,48 +852,50 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
     mask_none.copyTo(_intersect, mask_remove);
     // 从src的mask中删除区域
     mask_none.copyTo(pano_masks_warped[_src_idx], mask_remove);
-    return
-  }
-  // 继续遍历dst, 强制删除dst
-  visit = Mat::zeros(images_warped[_dst_idx].size(), CV_8UC1);
-  mark = blocks_warped[_dst_idx].at<int>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y);
-  rows = images_warped[_dst_idx].rows;
-  cols = images_warped[_dst_idx].cols;
-  mask_remove = Mat::zeros(target_size, CV_8UC1);
-  // 起点
-  que.push(make_pair(_row, _col));
-  visit.at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y) = 1;
-  while (!que.empty()) {
-    pair<int, int> node = que.front();
-    que.pop();
-    for (int i = 0; i < 4; i ++) {
-      // 有偏移
-      int next_row_warped = node.first + steps[i][0];
-      int next_col_warped = node.second + steps[i][1];
-      // 无偏移
-      int next_row = next_row_warped - corners[_dst_idx].x;
-      int next_col = next_col_warped - corners[_dst_idx].y;
-      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
-        // 未出界
-        if (visit.at<uchar>(next_row, next_col) == 0) {
-          // 未被访问
-          if (blocks_warped[_dst_idx].at<int>(next_row, next_col) == mark) {
-            // 同一个mark区域, 无偏移
-            visit.at<uchar>(next_row, next_col) = 255;
-            que.push(next_row_warped, next_col_warped);
-            // 制作mask
-            mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
+  } else {
+    // 继续遍历dst, 强制删除dst
+    visit = Mat::zeros(images_warped[_dst_idx].size(), CV_8UC1);
+    mark = blocks_warped[_dst_idx].at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y);
+    rows = images_warped[_dst_idx].rows;
+    cols = images_warped[_dst_idx].cols;
+    mask_remove = Mat::zeros(target_size, CV_8UC1);
+    // 起点
+    que.push(make_pair(_row, _col));
+    visit.at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y) = 1;
+    while (!que.empty()) {
+      pair<int, int> node = que.front();
+      que.pop();
+      for (int i = 0; i < 4; i ++) {
+        // 有偏移
+        int next_row_warped = node.first + steps[i][0];
+        int next_col_warped = node.second + steps[i][1];
+        // 无偏移
+        int next_row = next_row_warped - corners[_dst_idx].x;
+        int next_col = next_col_warped - corners[_dst_idx].y;
+        if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
+          // 未出界
+          if (visit.at<uchar>(next_row, next_col) == 0) {
+            // 未被访问
+            if (blocks_warped[_dst_idx].at<uchar>(next_row, next_col) == mark) {
+              // 同一个mark区域, 无偏移
+              visit.at<uchar>(next_row, next_col) = 255;
+              que.push(make_pair(next_row_warped, next_col_warped));
+              // 制作mask
+              mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
+            }
           }
         }
       }
     }
+    // 无条件删除dst
+    mask_remove = (_intersect ^ mask_remove);
+    mask_none.copyTo(_intersect, mask_remove);
+    // 从dst的mask中删除区域
+    mask_none.copyTo(pano_masks_warped[_dst_idx], mask_remove);
   }
-  // 无条件删除dst
-  mask_remove = (_intersect ^ mask_remove);
-  mask_none.copyTo(_intersect, mask_remove);
-  // 从dst的mask中删除区域
-  mask_none.copyTo(pano_masks_warped[_dst_idx], mask_remove);
-  return;
+
+  show_img("mask first", pano_masks_warped[_src_idx]);
+  show_img("mask second", pano_masks_warped[_dst_idx]);
 }
 
 void MultiImages::getSeam() {
@@ -913,46 +915,29 @@ void MultiImages::getSeam() {
   Mat pano_index = Mat::zeros(target_size, CV_8UC1);// 每个像素点对应图片的索引
   int pano_rows = pano_mask.rows;
   int pano_cols = pano_mask.cols * 1;
-  int pix_delta = 0;
   for (int i = 0; i < img_num; i ++) {
-    Mat intersect_mask = pano_mask & pano_masks_warped[i];// mask的交集
-    assert(1 == intersect_mask.channels());
-    // dst: 全景图像上的点
-    // src: 待添加图像上的点
-    int count = countNonZero(intersect_mask);
-    for (int j = 0; j < pano_rows; j ++) {// 从左往右
-      uchar *intersect_p = intersect_mask.ptr<uchar>(j);// 掩码交集
-      uchar *index_p = pano_index.ptr<uchar>(j);// 掩码处对应的图像索引
-      for (int k = 0; k < pano_cols; k ++) {// 从上往下
-        if (intersect_p[k] > 0) {
-          // 存在交集, 检查像素相似度
-          uchar img_index = index_p[k];
-          assert(img_index < i);
-          // 计算色差
-          Vec4b dst_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
-          Vec4b src_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
-          pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
-          if (pix_delta > 500) {
-            // TODO 对冲突区域进行过滤
-            // removeMask(i, img_index, j, k, intersect_mask);
-          }
-          count --;
-          if (count <= 0) {
-            break;
+    // 对mask进行去重
+    for (int j = 0; j < i; j ++) {
+      Mat intersect_mask = pano_masks_warped[i] & pano_masks_warped[j];
+      assert(1 == intersect_mask.channels());
+      // dst: 原全景图像, 较小的
+      // src: 待添加的图像
+      for (int r = 0; r < pano_rows; r ++) {// 从左往右
+        uchar *intersect_p = intersect_mask.ptr<uchar>(r);
+        for (int c = 0; c < pano_cols; c ++) {// 从上往下
+          if (intersect_p[c] > 0) {
+            // 存在交集
+            Vec4b dst_pix = images_warped[j].at<Vec4b>(r - corners[j].x, c - corners[j].y);
+            Vec4b src_pix = images_warped[i].at<Vec4b>(r - corners[i].x, c - corners[i].y);
+            int pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
+            if (pix_delta > 500) {
+              // pano_masks_warped[i].at<uchar>(r, c) = 0;
+              removeMask(i, j, r, c, intersect_mask);
+            }
           }
         }
       }
-      if (count <= 0) {
-        break;
-      }
     }
-
-    // 将mask加入到全景中
-    pano_mask |= pano_masks_warped[i];
-    // 保存图像的索引
-    Mat index = Mat::zeros(target_size, CV_8UC1);
-    index = Scalar::all(i);
-    index.copyTo(pano_mask, pano_masks_warped[i]);
   }
 
   // 将削减过后的mask还原到无偏移的Mat, 同步UMat
