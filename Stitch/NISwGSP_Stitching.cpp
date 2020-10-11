@@ -71,7 +71,7 @@ Mat NISwGSP_Stitching::textureMapping() {
   // 曝光补偿
   multi_images->exposureCompensate();
   // 图像分块
-  multi_images->getMark();
+  multi_images->getBlock();
   // 寻找接缝线
   multi_images->getSeam();
 
@@ -125,15 +125,6 @@ Mat NISwGSP_Stitching::textureMapping() {
     Mat result = multi_images->blending();
 
     LOG("%ld %ld", result.rows, result.cols);
-    // 图像warp
-    // for (int i = 0; i < multi_images->origin_point.size(); i ++) {
-    //   Point2i origin_p = multi_images->origin_point[i] + multi_images->corners[1];
-    //   circle(result, origin_p, CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
-    // }
-    // for (int i = 0; i < multi_images->warped_point.size(); i ++) {
-    //   Point2f warped_p = multi_images->warped_point[i] + multi_images->origins[1];
-    //   circle(result, warped_p, CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
-    // }
 
     // for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
     //   circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);

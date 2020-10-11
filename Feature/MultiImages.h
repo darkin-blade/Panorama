@@ -119,15 +119,13 @@ public:
   vector<Mat>              blend_weight_mask;// new_weight_mask
 
   /* Seam */
-  vector<Mat>              pano_masks_warped;// 在全景中的mask(进行了平移)
-  vector<Mat>              marks_warped;// 分水岭之后的图像分区
+  vector<Mat>              pano_masks_warped;// 在全景中的mask(有偏移)
+  vector<Mat>              blocks_warped;// 分水岭之后的图像分区(无偏移)
 
   /* Line */
   // 已删除
 
   /* Debug */
-  vector<Point2i>      origin_point;
-  vector<Point2f>      warped_point;
 
   void read_img(const char *img_path);
   void getFeaturePairs();
@@ -144,7 +142,8 @@ public:
   void do_matching();
   void warpImages();
   void exposureCompensate();// 曝光补偿
-  void getMark();
+  void getBlock();
+  void removeMask(const int _src_idx, const int _dst_idx, const int _row, const int _col, Mat &_intersect);
   void getSeam();// 寻找接缝线
   Mat blending();
   Mat textureMapping();

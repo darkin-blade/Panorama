@@ -745,19 +745,13 @@ void MultiImages::exposureCompensate() {
   }
 }
 
-void::MultiImages::getMark() {
+void::MultiImages::getBlock() {
   // 使用分水岭算法对图像进行分块
   // 初始化
   for (int i = 0; i < img_num; i ++) {
-    // 对mask进行平移
-    Mat mask_translated = Mat::zeros(target_size, CV_8UC1);
-    Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
-    masks_warped[i].copyTo(dst_mask);
-    pano_masks_warped.emplace_back(mask_translated);
-
     // 图像灰度化
     Mat imgGray;
-    cvtColor(pano_masks_warped[i], imgGray, CV_RGB2GRAY);
+    cvtColor(images_warped[i], imgGray, CV_RGBA2GRAY);
     // TODO 高斯滤波
     GaussianBlur(imgGray, imgGray, Size(5, 5), 2);
     // 边缘检测, threshold1: 如果小于下限值, 则被抛弃, threshold2: 如果高于上限值, 则认为是边缘像素
@@ -789,16 +783,131 @@ void::MultiImages::getMark() {
     }
 
     // 分水岭算法之后的矩阵marks
-    watershed(pano_masks_warped[i], marks);
     Mat afterWatershed;
+    cvtColor(images_warped[i], afterWatershed, CV_RGBA2RGB);
+    watershed(afterWatershed, marks);
+    blocks_warped.emplace_back(marks);// TODO 保存mark, 32S
+    // 线性转换marks并查看
     convertScaleAbs(marks, afterWatershed);
     show_img("After Watershed", afterWatershed);
   }
 }
 
+void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _row, const int _col, Mat &_intersect) {
+
+  // 进行bfs, 判断像素位置(_row, _col)所在的区域是否完整(分块一部分在交集内, 一部分不在)
+  Mat visit;
+  int steps[8][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1} };// 上下左右 + 对角线
+  queue<pair<int, int> > que;// 存储带偏移的位置
+  int rows, cols;
+  int mark;
+  // 计算像素所在的block, 制作成mask
+  // 如果mask没有全部在交集内, 则将这个mask添加到原mask中
+  Mat mask_none = Mat::zeros(target_size, CV_8UC1);// 全黑矩阵
+  Mat mask_remove;
+  int is_cutted;
+  // 先遍历src, 再遍历dst
+  visit = Mat::zeros(images_warped[_src_idx].size(), CV_8UC1);
+  mark = blocks_warped[_src_idx].at<int>(_row - corners[_src_idx].x, _col - corners[_src_idx].y);// 32S, 无偏移
+  rows = images_warped[_src_idx].rows;
+  cols = images_warped[_src_idx].cols;
+  mask_remove = Mat::zeros(target_size, CV_8UC1);
+  is_cutted = 0;
+  // 起点
+  que.push(make_pair(_row, _col));
+  visit.at<uchar>(_row - corners[_src_idx].x, _col - corners[_src_idx].y) = 1;
+  while (!que.empty()) {
+    pair<int, int> node = que.front();
+    que.pop();
+    for (int i = 0; i < 4; i ++) {
+      // 有偏移
+      int next_row_warped = node.first + steps[i][0];
+      int next_col_warped = node.second + steps[i][1];
+      // 无偏移
+      int next_row = next_row_warped - corners[_src_idx].x;
+      int next_col = next_col_warped - corners[_src_idx].y;
+      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
+        // 未出界
+        if (visit.at<uchar>(next_row, next_col) == 0) {
+          // 未被访问
+          if (blocks_warped[_src_idx].at<int>(next_row, next_col) == mark) {
+            // 同一个mark区域, 无偏移
+            visit.at<uchar>(next_row, next_col) = 255;
+            que.push(next_row_warped, next_col_warped);
+            // 制作mask
+            mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
+            if (_intersect.at<uchar>(next_row, next_col) == 0) {
+              // 超出交集区域
+              is_cutted = 1
+            }
+          }
+        }
+      }
+    }
+  }
+  if (is_cutted) {
+    // 有割裂, 不再考虑dst图像
+    // 从交集中删除区域
+    mask_remove = (_intersect ^ mask_remove);
+    mask_none.copyTo(_intersect, mask_remove);
+    // 从src的mask中删除区域
+    mask_none.copyTo(pano_masks_warped[_src_idx], mask_remove);
+    return
+  }
+  // 继续遍历dst, 强制删除dst
+  visit = Mat::zeros(images_warped[_dst_idx].size(), CV_8UC1);
+  mark = blocks_warped[_dst_idx].at<int>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y);
+  rows = images_warped[_dst_idx].rows;
+  cols = images_warped[_dst_idx].cols;
+  mask_remove = Mat::zeros(target_size, CV_8UC1);
+  // 起点
+  que.push(make_pair(_row, _col));
+  visit.at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y) = 1;
+  while (!que.empty()) {
+    pair<int, int> node = que.front();
+    que.pop();
+    for (int i = 0; i < 4; i ++) {
+      // 有偏移
+      int next_row_warped = node.first + steps[i][0];
+      int next_col_warped = node.second + steps[i][1];
+      // 无偏移
+      int next_row = next_row_warped - corners[_dst_idx].x;
+      int next_col = next_col_warped - corners[_dst_idx].y;
+      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
+        // 未出界
+        if (visit.at<uchar>(next_row, next_col) == 0) {
+          // 未被访问
+          if (blocks_warped[_dst_idx].at<int>(next_row, next_col) == mark) {
+            // 同一个mark区域, 无偏移
+            visit.at<uchar>(next_row, next_col) = 255;
+            que.push(next_row_warped, next_col_warped);
+            // 制作mask
+            mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
+          }
+        }
+      }
+    }
+  }
+  // 无条件删除dst
+  mask_remove = (_intersect ^ mask_remove);
+  mask_none.copyTo(_intersect, mask_remove);
+  // 从dst的mask中删除区域
+  mask_none.copyTo(pano_masks_warped[_dst_idx], mask_remove);
+  return;
+}
+
 void MultiImages::getSeam() {
   // 寻找接缝线
   char tmp_name[32];
+
+  // 对mask进行平移
+  for (int i = 0; i < img_num; i ++) {
+    Mat mask_translated = Mat::zeros(target_size, CV_8UC1);
+    Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    masks_warped[i].copyTo(dst_mask);
+    pano_masks_warped.emplace_back(mask_translated);
+  }
+
   // 根据像素相似度修改图像的mask
   Mat pano_mask = Mat::zeros(target_size, CV_8UC1);// 总的mask
   Mat pano_index = Mat::zeros(target_size, CV_8UC1);// 每个像素点对应图片的索引
@@ -808,23 +917,24 @@ void MultiImages::getSeam() {
   for (int i = 0; i < img_num; i ++) {
     Mat intersect_mask = pano_mask & pano_masks_warped[i];// mask的交集
     assert(1 == intersect_mask.channels());
-    
+    // dst: 全景图像上的点
+    // src: 待添加图像上的点
     int count = countNonZero(intersect_mask);
     for (int j = 0; j < pano_rows; j ++) {// 从左往右
-      uchar *intersect_p = intersect_mask.ptr<uchar>(j);
-      uchar *index_p = pano_index.ptr<uchar>(j);
+      uchar *intersect_p = intersect_mask.ptr<uchar>(j);// 掩码交集
+      uchar *index_p = pano_index.ptr<uchar>(j);// 掩码处对应的图像索引
       for (int k = 0; k < pano_cols; k ++) {// 从上往下
         if (intersect_p[k] > 0) {
           // 存在交集, 检查像素相似度
           uchar img_index = index_p[k];
           assert(img_index < i);
-          Vec4b pano_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
-          Vec4b img_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
-          pix_delta = abs(pano_pix[0] - img_pix[0]) + abs(pano_pix[1] - img_pix[1]) + abs(pano_pix[2] - img_pix[2]);
+          // 计算色差
+          Vec4b dst_pix = images_warped[img_index].at<Vec4b>(j - corners[img_index].x, k - corners[img_index].y);
+          Vec4b src_pix = images_warped[i].at<Vec4b>(j - corners[i].x, k - corners[i].y);
+          pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
           if (pix_delta > 500) {
             // TODO 对冲突区域进行过滤
-            // pano_masks_warped[img_index].at<uchar>(j, k) = 0;
-            pano_masks_warped[i].at<uchar>(j, k) = 0;
+            // removeMask(i, img_index, j, k, intersect_mask);
           }
           count --;
           if (count <= 0) {
@@ -840,24 +950,9 @@ void MultiImages::getSeam() {
     // 将mask加入到全景中
     pano_mask |= pano_masks_warped[i];
     // 保存图像的索引
-    count = countNonZero(pano_masks_warped[i]);
-    for (int j = 0; j < pano_rows; j ++) {
-      uchar *mask_p = pano_masks_warped[i].ptr<uchar>(j);
-      uchar *index_p = pano_index.ptr<uchar>(j);
-      for (int k = 0; k < pano_cols; k ++) {
-        if (mask_p[k] > 0) {
-          // TODO 是否覆盖
-          index_p[k] = i;// 保存索引
-          count --;
-          if (count <= 0) {
-            break;
-          }
-        }
-      }
-      if (count <= 0) {
-        break;
-      }
-    }
+    Mat index = Mat::zeros(target_size, CV_8UC1);
+    index = Scalar::all(i);
+    index.copyTo(pano_mask, pano_masks_warped[i]);
   }
 
   // 将削减过后的mask还原到无偏移的Mat, 同步UMat
