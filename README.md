@@ -5,5 +5,6 @@
 - grabCut分割算法
 - 分水岭算法
 
+- threshold: 图像二值化
 - drawContours: 轮廓填充
 - Mat.copyTo(result, mask)

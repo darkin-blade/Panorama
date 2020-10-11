@@ -769,7 +769,8 @@ void::MultiImages::getBlock() {
     Mat marks(imgGray.size(), CV_32S);// 分水岭算法第二个矩阵参数
     marks = Scalar::all(0);
     // 轮廓标记
-    for(int index = 0, compCount = 0; index >= 0; compCount ++) {
+    int compCount = 0;
+    for(int index = 0; index >= 0; compCount ++) {
       // 设置注水点, 有多少轮廓, 就有多少注水点
       drawContours(marks,
                    contours,  // 所有轮廓组
@@ -782,14 +783,29 @@ void::MultiImages::getBlock() {
       index = hierarchy[index][0];
     }
 
-    // 分水岭算法之后的矩阵marks
+    // 分水岭算法
     Mat afterWatershed;
     cvtColor(images_warped[i], afterWatershed, CV_RGBA2RGB);
     watershed(afterWatershed, marks);
+
+    // 边界修补
+    Mat repair_mask = Mat::zeros(marks.size(), CV_8UC1);
+    int rows = marks.rows;
+    int cols = marks.cols;
+    for (int j = 0; j < rows; j ++) {
+      int *mark_value = marks.ptr<int>(j);
+      for (int k = 0; k < cols; k ++) {
+        if (mark_value[k] == -1 || mark_value[k] <= 0 || mark_value[k] > compCount) {
+          repair_mask.at<uchar>(j, k) = 255;
+        }
+      }
+    }
+    // blocks_warped.emplace_back(marks);// TODO 保存mark, 32S
     // 线性转换marks并查看
     convertScaleAbs(marks, afterWatershed);
-    blocks_warped.emplace_back(afterWatershed);// TODO 保存mark, 32S/8U
-    // show_img("After Watershed", afterWatershed);
+    inpaint(afterWatershed, repair_mask, afterWatershed, 3, INPAINT_TELEA);
+    blocks_warped.emplace_back(afterWatershed);// TODO 保存mark, 8U
+    show_img("After Watershed", afterWatershed);
   }
 }
 
@@ -804,14 +820,14 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
   // 计算像素所在的block, 制作成mask
   // 如果mask没有全部在交集内, 则将这个mask添加到原mask中
   Mat mask_none = Mat::zeros(target_size, CV_8UC1);// 全黑矩阵
-  Mat mask_remove;
+  Mat mask_remove = Mat::zeros(target_size, CV_8UC1);
   int is_cutted;
   // 先遍历src, 再遍历dst
   visit = Mat::zeros(images_warped[_src_idx].size(), CV_8UC1);
   mark = blocks_warped[_src_idx].at<uchar>(_row - corners[_src_idx].x, _col - corners[_src_idx].y);// 32S, 无偏移
   rows = images_warped[_src_idx].rows;
   cols = images_warped[_src_idx].cols;
-  mask_remove = Mat::zeros(target_size, CV_8UC1);
+  mask_remove = Scalar::all(0);
   is_cutted = 0;
   // 起点
   que.push(make_pair(_row, _col));
@@ -819,7 +835,7 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
   while (!que.empty()) {
     pair<int, int> node = que.front();
     que.pop();
-    for (int i = 0; i < 4; i ++) {
+    for (int i = 0; i < 8; i ++) {
       // 有偏移
       int next_row_warped = node.first + steps[i][0];
       int next_col_warped = node.second + steps[i][1];
@@ -848,7 +864,7 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
   if (is_cutted) {
     // 有割裂, 不再考虑dst图像
     // 从交集中删除区域
-    mask_remove = (_intersect ^ mask_remove);
+    mask_remove = (_intersect & mask_remove);
     mask_none.copyTo(_intersect, mask_remove);
     // 从src的mask中删除区域
     mask_none.copyTo(pano_masks_warped[_src_idx], mask_remove);
@@ -858,14 +874,14 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
     mark = blocks_warped[_dst_idx].at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y);
     rows = images_warped[_dst_idx].rows;
     cols = images_warped[_dst_idx].cols;
-    mask_remove = Mat::zeros(target_size, CV_8UC1);
+    mask_remove = Scalar::all(0);
     // 起点
     que.push(make_pair(_row, _col));
     visit.at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y) = 1;
     while (!que.empty()) {
       pair<int, int> node = que.front();
       que.pop();
-      for (int i = 0; i < 4; i ++) {
+      for (int i = 0; i < 8; i ++) {
         // 有偏移
         int next_row_warped = node.first + steps[i][0];
         int next_col_warped = node.second + steps[i][1];
@@ -888,14 +904,11 @@ void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _
       }
     }
     // 无条件删除dst
-    mask_remove = (_intersect ^ mask_remove);
+    mask_remove = (_intersect & mask_remove);
     mask_none.copyTo(_intersect, mask_remove);
     // 从dst的mask中删除区域
     mask_none.copyTo(pano_masks_warped[_dst_idx], mask_remove);
   }
-
-  show_img("mask first", pano_masks_warped[_src_idx]);
-  show_img("mask second", pano_masks_warped[_dst_idx]);
 }
 
 void MultiImages::getSeam() {
@@ -931,7 +944,7 @@ void MultiImages::getSeam() {
             Vec4b src_pix = images_warped[i].at<Vec4b>(r - corners[i].x, c - corners[i].y);
             int pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
             if (pix_delta > 500) {
-              // pano_masks_warped[i].at<uchar>(r, c) = 0;
+              // pano_masks_warped[j].at<uchar>(r, c) = 0;
               removeMask(i, j, r, c, intersect_mask);
             }
           }
@@ -945,6 +958,8 @@ void MultiImages::getSeam() {
     Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
     src_mask.copyTo(masks_warped[i]);
     masks_warped[i].copyTo(gpu_masks_warped[i]);
+    sprintf(tmp_name, "mask%d", i);
+    show_img(tmp_name, masks_warped[i]);
   }
 
   Ptr<SeamFinder> seam_finder;

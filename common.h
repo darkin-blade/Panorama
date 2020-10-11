@@ -35,6 +35,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgproc/types_c.h>
+#include <opencv2/photo.hpp>
 #include <opencv2/stitching/detail/autocalib.hpp>
 #include <opencv2/stitching/detail/blenders.hpp>
 #include <opencv2/stitching/detail/matchers.hpp>
