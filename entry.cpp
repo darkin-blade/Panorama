@@ -35,8 +35,9 @@ int main(int argc, char *argv[]) {
     niswgsp.featureMatch();// 特征点
     niswgsp.matchingMatch();// 匹配点
 
-    niswgsp.getMesh();
-    Mat result_3 = niswgsp.textureMapping().clone();// 图像拼接
+    // niswgsp.getMesh();
+    // Mat result_3 = niswgsp.textureMapping().clone();// 图像拼接
+    Mat result_3 = niswgsp.apapResult().clone();
 
     end_time = clock();
     LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);

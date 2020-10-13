@@ -42,6 +42,16 @@ void NISwGSP_Stitching::matchingMatch() {
   multi_images->do_matching();
 }
 
+Mat NISwGSP_Stitching::apapResult() {
+  show_img("feature", drawFeatureMatch());
+
+  // 修改最终mesh结果
+  multi_images->image_mesh_points.emplace_back(multi_images->imgs[0]->matching_points[1]);
+  multi_images->image_mesh_points.emplace_back(multi_images->imgs[1]->getVertices());
+  multi_images->warpImages();
+  return multi_images->textureMapping();
+}
+
 void NISwGSP_Stitching::getMesh() {
   alignment_weight               = 1;// 1
   local_similarity_weight        = 0.56;// 0.56
@@ -71,7 +81,7 @@ Mat NISwGSP_Stitching::textureMapping() {
   // 曝光补偿
   multi_images->exposureCompensate();
   // 图像分块
-  multi_images->getBlock();
+  // multi_images->getBlock();
   // 寻找接缝线
   multi_images->getSeam();
 
@@ -120,20 +130,6 @@ Mat NISwGSP_Stitching::textureMapping() {
       }
     }
     return result;
-  } else if (1) {
-    // Mat result = multi_images->textureMapping();
-    Mat result = multi_images->blending();
-
-    LOG("%ld %ld", result.rows, result.cols);
-
-    // for (int i = 0; i < multi_images->image_mesh_points[0].size(); i ++) {
-    //   circle(result, multi_images->image_mesh_points[0][i], CIRCLE_SIZE, Scalar(0, 0, 255, 255), -1);
-    // }
-    // for (int i = 0; i < multi_images->image_mesh_points[1].size(); i ++) {
-    //   circle(result, multi_images->image_mesh_points[1][i], CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
-    // }
-
-    return result;
   }
 }
 
@@ -153,7 +149,7 @@ Mat NISwGSP_Stitching::drawFeatureMatch() {
     img1.copyTo(left_1);
     img2.copyTo(right_1);
 
-    if (1) {
+    if (0) {
       // 匹配RANSAC之后的所有特征点
       for (int i = 0; i < multi_images->feature_pairs[m1][m2].size(); i ++) {
         // 计算索引

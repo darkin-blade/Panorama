@@ -10,6 +10,7 @@ public:
 
   void featureMatch();
   void matchingMatch();
+  Mat apapResult();
   void getMesh();
   Mat textureMapping();
 
