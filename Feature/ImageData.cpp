@@ -29,6 +29,10 @@ void ImageData::get_img(const char *img_path) {
     resize(rgba_data, rgba_data, Size(), scale, scale);
   }
 
+
+  // if (rgba_data.channels() < 3) {
+  //   cvtColor(rgba_data, rgba_data, CV_GRAY2BGRA);
+  // }
   assert(rgba_data.channels() >= 3);
   if (rgba_data.channels() == 3) {
     cvtColor(rgba_data, rgba_data, CV_BGR2BGRA);

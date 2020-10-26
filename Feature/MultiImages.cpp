@@ -4,7 +4,7 @@ MultiImages::MultiImages() {
   img_num = 0;
 }
 
-void MultiImages::read_img(const char *img_path) {
+void MultiImages::readImg(const char *img_path) {
   // 读取图片Mat
   ImageData *imageData = new ImageData();
   imageData->init_data(img_path);
@@ -15,7 +15,40 @@ void MultiImages::read_img(const char *img_path) {
   assert(img_num == imgs.size());
 }
 
-void MultiImages::do_matching() {
+void MultiImages::getFeatureInfo() {
+  for (int i = 0; i < img_num; i ++) {
+    Mat grey_img;
+    cvtColor(imgs[i]->data, grey_img, CV_BGR2GRAY);
+    FeatureController::detect(grey_img,
+                              imgs[i]->feature_points,
+                              imgs[i]->descriptors);
+    LOG("[picture %d] feature points: %ld", i, imgs[i]->feature_points.size());
+  }
+
+  // 特征点匹配(内含自动检测图片匹配)
+  getFeaturePairs();
+
+  // 筛选所有图片的成功匹配的特征点
+  feature_points.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    feature_points[i].resize(img_num);
+  }
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    assert(m2 > m1);
+
+    const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
+    const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
+    for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
+      const pair<int, int> it = feature_pairs[m1][m2][k];
+      feature_points[m1][m2].emplace_back(m1_fpts[it.first ]);
+      feature_points[m2][m1].emplace_back(m2_fpts[it.second]);
+    }
+  }
+}
+
+void MultiImages::getMeshInfo() {
   // 手写配对矩阵
   assert(img_pairs.empty() == false);
   images_match_graph.resize(img_num);
@@ -53,6 +86,7 @@ void MultiImages::do_matching() {
                                  imgs[m2]->matching_points[m1],
                                  imgs[m2]->homographies[m1]);
   }
+
   // 将各自的homography保存到multi_images
   apap_homographies.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
@@ -629,7 +663,7 @@ void MultiImages::warpImages() {
     tmp_imgs.push_back(imgs[i]->data);
   }
 
-  if (true) {// linear
+  if (!ignore_weight_mask) {// linear
     weight_mask = getMatsLinearBlendWeight(tmp_imgs);// TODO
   }
 
@@ -686,7 +720,7 @@ void MultiImages::warpImages() {
     Mat image_mask = Mat::zeros(rects[i].height + shift.y, rects[i].width + shift.x, CV_8UC1);// 图像的mask
     Mat w_mask = Mat();
 
-    if (isLinear) {// linear
+    if (!ignore_weight_mask) {// linear
       w_mask = Mat::zeros(image.size(), CV_32FC1);
     }
 
@@ -703,7 +737,7 @@ void MultiImages::warpImages() {
             image.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], alpha[0]);
             image_mask.at<uchar>(y, x) = 255;// 保存图像的mask
 
-            if (isLinear) {// linear
+            if (!ignore_weight_mask) {// linear
               w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);
             }
           }
@@ -716,7 +750,7 @@ void MultiImages::warpImages() {
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
     origins.emplace_back(rects[i].x, rects[i].y);
-    if (isLinear) {// linear
+    if (!ignore_weight_mask) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
 
@@ -744,178 +778,6 @@ void MultiImages::exposureCompensate() {
   for (int i = 0; i < img_num; i ++) {
     compensator->apply(i, origins[i], gpu_images_warped[i], gpu_masks_warped[i]);
     cvtColor(gpu_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 同步UMat和Mat, Mat要添加透明通道
-  }
-}
-
-void::MultiImages::getBlock() {
-  // 使用分水岭算法对图像进行分块
-  // 初始化
-  for (int i = 0; i < img_num; i ++) {
-    // 图像灰度化
-    Mat imgGray;
-    cvtColor(images_warped[i], imgGray, CV_RGBA2GRAY);
-    // TODO 高斯滤波
-    GaussianBlur(imgGray, imgGray, Size(5, 5), 2);
-    // 边缘检测, threshold1: 如果小于下限值, 则被抛弃, threshold2: 如果高于上限值, 则认为是边缘像素
-    Canny(imgGray, imgGray, 80, 300);
-
-    // 轮廓检测
-    vector<vector<Point> > contours;  
-    vector<Vec4i> hierarchy;  
-    findContours(imgGray, 
-                 contours, 
-                 hierarchy, 
-                 RETR_TREE, 
-                 CHAIN_APPROX_SIMPLE, 
-                 Point());  
-    Mat marks(imgGray.size(), CV_32S);// 分水岭算法第二个矩阵参数
-    marks = Scalar::all(0);
-    // 轮廓标记
-    int compCount = 0;
-    for(int index = 0; index >= 0; compCount ++) {
-      // 设置注水点, 有多少轮廓, 就有多少注水点
-      drawContours(marks,
-                   contours,  // 所有轮廓组
-                   index,     // 需要绘制的轮廓组的index, 如果为负, 则表示所有轮廓组都要绘制
-                   Scalar::all(compCount + 1), 
-                   1,         // 线宽, 负数表示填充内部
-                   8,         // 线型
-                   hierarchy, // TODO 不知道什么用
-                   INT_MAX);
-      index = hierarchy[index][0];
-    }
-
-    // 分水岭算法
-    Mat afterWatershed;
-    cvtColor(images_warped[i], afterWatershed, CV_RGBA2RGB);
-    watershed(afterWatershed, marks);
-    // blocks_warped.emplace_back(marks);// TODO 保存mark, 32S
-    // 线性转换marks
-    convertScaleAbs(marks, afterWatershed);
-
-    // 边界修补
-    Mat repair_mask = Mat::zeros(marks.size(), CV_8UC1);
-    int rows = marks.rows;
-    int cols = marks.cols;
-    for (int j = 0; j < rows; j ++) {
-      int *mark_value = marks.ptr<int>(j);
-      for (int k = 0; k < cols; k ++) {
-        if (mark_value[k] == -1 || mark_value[k] <= 0 || mark_value[k] > compCount) {
-          repair_mask.at<uchar>(j, k) = 255;
-        }
-      }
-    }
-    inpaint(afterWatershed, repair_mask, afterWatershed, 3, INPAINT_TELEA);
-    blocks_warped.emplace_back(afterWatershed);// TODO 保存mark, 8U
-    show_img("After Watershed", afterWatershed);
-  }
-}
-
-void MultiImages::removeMask(const int _src_idx, const int _dst_idx, const int _row, const int _col, Mat &_intersect) {
-
-  // 进行bfs, 判断像素位置(_row, _col)所在的区域是否完整(分块一部分在交集内, 一部分不在)
-  Mat visit;
-  int steps[8][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1} };// 上下左右 + 对角线
-  queue<pair<int, int> > que;// 存储带偏移的位置
-  int rows, cols;
-  int mark;
-  // 计算像素所在的block, 制作成mask
-  // 如果mask没有全部在交集内, 则将这个mask添加到原mask中
-  Mat mask_none = Mat::zeros(target_size, CV_8UC1);// 全黑矩阵
-  Mat mask_remove = Mat::zeros(target_size, CV_8UC1);
-  int src_cutted = 0;
-  int dst_cutted = 0;
-  // 先遍历src, 再遍历dst
-  visit = Mat::zeros(images_warped[_src_idx].size(), CV_8UC1);
-  mark = blocks_warped[_src_idx].at<uchar>(_row - corners[_src_idx].x, _col - corners[_src_idx].y);// 32S, 无偏移
-  rows = images_warped[_src_idx].rows;
-  cols = images_warped[_src_idx].cols;
-  mask_remove = Scalar::all(0);
-  // 起点
-  que.push(make_pair(_row, _col));
-  visit.at<uchar>(_row - corners[_src_idx].x, _col - corners[_src_idx].y) = 1;
-  while (!que.empty()) {
-    pair<int, int> node = que.front();
-    que.pop();
-    for (int i = 0; i < 4; i ++) {
-      // 有偏移
-      int next_row_warped = node.first + steps[i][0];
-      int next_col_warped = node.second + steps[i][1];
-      // 无偏移
-      int next_row = next_row_warped - corners[_src_idx].x;
-      int next_col = next_col_warped - corners[_src_idx].y;
-      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
-        // 未出界
-        if (visit.at<uchar>(next_row, next_col) == 0) {
-          // 未被访问
-          if (blocks_warped[_src_idx].at<uchar>(next_row, next_col) == mark) {
-            // 同一个mark区域, 无偏移
-            visit.at<uchar>(next_row, next_col) = 255;
-            que.push(make_pair(next_row_warped, next_col_warped));
-            // 制作mask
-            mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
-            if (_intersect.at<uchar>(next_row, next_col) == 0) {
-              // 超出交集区域
-              src_cutted = 1;
-            }
-          }
-        }
-      }
-    }
-  }
-  // 继续遍历dst, 强制删除dst
-  visit = Mat::zeros(images_warped[_dst_idx].size(), CV_8UC1);
-  mark = blocks_warped[_dst_idx].at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y);
-  rows = images_warped[_dst_idx].rows;
-  cols = images_warped[_dst_idx].cols;
-  mask_remove = Scalar::all(0);
-  // 起点
-  que.push(make_pair(_row, _col));
-  visit.at<uchar>(_row - corners[_dst_idx].x, _col - corners[_dst_idx].y) = 1;
-  while (!que.empty()) {
-    pair<int, int> node = que.front();
-    que.pop();
-    for (int i = 0; i < 4; i ++) {
-      // 有偏移
-      int next_row_warped = node.first + steps[i][0];
-      int next_col_warped = node.second + steps[i][1];
-      // 无偏移
-      int next_row = next_row_warped - corners[_dst_idx].x;
-      int next_col = next_col_warped - corners[_dst_idx].y;
-      if (next_row >= 0 && next_row < rows && next_col >= 0 && next_col < cols) {
-        // 未出界
-        if (visit.at<uchar>(next_row, next_col) == 0) {
-          // 未被访问
-          if (blocks_warped[_dst_idx].at<uchar>(next_row, next_col) == mark) {
-            // 同一个mark区域, 无偏移
-            visit.at<uchar>(next_row, next_col) = 255;
-            que.push(make_pair(next_row_warped, next_col_warped));
-            // 制作mask
-            mask_remove.at<uchar>(next_row_warped, next_col_warped) = 255;
-            if (_intersect.at<uchar>(next_row, next_col) == 0) {
-              dst_cutted = 1;
-            }
-          }
-        }
-      }
-    }
-  }
-  if (src_cutted && ! dst_cutted) {
-    // 删除交集
-    mask_remove = (_intersect & mask_remove);
-    mask_none.copyTo(_intersect, mask_remove);
-    // 从src的mask中删除区域
-    mask_none.copyTo(pano_masks_warped[_src_idx], mask_remove);
-  } else if (!src_cutted && dst_cutted) {
-    // 删除交集
-    mask_remove = (_intersect & mask_remove);
-    mask_none.copyTo(_intersect, mask_remove);
-    // 从dst的mask中删除区域
-    mask_none.copyTo(pano_masks_warped[_dst_idx], mask_remove);
-  } else {
-    // 删除交集
-    mask_remove = (_intersect & mask_remove);
-    mask_none.copyTo(_intersect, mask_remove);
   }
 }
 
@@ -1065,38 +927,11 @@ Mat MultiImages::textureMapping() {
   //   show_img("mask", masks_warped[i]);
   //   show_img("border", borders_warped[i]);
   // }
-
-  // 修改blend权重
-  // for (int i = 0; i < img_num; i ++) {
-  //   gpu_masks_warped[i].copyTo(masks_warped[i]);
-  //   if (using_seam_finder) {
-  //     // blend_weight_mask.emplace_back(Mat::zeros(masks_warped[i].size(), CV_32FC1));
-  //     assert(1 == masks_warped[i].channels());
-  //     int rows = blend_weight_mask[i].rows;
-  //     int cols = blend_weight_mask[i].cols * 1;
-  //     for (int j = 0; j < rows; j ++) {
-  //       uchar *mask_p = masks_warped[i].ptr<uchar>(j);
-  //       float *weight_p = blend_weight_mask[i].ptr<float>(j);
-  //       for (int k = 0; k < cols; k ++) {
-  //         if (mask_p[k] == 255) {
-  //           weight_p[k] = 12000;
-  //         } else if (k > 0 && mask_p[k - 1] == 255) {
-  //           weight_p[k] = 12000;
-  //         } else {
-  //           weight_p[k] = 0;
-  //         }
-  //       }
-  //     }
-  //   }
-  //   Mat tmp_weight;
-  //   blend_weight_mask[i].convertTo(tmp_weight, CV_8UC4);
-  //   show_img("weight", tmp_weight);
-  // }
   
   return Blending(
       images_warped,
       origins,
       target_size,
       blend_weight_mask, // 最小0, 最大12000
-      false);// 不能ignore
+      ignore_weight_mask);
 }

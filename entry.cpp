@@ -1,6 +1,6 @@
 #include "common.h"
 
-#include "Stitch/NISwGSP_Stitching.h"
+#include "Stitch/My_Stitching.h"
 #include "Stitch/OpenCV_Stitching.h"
 
 #if defined(UBUNTU)
@@ -16,9 +16,9 @@ int main(int argc, char *argv[]) {
   if (true) {
     // 读取图片
     MultiImages multi_images;
-    for (int i = 1; i <= 2; i ++) {
+    for (int i = 1; i <= 3; i ++) {
         sprintf(img_path, "%s/%d.jpg", app_path, i);
-        multi_images.read_img(img_path);
+        multi_images.readImg(img_path);
     }
     // 自动从前往后匹配
     for (int i = 1; i < multi_images.img_num; i ++) {
@@ -30,30 +30,24 @@ int main(int argc, char *argv[]) {
     // multi_images.img_pairs.emplace_back(make_pair(1, 3));
     // multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
-    NISwGSP_Stitching niswgsp(multi_images);
-
-    niswgsp.featureMatch();// 特征点
-    niswgsp.matchingMatch();// 匹配点
-
-    // niswgsp.getMesh();
-    // Mat result_3 = niswgsp.textureMapping().clone();// 图像拼接
-    Mat result_3 = niswgsp.apapResult().clone();
+    My_Stitching my_stitcher(multi_images);
+    Mat result = my_stitcher.getNISResult();// 图像拼接
 
     end_time = clock();
     LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
-    show_img("3", result_3);
+    show_img("My", result);
   } else {
     // 调用OpenCV
     vector<Mat> images;
     for (int i = 1; i <= 2; i ++) {
         sprintf(img_path, "%s/%d.jpg", app_path, i);
         Mat tmp_img = imread(img_path);
-        images.push_back(tmp_img.clone());
+        images.push_back(tmp_img);
     }
     Mat result_1 = OpenCV_Stitching::opencv_stitch(images);
 
-    show_img("1", result_1);
+    show_img("OpenCV", result_1);
   }
 }
 
@@ -70,7 +64,7 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
     jobjectArray imgPaths,
     jdoubleArray imgRotations,
     jlong matBGR,
-    jint mode) {// mode: 0 for niswgsp, 1 for opencv
+    jint mode) {// mode: 0 for my_stitcher, 1 for opencv
   total_env = env;
 //  if (total_env != NULL) {
 //    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
@@ -132,7 +126,7 @@ Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
     MultiImages multi_images;
     for (int i = 0; i < img_paths.size(); i ++) {
         const char *img_path = img_paths[i].c_str();
-        multi_images.read_img(img_path);
+        multi_images.readImg(img_path);
         multi_images.img_rotations.push_back(img_rotations[i]);// 记录拍摄时的旋转角度
         if (i != 0) {
             // 自定义图片配对关系
@@ -140,18 +134,8 @@ Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
         }
     }
 
-    NISwGSP_Stitching niswgsp(multi_images);
-    set_progress(5, 1);
-
-    niswgsp.featureMatch();// 特征点
-    set_progress(30, 1);
-    niswgsp.matchingMatch();// 匹配点
-    set_progress(65, 1);
-
-    niswgsp.getMesh();// 获取最优解
-    set_progress(90, 1);
-    Mat result = niswgsp.textureMapping();// 纹理映射
-    set_progress(100, 1);
+    My_Stitching my_stitcher(multi_images);
+    Mat result = my_stitcher.getNISResult();// 纹理映射
 
     return result;
 }

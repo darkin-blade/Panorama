@@ -102,7 +102,7 @@ public:
   vector<SimilarityElements>              images_similarity_elements;// 旋转角度和缩放比
 
   /* Blending */
-  int    using_seam_finder;// 使用接缝线进行图像拼接
+  bool ignore_weight_mask;
   Size2f target_size;// 最终Mat大小
 
   vector<Mat>              polygon_index_masks;// 整个图片所有像素对应的三角形区域索引
@@ -127,7 +127,7 @@ public:
 
   /* Debug */
 
-  void read_img(const char *img_path);
+  void readImg(const char *img_path);
   void getFeaturePairs();
   vector<pair<int, int> > getVlfeatFeaturePairs(const int m1, const int m2);
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
@@ -139,12 +139,12 @@ public:
   vector<CameraParams> getCameraParams();
   vector<SimilarityElements> getImagesSimilarityElements();
 
-  void do_matching();
+  void getFeatureInfo();
+  void getMeshInfo();
   void warpImages();
   void exposureCompensate();// 曝光补偿
-  void getBlock();
-  void removeMask(const int _src_idx, const int _dst_idx, const int _row, const int _col, Mat &_intersect);
   void getSeam();// 寻找接缝线
+  
   Mat blending();
   Mat textureMapping();
 };

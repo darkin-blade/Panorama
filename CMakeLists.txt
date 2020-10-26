@@ -10,7 +10,7 @@ aux_source_directory(./Feature feature_src)
 aux_source_directory(./Mesh mesh_src)
 aux_source_directory(./Stitch stitch_src)
 aux_source_directory(./Util util_src)
-set(niswgsp_source
+set(stitcher_source
     ${feature_src}
     ${mesh_src}
     ${stitch_src}
@@ -59,14 +59,14 @@ if(ubuntu)
   add_executable(
     entry
 
-    ${niswgsp_source})
+    ${stitcher_source})
 else()
   add_library(
           entry
 
           SHARED
 
-          ${niswgsp_source} )
+          ${stitcher_source} )
 endif()
 
 # 连接库文件
