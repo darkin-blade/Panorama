@@ -8,7 +8,7 @@ double FeatureController::getDistance(
   for (int i = 0; i < _descriptor1.size(); i ++) {
     for (int j = 0; j < _descriptor2.size(); j ++) {
       double distance = 0;
-      for (int k = 0; k < SIFT_DESCRIPTOR_DIM; k ++) {// 128
+      for (int k = 0; k < SIFT_DESCRIPTOR_DIM; k ++) {// 128维的SIFT特征向量
         /* at<vl_sift_pix>(k) == at<vl_sift_pix>(0, k) */
         distance += ((_descriptor1[i].at<vl_sift_pix>(k) - _descriptor2[j].at<vl_sift_pix>(k)) *
                      (_descriptor1[i].at<vl_sift_pix>(k) - _descriptor2[j].at<vl_sift_pix>(k)));
@@ -48,8 +48,10 @@ void FeatureController::detect(
         double angles[4];
         _feature_points.emplace_back(vlSift->keys[i].x, vlSift->keys[i].y);
         vector<Mat> descriptor;
+        // 计算每个极值点的方向，包括主方向和辅方向，最多4个方向
         int angleCount = vl_sift_calc_keypoint_orientations(vlSift, angles, &vlSift->keys[i]);
         for (int j = 0; j < angleCount; j ++) {
+          // 计算每个方向的描述符
           Mat descriptor_array(1, SIFT_DESCRIPTOR_DIM, CV_32FC1);
           vl_sift_calc_keypoint_descriptor(vlSift, (vl_sift_pix *) descriptor_array.data, &vlSift->keys[i], angles[j]);
           descriptor.emplace_back(descriptor_array);

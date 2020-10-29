@@ -2,6 +2,7 @@
 
 #include "Stitch/My_Stitching.h"
 #include "Stitch/OpenCV_Stitching.h"
+#include "Translate/Translate.h"
 
 #if defined(UBUNTU)
 
@@ -14,6 +15,16 @@ int main(int argc, char *argv[]) {
   char img_path[128];// 图片路径
 
   if (true) {
+    // 计算相机平移
+    
+    Mat img1 = imread("../../1.jpg");
+    Mat img2 = imread("../../2.jpg");
+    Mat result;
+    Translate::computeTranslation(img1, img2, 0, 0, 0, result);
+
+  } else if (true) {
+    // 调用自己的方法
+    
     // 读取图片
     MultiImages multi_images;
     for (int i = 1; i <= 3; i ++) {
@@ -35,11 +46,13 @@ int main(int argc, char *argv[]) {
     // Mat result = my_stitcher.getNISResult();
 
     end_time = clock();
-    LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+    LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
     show_img("My", result);
+
   } else {
     // 调用OpenCV
+    
     vector<Mat> images;
     for (int i = 1; i <= 2; i ++) {
         sprintf(img_path, "%s/%d.jpg", app_path, i);
@@ -49,6 +62,7 @@ int main(int argc, char *argv[]) {
     Mat result_1 = OpenCV_Stitching::opencv_stitch(images);
 
     show_img("OpenCV", result_1);
+
   }
 }
 
