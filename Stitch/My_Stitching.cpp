@@ -5,11 +5,11 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) : MeshOptimization(_mult
 
 Mat My_Stitching::getMyResult() {
 
-  set_progress(5, 1);
+  set_progress(5, MODE_MY);
   multi_images->getFeatureInfo();
-  set_progress(10, 1);
+  set_progress(10, MODE_MY);
   multi_images->getMeshInfo();
-  set_progress(20, 1);
+  set_progress(20, MODE_MY);
 
   /**** 网格优化 ****/
 
@@ -35,28 +35,28 @@ Mat My_Stitching::getMyResult() {
 
   /*****************/
 
-  set_progress(70, 1);
+  set_progress(70, MODE_MY);
   multi_images->ignore_weight_mask = true;
   multi_images->warpImages();
-  set_progress(80, 1);
+  set_progress(80, MODE_MY);
   // 曝光补偿
   // multi_images->exposureCompensate();
   // 寻找接缝线
   multi_images->getSeam();
-  set_progress(90, 1);
+  set_progress(90, MODE_MY);
   
   Mat result = multi_images->blending();
-  set_progress(100, 1);
+  set_progress(100, MODE_MY);
   return result;
 }
 
 Mat My_Stitching::getNISResult() {
   
-  set_progress(5, 1);
+  set_progress(5, MODE_MY);
   multi_images->getFeatureInfo();
-  set_progress(10, 1);
+  set_progress(10, MODE_MY);
   multi_images->getMeshInfo();
-  set_progress(20, 1);
+  set_progress(20, MODE_MY);
 
   /**** 网格优化 ****/
 
@@ -82,12 +82,11 @@ Mat My_Stitching::getNISResult() {
 
   /*****************/
 
-  set_progress(80, 1);
+  set_progress(80, MODE_MY);
   multi_images->ignore_weight_mask = false;
   multi_images->warpImages();
-  set_progress(90, 1);
+  set_progress(90, MODE_MY);
   Mat result = multi_images->textureMapping();
-  set_progress(100, 1);
   return result;
 }
 

@@ -1,11 +1,13 @@
 #include "common.h"
 
+#if !defined(UBUNTU)
+JNIEnv * total_env = NULL;
+jclass total_clazz = NULL;
+jmethodID total_id = NULL;
+#endif
+
 static char sprint_buf[1024];
 static char tmp_fmt[1024];
-
-#if !defined(UBUNTU)
-extern JNIEnv * total_env;
-#endif
 
 void print_message(const char *fmt, ...) {
   va_list args;
@@ -26,20 +28,24 @@ void print_message(const char *fmt, ...) {
 #else
   __android_log_vprint(ANDROID_LOG_INFO, "fuck", tmp_fmt, args);
   // 加载到控制台
-  if (total_env != NULL) {
-    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
-    if (clazz != NULL) {
-        jmethodID id = total_env->GetStaticMethodID(clazz, "jniLog", "(Ljava/lang/String;)V");
-        if (id != NULL) {
-            jstring msg = total_env->NewStringUTF(sprint_buf);
-            total_env->CallStaticVoidMethod(clazz, id, msg);
-        } else {
-            assert(0);
-        }
-    } else {
-        assert(0);
+  if (total_env == NULL) {
+    assert(0);
+  }
+  if (total_clazz == NULL) {
+    total_clazz = total_env->FindClass("com.example.my_stitcher/MainActivity");
+    if (total_clazz == NULL) {
+      assert(0);
     }
   }
+  if (total_id == NULL) {
+    total_id = total_env->GetStaticMethodID(total_clazz, "jniLog", "(Ljava/lang/String;)V");
+    if (total_id == NULL) {
+      assert(0);
+    }
+  }
+
+  jstring msg = total_env->NewStringUTF(sprint_buf);
+  total_env->CallStaticVoidMethod(total_clazz, total_id, msg);
 #endif
 }
 
@@ -47,7 +53,7 @@ void set_progress(const int progress, const int mode) {
 #if !defined(UBUNTU)
   // 修改进度条
   if (total_env != NULL) {
-    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
+    jclass clazz = total_env->FindClass("com.example.my_stitcher/MainActivity");
     if (clazz != NULL) {
         jmethodID id = total_env->GetStaticMethodID(clazz, "jniProgress", "(II)V");
         if (id != NULL) {
@@ -61,7 +67,6 @@ void set_progress(const int progress, const int mode) {
   }
 #endif
 }
-
 
 void show_img(const char *window_name, Mat img) {
 #if defined(UBUNTU)

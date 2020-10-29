@@ -814,9 +814,13 @@ void MultiImages::getSeam() {
             Vec4b src_pix = images_warped[i].at<Vec4b>(r - corners[i].x, c - corners[i].y);
             int pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
             if (pix_delta > 300) {
-              pano_masks_warped[j].at<uchar>(r, c) = 0;
-              pano_masks_warped[i].at<uchar>(r, c) = 0;
-              // removeMask(i, j, r, c, intersect_mask);
+              // pano_masks_warped[j].at<uchar>(r, c) = 0;
+              // pano_masks_warped[i].at<uchar>(r, c) = 0;
+              if (j == 1) {
+                pano_masks_warped[i].at<uchar>(r, c) = 0;
+              } else {
+                pano_masks_warped[j].at<uchar>(r, c) = 0;
+              }
             }
           }
         }

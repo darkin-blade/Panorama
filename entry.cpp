@@ -31,7 +31,8 @@ int main(int argc, char *argv[]) {
     // multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
     My_Stitching my_stitcher(multi_images);
-    Mat result = my_stitcher.getNISResult();// 图像拼接
+    Mat result = my_stitcher.getMyResult();
+    // Mat result = my_stitcher.getNISResult();
 
     end_time = clock();
     LOG("totoal time %f", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
@@ -53,21 +54,22 @@ int main(int argc, char *argv[]) {
 
 #else
 
-JNIEnv * total_env;
 Mat method_openCV(vector<string>);
-Mat method_NISwGSP(vector<string>, vector<double>);
+Mat method_my(vector<string>, vector<double>);
 
 extern "C" JNIEXPORT int JNICALL
-Java_com_example_niswgsp_11_MainActivity_main_1test(
+Java_com_example_my_1stitcher_MainActivity_main_1test(
     JNIEnv* env,
     jobject thiz,
     jobjectArray imgPaths,
     jdoubleArray imgRotations,
     jlong matBGR,
+    jintArray pairFirst,
+    jintArray pairSecond,
     jint mode) {// mode: 0 for my_stitcher, 1 for opencv
   total_env = env;
 //  if (total_env != NULL) {
-//    jclass clazz = total_env->FindClass("com.example.niswgsp_1/MainActivity");
+//    jclass clazz = total_env->FindClass("com.example.my_stitcher/MainActivity");
 //    if (clazz != NULL) {
 //        jmethodID id = total_env->GetStaticMethodID(clazz, "infoLog", "(Ljava/lang/String;)V");
 //        if (id != NULL) {
@@ -102,15 +104,16 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
 
   Mat result_img;
   int result = 0;
-  if (mode == 1) {
-      result_img = method_NISwGSP(img_paths, img_rotations);
-  } else if (mode == 2) {
+  if (mode == METHOD_MY) {
+      result_img = method_my(img_paths, img_rotations);
+  } else if (mode == METHOD_OPENCV) {
       result_img = method_openCV(img_paths);
+  } else {
+      LOG("invalide mode %d", mode);
   }
   LOG("result size %ld %ld", result_img.cols, result_img.rows);
   if (result_img.cols <= 1 || result_img.rows <= 1) {
       // 拼接失败
-      set_progress(-100, mode);
       result = -1;
   }
 
@@ -122,7 +125,7 @@ Java_com_example_niswgsp_11_MainActivity_main_1test(
   return result;
 }
 
-Mat method_NISwGSP(vector<string> img_paths, vector<double> img_rotations) {
+Mat method_my(vector<string> img_paths, vector<double> img_rotations) {
     MultiImages multi_images;
     for (int i = 0; i < img_paths.size(); i ++) {
         const char *img_path = img_paths[i].c_str();
@@ -147,9 +150,7 @@ Mat method_openCV(vector<string> img_paths) {
         Mat img = imread(img_path);
         imgs.push_back(img);
     }
-    set_progress(15, 2);
     Mat result = OpenCV_Stitching::opencv_stitch(imgs);
-    set_progress(100, 2);
 
     return result;
 }

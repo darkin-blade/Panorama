@@ -156,11 +156,29 @@ const AUTO_STITCH_WAVE_CORRECTS   WAVE_CORRECT = WAVE_H;
 
 /* draw image */
 #if defined(UBUNTU)
+
 const int CIRCLE_SIZE = 3;
 const int LINE_SIZE   = 1;
+
 #else
+
 const int CIRCLE_SIZE = 10;
 const int LINE_SIZE   = 3;
+
+#endif
+
+
+/* jni */
+
+const int MODE_MY     = 1;
+const int MODE_OPENCV = 2;
+
+#if !defined(UBUNTU)
+
+extern JNIEnv * total_env;
+extern jclass total_clazz;
+extern jmethodID total_id;
+
 #endif
 
 #endif
