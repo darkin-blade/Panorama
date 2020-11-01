@@ -165,7 +165,7 @@ void MultiImages::getMeshInfo() {
   }
 }
 
-vector<pair<int, int> > MultiImages::getVlfeatFeaturePairs(const int m1, const int m2) {  
+vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const int m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
 
@@ -306,7 +306,7 @@ void MultiImages::getFeaturePairs() {
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
-    vector<pair<int, int> > initial_indices = getVlfeatFeaturePairs(m1, m2);
+    vector<pair<int, int> > initial_indices = getInitialFeaturePairs(m1, m2);
 
     // 将所有成功配对的特征点进行筛选
     const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;

@@ -107,18 +107,18 @@ Mat My_Stitching::getAPAPResult() {
 void My_Stitching::drawFeatureMatch() {
   // 描绘特征点
   Mat result;// 存储结果
-  Mat left_1, right_1;// 分割矩阵
+  Mat left, right;// 分割矩阵
   if (multi_images->img_pairs.size() > 0) {
     int m1 = multi_images->img_pairs[0].first;
     int m2 = multi_images->img_pairs[0].second;
     Mat img1 = multi_images->imgs[m1]->data;
     Mat img2 = multi_images->imgs[m2]->data;
     result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-    left_1  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
-    right_1 = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
     // 复制图片
-    img1.copyTo(left_1);
-    img2.copyTo(right_1);
+    img1.copyTo(left);
+    img2.copyTo(right);
 
     if (0) {
       // 匹配RANSAC之前的所有特征点
@@ -172,7 +172,7 @@ void My_Stitching::drawFeatureMatch() {
 void My_Stitching::drawMatchingMatch() {
   // 描绘匹配点
   Mat result;// 存储结果
-  Mat left_1, right_1;// 分割矩阵
+  Mat left, right;// 分割矩阵
   if (multi_images->img_pairs.size() > 0) {
     int m1 = multi_images->img_pairs[0].first;
     int m2 = multi_images->img_pairs[0].second;
@@ -180,11 +180,11 @@ void My_Stitching::drawMatchingMatch() {
     Mat img1 = multi_images->imgs[m1]->data;
     Mat img2 = multi_images->imgs[m2]->data;
     result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-    left_1  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
-    right_1 = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
     // 复制图片
-    img1.copyTo(left_1);
-    img2.copyTo(right_1);
+    img1.copyTo(left);
+    img2.copyTo(right);
 
     
     // 描绘所有匹配点

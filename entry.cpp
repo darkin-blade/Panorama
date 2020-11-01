@@ -20,7 +20,8 @@ int main(int argc, char *argv[]) {
     Mat img1 = imread("../../1.jpg");
     Mat img2 = imread("../../2.jpg");
     Mat result;
-    Translate::computeTranslation(img1, img2, 0, 0, 0, result);
+    Translate translator(img1, img2, 0, 0, 0);
+    translator.compute(result);
 
   } else if (true) {
     // 调用自己的方法
