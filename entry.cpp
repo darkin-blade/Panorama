@@ -14,21 +14,20 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
-  if (true) {
+  if (1) {
     // 计算相机平移
     
     Mat img1 = imread("../../1.jpg");
     Mat img2 = imread("../../2.jpg");
-    Mat result;
-    Translate translator(img1, img2, 0, 0, 0);
-    translator.compute(result);
+    Translate translator(img1, img2, 0, 0, 0, 0, 0, -1);
+    translator.computeIntrinsic();
 
   } else if (true) {
     // 调用自己的方法
     
     // 读取图片
     MultiImages multi_images;
-    for (int i = 1; i <= 3; i ++) {
+    for (int i = 1; i <= 2; i ++) {
         sprintf(img_path, "%s/%d.jpg", app_path, i);
         multi_images.readImg(img_path);
     }

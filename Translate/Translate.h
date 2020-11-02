@@ -8,7 +8,9 @@
 
 class Translate {
 public:
-  Translate(Mat _img1, Mat _img2, double _r1, double _r2, double _r3);
+  Translate(Mat _img1, Mat _img2,
+    double _alpha1, double _beta1, double _gamma1,
+    double _alpha2, double _beta2, double _gamma2);
 
   Mat img1, img2;
   Mat grey1, grey2;
@@ -17,11 +19,16 @@ public:
   vector<vector<Mat> > descriptor1, descriptor2;
   vector<pair<int, int> > initial_indices;// RANSAC之前的配对信息
   vector<pair<int, int> > indices;// RANSAC之后的配对信息
+  vector<Point2f> feature_pair1, feature_pair2;// 筛选之后的匹配的特征点
   /* 结果 */
-  Mat rotate;
-  Mat translate;
+  Mat R;// 两张照片之间的相对旋转矩阵
+  Mat H;// 单应矩阵
+  Mat K;// 内参矩阵
+  Mat E;// 基本矩阵
+  Mat T;// 平移矩阵
 
-  void compute(Mat & translate);// 计算两张图片之间的位置关系
+  Mat computeIntrinsic();// 计算相机的内参矩阵
+  Mat computeTranslate();// 计算两张图片之间的位置关系
   void getFeaturePairs();
   void getInitialFeaturePairs();
   void getFeaturePairsBySequentialRANSAC(

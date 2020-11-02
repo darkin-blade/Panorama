@@ -1,6 +1,38 @@
 #include "Translate.h"
 
-Translate::Translate(Mat _img1, Mat _img2, double _r1, double _r2, double _r3) {
+Translate::Translate(Mat _img1, Mat _img2,
+    double _alpha1, double _beta1, double _gamma1,
+    double _alpha2, double _beta2, double _gamma2) {
+
+  // 将欧拉角转换成旋转矩阵
+  Mat R_x = Mat::zeros(3, 3, CV_64FC1);
+  Mat R_y = Mat::zeros(3, 3, CV_64FC1);
+  Mat R_z = Mat::zeros(3, 3, CV_64FC1);
+  double alpha = _alpha2 - _alpha1;
+  double beta  = _beta2 - _beta1;
+  double gamma = _gamma2 - _gamma1;
+
+  R_x.at<double>(0, 0) = 1;
+  R_x.at<double>(1, 1) = cos(alpha);
+  R_x.at<double>(1, 2) = -sin(alpha);
+  R_x.at<double>(2, 1) = sin(alpha);
+  R_x.at<double>(2, 2) = cos(alpha);
+
+  R_y.at<double>(0, 0) = cos(beta);
+  R_y.at<double>(0, 2) = sin(beta);
+  R_y.at<double>(1, 1) = 1;
+  R_y.at<double>(2, 0) = -sin(beta);
+  R_y.at<double>(2, 2) = cos(beta);
+
+  R_z.at<double>(0, 0) = cos(gamma);
+  R_z.at<double>(0, 1) = -sin(gamma);
+  R_z.at<double>(1, 0) = sin(gamma);
+  R_z.at<double>(1, 1) = cos(gamma);
+  R_z.at<double>(2, 2) = 1;
+
+  // 计算旋转矩阵: https://zhuanlan.zhihu.com/p/144032401
+  R = R_x * R_y * R_z;
+
   // 处理成灰度图
   assert(_img1.channels() == _img2.channels());
   _img1.copyTo(img1);
@@ -33,17 +65,43 @@ Translate::Translate(Mat _img1, Mat _img2, double _r1, double _r2, double _r3) {
   }
 }
 
-void Translate::compute(Mat & translate) {
+Mat Translate::computeIntrinsic() {
+  // 计算相机的内参矩阵
+
+  clock_t begin_time, end_time;
+  begin_time = clock();
+
+  getFeaturePairs();
+  // drawFeature();
+
+  H = findHomography(feature_pair1, feature_pair2);
+  K = H * R.inv();
+  cout << R << endl;
+  cout << H << endl;
+  cout << K << endl;
+
+  end_time = clock();
+  LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+
+  return K;
+}
+
+Mat Translate::computeTranslate() {
   // 计算两张图片的平移
 
   clock_t begin_time, end_time;
   begin_time = clock();
 
   getFeaturePairs();
-  drawFeature();
+  // drawFeature();
+
+  E = findFundamentalMat(feature_pair1, feature_pair2, FM_RANSAC, 3, 0.99);
+  T = E;
 
   end_time = clock();
   LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
+
+  return T;
 }
 
 void Translate::getFeaturePairs() {
@@ -59,14 +117,21 @@ void Translate::getFeaturePairs() {
   vector<Point2f> X, Y;
   X.reserve(initial_indices.size());
   Y.reserve(initial_indices.size());
-  for (int j = 0; j < initial_indices.size(); j ++) {
-    const pair<int, int> it = initial_indices[j];
+  for (int i = 0; i < initial_indices.size(); i ++) {
+    const pair<int, int> it = initial_indices[i];
     X.emplace_back(feature_points1[it.first ]);
     Y.emplace_back(feature_points2[it.second]);
   }
 
   // RANSAC 筛选
   getFeaturePairsBySequentialRANSAC(X, Y);
+
+  // 记录结果
+  for (int i = 0; i < initial_indices.size(); i ++) {
+    const pair<int, int> it = initial_indices[i];
+    feature_pair1.emplace_back(feature_points1[it.first ]);
+    feature_pair2.emplace_back(feature_points2[it.second]);
+  }
 }
 
 void Translate::getInitialFeaturePairs() {  
@@ -195,8 +260,8 @@ void Translate::getDescriptors(
 
   VlSiftFilt * vlSift = vl_sift_new(width, height,
       log2(min(width, height)),  // noctaves
-      1,                         // nlevels
-      0);                        // o_min
+      3,                         // nlevels
+      2);                        // o_min
 
   vl_sift_set_peak_thresh(vlSift, 0.);
   vl_sift_set_edge_thresh(vlSift, 10.);
@@ -262,7 +327,7 @@ void Translate::drawFeature() {
     src_p = feature_points1[src];
     dst_p = feature_points2[dst];
 
-    Scalar color(rand() % 256, rand() % 256, rand() % 256);
+    Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
     circle(result, src_p, CIRCLE_SIZE, color, -1);
     line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
     circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);

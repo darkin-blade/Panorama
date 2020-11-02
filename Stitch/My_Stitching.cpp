@@ -133,7 +133,7 @@ void My_Stitching::drawFeatureMatch() {
         dst_p = multi_images->imgs[m2]->feature_points[dst];
 
         // 描绘
-        Scalar color(rand() % 256, rand() % 256, rand() % 256);
+        Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
         circle(result, src_p, CIRCLE_SIZE, color, -1);
         line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
         circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
@@ -147,7 +147,7 @@ void My_Stitching::drawFeatureMatch() {
         dst_p = multi_images->feature_points[m2][m1][i];
 
         // 描绘
-        Scalar color(rand() % 256, rand() % 256, rand() % 256);
+        Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
         circle(result, src_p, CIRCLE_SIZE, color, -1);
         line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
         circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
@@ -193,9 +193,9 @@ void My_Stitching::drawMatchingMatch() {
       src_p = multi_images->imgs[m1]->getVertices()[i];
       dst_p = multi_images->imgs[m1]->matching_points[m2][i];
 
-      Scalar color1(255, 0, 0);
+      Scalar color1(255, 0, 0, 255);
       circle(result, src_p, CIRCLE_SIZE, color1, -1);
-      Scalar color2(0, 0, 255);
+      Scalar color2(0, 0, 255, 255);
       circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
     }
   }
@@ -212,9 +212,9 @@ void My_Stitching::drawResult(Mat _result) {
       for (int j = 0; j < image_mesh_points[i].size(); j ++) {
         Point2f tmp = image_mesh_points[i][j];
         if (i) {
-          circle(_result, tmp, CIRCLE_SIZE, Scalar(255, 0, 0), -1);
+          circle(_result, tmp, CIRCLE_SIZE, Scalar(255, 0, 0, 255), -1);
         } else {
-          circle(_result, tmp, CIRCLE_SIZE, Scalar(255, 255, 0), -1);
+          circle(_result, tmp, CIRCLE_SIZE, Scalar(255, 255, 0, 255), -1);
         }
       }
     }
