@@ -1,8 +1,54 @@
 #include "Translate.h"
 
-Translate::Translate(Mat _img1, Mat _img2,
-    double _alpha1, double _beta1, double _gamma1,
-    double _alpha2, double _beta2, double _gamma2) {
+Translate::Translate(Mat _img1, Mat _img2) {
+
+  // 处理成灰度图
+  assert(_img1.channels() == _img2.channels());
+  _img1.copyTo(img1);
+  if (img1.channels() == 3) {
+    cvtColor(img1, grey1, CV_RGB2GRAY);
+    cvtColor(img1, img1, CV_RGB2RGBA);
+  } else if (img1.channels() == 4) {
+    cvtColor(img1, grey1, CV_RGBA2GRAY);
+  }
+  _img2.copyTo(img2);
+  if (img2.channels() == 3) {
+    cvtColor(img2, grey2, CV_RGB2GRAY);
+    cvtColor(img2, img2, CV_RGB2RGBA);
+  } else if (img2.channels() == 4) {
+    cvtColor(img2, grey2, CV_RGBA2GRAY);
+  }
+
+  // 放缩
+  float size1 = img1.rows * img1.cols;
+  if (size1 > SIZE_SMALL) {
+    float scale = sqrt(SIZE_SMALL / size1);
+    resize(grey1, grey1, Size(), scale, scale);
+    resize(img1, img1, Size(), scale, scale);
+  }
+  float size2 = img2.rows * img2.cols;
+  if (size2 > SIZE_SMALL) {
+    float scale = sqrt(SIZE_SMALL / size2);
+    resize(grey2, grey2, Size(), scale, scale);
+    resize(img2, img2, Size(), scale, scale);
+  }
+
+  // 初始化内参矩阵
+  K = Mat::zeros(3, 3, CV_64FC1);
+  K.at<double>(0, 0) = 646.3999802324365; 
+  K.at<double>(0, 1) = 0; 
+  K.at<double>(0, 2) = 439.6819232174948; 
+  K.at<double>(1, 0) = 0; 
+  K.at<double>(1, 1) = 695.073515875543; 
+  K.at<double>(1, 2) = 395.4597934067736; 
+  K.at<double>(2, 0) = 0; 
+  K.at<double>(2, 1) = 0; 
+  K.at<double>(2, 2) = 1; 
+}
+
+void Translate::setRotation(
+  double _alpha1, double _beta1, double _gamma1,
+  double _alpha2, double _beta2, double _gamma2) {
 
   // 将欧拉角转换成旋转矩阵
   Mat R_x = Mat::zeros(3, 3, CV_64FC1);
@@ -32,58 +78,6 @@ Translate::Translate(Mat _img1, Mat _img2,
 
   // 计算旋转矩阵: https://zhuanlan.zhihu.com/p/144032401
   R = R_x * R_y * R_z;
-
-  // 处理成灰度图
-  assert(_img1.channels() == _img2.channels());
-  _img1.copyTo(img1);
-  if (img1.channels() == 3) {
-    cvtColor(img1, grey1, CV_RGB2GRAY);
-    cvtColor(img1, img1, CV_RGB2RGBA);
-  } else if (img1.channels() == 4) {
-    cvtColor(img1, grey1, CV_RGBA2GRAY);
-  }
-  _img2.copyTo(img2);
-  if (img2.channels() == 3) {
-    cvtColor(img2, grey2, CV_RGB2GRAY);
-    cvtColor(img2, img2, CV_RGB2RGBA);
-  } else if (img2.channels() == 4) {
-    cvtColor(img2, grey2, CV_RGBA2GRAY);
-  }
-
-  // 放缩
-  float size1 = img1.rows * img1.cols;
-  if (size1 > DOWN_SAMPLE_IMAGE_SIZE) {
-    float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / size1);
-    resize(grey1, grey1, Size(), scale, scale);
-    resize(img1, img1, Size(), scale, scale);
-  }
-  float size2 = img2.rows * img2.cols;
-  if (size2 > DOWN_SAMPLE_IMAGE_SIZE) {
-    float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / size2);
-    resize(grey2, grey2, Size(), scale, scale);
-    resize(img2, img2, Size(), scale, scale);
-  }
-}
-
-Mat Translate::computeIntrinsic() {
-  // 计算相机的内参矩阵
-
-  clock_t begin_time, end_time;
-  begin_time = clock();
-
-  getFeaturePairs();
-  // drawFeature();
-
-  H = findHomography(feature_pair1, feature_pair2);
-  K = H * R.inv();
-  cout << R << endl;
-  cout << H << endl;
-  cout << K << endl;
-
-  end_time = clock();
-  LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
-
-  return K;
 }
 
 Mat Translate::computeTranslate() {
@@ -93,10 +87,19 @@ Mat Translate::computeTranslate() {
   begin_time = clock();
 
   getFeaturePairs();
-  // drawFeature();
+  drawFeature();
 
-  E = findFundamentalMat(feature_pair1, feature_pair2, FM_RANSAC, 3, 0.99);
-  T = E;
+  // F = findFundamentalMat(feature_pair1, feature_pair2);
+  E = findEssentialMat(feature_pair1, feature_pair2, K);
+  int result = recoverPose(E, feature_pair1, feature_pair2, K, R, T);
+
+  cout << E << endl;
+  cout << R << endl;
+  cout << T << endl;
+
+  LOG("new");
+  T = E * R.t();
+  cout << T << endl;
 
   end_time = clock();
   LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
@@ -127,11 +130,13 @@ void Translate::getFeaturePairs() {
   getFeaturePairsBySequentialRANSAC(X, Y);
 
   // 记录结果
-  for (int i = 0; i < initial_indices.size(); i ++) {
-    const pair<int, int> it = initial_indices[i];
+  for (int i = 0; i < indices.size(); i ++) {
+    const pair<int, int> it = indices[i];
     feature_pair1.emplace_back(feature_points1[it.first ]);
     feature_pair2.emplace_back(feature_points2[it.second]);
   }
+
+  LOG("feature pairs %ld", feature_pair1.size());
 }
 
 void Translate::getInitialFeaturePairs() {  
@@ -328,9 +333,9 @@ void Translate::drawFeature() {
     dst_p = feature_points2[dst];
 
     Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
-    circle(result, src_p, CIRCLE_SIZE, color, -1);
-    line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
-    circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+    circle(result, src_p, SIZE_CIRCLE, color, -1);
+    line(result, src_p, dst_p + Point2f(img1.cols, 0), color, SIZE_LINE, LINE_AA);
+    circle(result, dst_p + Point2f(img1.cols, 0), SIZE_CIRCLE, color, -1);
   }
   show_img("feature pairs", result);
 }

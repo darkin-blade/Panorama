@@ -19,8 +19,9 @@ int main(int argc, char *argv[]) {
     
     Mat img1 = imread("../../1.jpg");
     Mat img2 = imread("../../2.jpg");
-    Translate translator(img1, img2, 0, 0, 0, 0, 0, -1);
-    translator.computeIntrinsic();
+    Translate translator(img1, img2);
+    translator.setRotation(0, 0, 0, 0, 0, 0);
+    translator.computeTranslate();
 
   } else if (true) {
     // 调用自己的方法
