@@ -8,20 +8,22 @@
 
 class Translate {
 public:
-  Translate(Mat _img1, Mat _img2);
+  Translate();
 
   const int SIZE_SMALL = 1920 * 1080;
   const int SIZE_CIRCLE = 8;
   const int SIZE_LINE   = 4;
 
-  Mat img1, img2;
-  Mat grey1, grey2;
+  int imgNum;
+  vector<Mat> imgRGBA;
+  vector<Mat> imgGray;
+  vector<Mat> rotations;// 每张照片的绝对角度
   /* 特征 */
-  vector<Point2f> feature_points1, feature_points2;// 检测出来的特征点
-  vector<vector<Mat> > descriptor1, descriptor2;
-  vector<pair<int, int> > initial_indices;// RANSAC之前的配对信息
-  vector<pair<int, int> > indices;// RANSAC之后的配对信息
-  vector<Point2f> feature_pair1, feature_pair2;// 筛选之后的匹配的特征点
+  vector<vector<Point2f> >         origin_features;// 每幅图像原始特征点
+  vector<vector<vector<Mat> > >    descriptors;
+  /* 匹配 */
+  vector<vector<vector<pair<int, int> > > > initial_indices;// RANSAC之前的配对信息
+  vector<vector<vector<pair<int, int> > > > indices;// RANSAC之后的配对信息
   /* 结果 */
   Mat R;// 两张照片之间的相对旋转矩阵
   Mat H;// 单应矩阵
@@ -29,15 +31,16 @@ public:
   Mat E;// 本质矩阵
   Mat F;// 基本矩阵
   Mat T;// 平移矩阵
+  Mat t;// 平移向量
 
-  void setRotation(double _alpha1, double _beta1, double _gamma1,
-                   double _alpha2, double _beta2, double _gamma2);
-  Mat computeTranslate();// 计算两张图片之间的位置关系
+  void init(vector<Mat> imgs);
+  void init(vector<Mat> imgs, vector<vector<double> > rotations);
   void getFeaturePairs();
-  void getInitialFeaturePairs();
-  void getFeaturePairsBySequentialRANSAC(
+  vector<pair<int, int> > getInitialFeaturePairs(int _m1, int _m2);
+  vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(
     const vector<Point2f> & _X,
-    const vector<Point2f> & _Y);
+    const vector<Point2f> & _Y,
+    const vector<pair<int, int> > & _initial_indices);
   void getDescriptors(
     const Mat & _grey_img,
     vector<Point2f> & _feature_points,
@@ -47,8 +50,10 @@ public:
     const vector<Mat> & _descriptor2,
     const double _threshold);
 
+  Mat computeTranslate(int _m1, int _m2);// 计算两张图片之间的位置关系
+  
   /* DEBUG */
-  void drawFeature();
+  void drawFeature(int _m1, int _m2);
 };
 
 #endif

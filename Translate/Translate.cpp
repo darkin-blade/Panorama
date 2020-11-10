@@ -1,38 +1,6 @@
 #include "Translate.h"
 
-Translate::Translate(Mat _img1, Mat _img2) {
-
-  // 处理成灰度图
-  assert(_img1.channels() == _img2.channels());
-  _img1.copyTo(img1);
-  if (img1.channels() == 3) {
-    cvtColor(img1, grey1, CV_RGB2GRAY);
-    cvtColor(img1, img1, CV_RGB2RGBA);
-  } else if (img1.channels() == 4) {
-    cvtColor(img1, grey1, CV_RGBA2GRAY);
-  }
-  _img2.copyTo(img2);
-  if (img2.channels() == 3) {
-    cvtColor(img2, grey2, CV_RGB2GRAY);
-    cvtColor(img2, img2, CV_RGB2RGBA);
-  } else if (img2.channels() == 4) {
-    cvtColor(img2, grey2, CV_RGBA2GRAY);
-  }
-
-  // 放缩
-  float size1 = img1.rows * img1.cols;
-  if (size1 > SIZE_SMALL) {
-    float scale = sqrt(SIZE_SMALL / size1);
-    resize(grey1, grey1, Size(), scale, scale);
-    resize(img1, img1, Size(), scale, scale);
-  }
-  float size2 = img2.rows * img2.cols;
-  if (size2 > SIZE_SMALL) {
-    float scale = sqrt(SIZE_SMALL / size2);
-    resize(grey2, grey2, Size(), scale, scale);
-    resize(img2, img2, Size(), scale, scale);
-  }
-
+Translate::Translate() {
   // 初始化内参矩阵
   K = Mat::zeros(3, 3, CV_64FC1);
   K.at<double>(0, 0) = 646.3999802324365; 
@@ -46,113 +14,165 @@ Translate::Translate(Mat _img1, Mat _img2) {
   K.at<double>(2, 2) = 1; 
 }
 
-void Translate::setRotation(
-  double _alpha1, double _beta1, double _gamma1,
-  double _alpha2, double _beta2, double _gamma2) {
+void Translate::init(vector<Mat> imgs) {
+  // 清空所有数据
+  imgRGBA.clear();
+  imgGray.clear();
 
-  // 将欧拉角转换成旋转矩阵
-  Mat R_x = Mat::zeros(3, 3, CV_64FC1);
-  Mat R_y = Mat::zeros(3, 3, CV_64FC1);
-  Mat R_z = Mat::zeros(3, 3, CV_64FC1);
-  double alpha = _alpha2 - _alpha1;
-  double beta  = _beta2 - _beta1;
-  double gamma = _gamma2 - _gamma1;
+  // 处理成灰度图
+  imgNum = imgs.size();
+  for (int i = 0; i < imgNum; i ++) {
+    Mat tmpImg = imgs[i];
 
-  R_x.at<double>(0, 0) = 1;
-  R_x.at<double>(1, 1) = cos(alpha);
-  R_x.at<double>(1, 2) = -sin(alpha);
-  R_x.at<double>(2, 1) = sin(alpha);
-  R_x.at<double>(2, 2) = cos(alpha);
+    // 图像放缩
+    double imgSize = tmpImg.rows * tmpImg.cols;
+    if (imgSize > SIZE_SMALL) {
+      double scale = sqrt(SIZE_SMALL / imgSize);
+      resize(tmpImg, tmpImg, Size(), scale, scale);
+    }
 
-  R_y.at<double>(0, 0) = cos(beta);
-  R_y.at<double>(0, 2) = sin(beta);
-  R_y.at<double>(1, 1) = 1;
-  R_y.at<double>(2, 0) = -sin(beta);
-  R_y.at<double>(2, 2) = cos(beta);
-
-  R_z.at<double>(0, 0) = cos(gamma);
-  R_z.at<double>(0, 1) = -sin(gamma);
-  R_z.at<double>(1, 0) = sin(gamma);
-  R_z.at<double>(1, 1) = cos(gamma);
-  R_z.at<double>(2, 2) = 1;
-
-  // 计算旋转矩阵: https://zhuanlan.zhihu.com/p/144032401
-  R = R_x * R_y * R_z;
+    // 保存rgba和灰度图
+    Mat tmpRGBA, tmpGray;
+    if (tmpImg.channels() == 3) {
+      cvtColor(tmpImg, tmpRGBA, CV_RGB2RGBA);
+      cvtColor(tmpImg, tmpGray, CV_RGB2GRAY);
+    } else if (tmpImg.channels() == 4) {
+      tmpImg.copyTo(tmpRGBA);
+      cvtColor(tmpImg, tmpGray, CV_RGBA2GRAY);
+    } else {
+      LOG("invalid img");
+      assert(0);
+    }
+    imgRGBA.emplace_back(tmpRGBA);
+    imgGray.emplace_back(tmpGray);
+  }
 }
 
-Mat Translate::computeTranslate() {
+void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
+  // 读取图片
+  init(imgs);
+
+  rotations.clear();
+
+  // 计算旋转矩阵
+  assert(_rotations.size() == imgNum);
+  for (int i = 0; i < imgNum; i ++) {
+    // 将欧拉角转换成旋转矩阵
+    Mat R_x = Mat::zeros(3, 3, CV_64FC1);
+    Mat R_y = Mat::zeros(3, 3, CV_64FC1);
+    Mat R_z = Mat::zeros(3, 3, CV_64FC1);
+    double alpha = _rotations[i][0];
+    double beta  = _rotations[i][1];
+    double gamma = _rotations[i][2];
+
+    R_x.at<double>(0, 0) = 1;
+    R_x.at<double>(1, 1) = cos(alpha);
+    R_x.at<double>(1, 2) = -sin(alpha);
+    R_x.at<double>(2, 1) = sin(alpha);
+    R_x.at<double>(2, 2) = cos(alpha);
+
+    R_y.at<double>(0, 0) = cos(beta);
+    R_y.at<double>(0, 2) = sin(beta);
+    R_y.at<double>(1, 1) = 1;
+    R_y.at<double>(2, 0) = -sin(beta);
+    R_y.at<double>(2, 2) = cos(beta);
+
+    R_z.at<double>(0, 0) = cos(gamma);
+    R_z.at<double>(0, 1) = -sin(gamma);
+    R_z.at<double>(1, 0) = sin(gamma);
+    R_z.at<double>(1, 1) = cos(gamma);
+    R_z.at<double>(2, 2) = 1;
+
+    // 计算旋转矩阵: https://zhuanlan.zhihu.com/p/144032401
+    rotations.emplace_back(R_x * R_y * R_z);
+  }
+}
+
+Mat Translate::computeTranslate(int _m1, int _m2) {
   // 计算两张图片的平移
+  drawFeature(_m1, _m2);
 
-  clock_t begin_time, end_time;
-  begin_time = clock();
-
-  getFeaturePairs();
-  drawFeature();
-
-  // F = findFundamentalMat(feature_pair1, feature_pair2);
-  E = findEssentialMat(feature_pair1, feature_pair2, K);
-  int result = recoverPose(E, feature_pair1, feature_pair2, K, R, T);
+  vector<Point2f> X, Y;// 筛选后的特征点
+  for (int k = 0; k < indices[_m1][_m2].size(); k ++) {
+    int src = indices[_m1][_m2][k].first;
+    int dst = indices[_m1][_m2][k].second;
+    X.emplace_back(origin_features[_m1][src]);
+    Y.emplace_back(origin_features[_m2][dst]);
+  }
+  E = findEssentialMat(X, Y, K);
+  int result = recoverPose(E, X, Y, K, R, t);
 
   cout << E << endl;
   cout << R << endl;
-  cout << T << endl;
+  cout << t << endl;
 
-  LOG("new");
+  LOG("T:");
   T = E * R.t();
   cout << T << endl;
+
   vector<double> translation;
   translation.emplace_back(T.at<double>(1, 2));
   translation.emplace_back(T.at<double>(2, 0));
   translation.emplace_back(T.at<double>(0, 1));
   normalize(translation, translation);
   for (int i = 0; i < 3; i ++) {
-    LOG("%d %lf", i, translation[i]);
+    LOG("%lf", translation[i]);
   }
 
-  end_time = clock();
-  LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
   return T;
 }
 
 void Translate::getFeaturePairs() {
+  // 清空数据
+  origin_features.clear();
+  descriptors.clear();
+
+  origin_features.resize(imgNum);
+  descriptors.resize(imgNum);
 
   // 特征检测
-  getDescriptors(grey1, feature_points1, descriptor1);
-  LOG("image 1 feature points %ld", feature_points1.size());
-  getDescriptors(grey2, feature_points2, descriptor2);
-  LOG("image 2 feature points %ld", feature_points2.size());
+  for (int i = 0; i < imgNum; i ++) {
+    getDescriptors(imgGray[i], origin_features[i], descriptors[i]);
+    LOG("image %d feature points %ld", i, origin_features[i].size());
+  }
 
+  initial_indices.clear();
+  indices.clear();
+  initial_indices.resize(imgNum);
+  indices.resize(imgNum);
+  for (int i = 0; i < imgNum; i ++) {
+    initial_indices[i].resize(imgNum);
+    indices[i].resize(imgNum);
+  }
   // 初步匹配
-  getInitialFeaturePairs();
-  vector<Point2f> X, Y;
-  X.reserve(initial_indices.size());
-  Y.reserve(initial_indices.size());
-  for (int i = 0; i < initial_indices.size(); i ++) {
-    const pair<int, int> it = initial_indices[i];
-    X.emplace_back(feature_points1[it.first ]);
-    Y.emplace_back(feature_points2[it.second]);
+  for (int i = 0; i < imgNum; i ++) {
+    for (int j = i + 1; j < imgNum; j ++) {
+      initial_indices[i][j] = getInitialFeaturePairs(i, j);
+      
+      // RANSAC 筛选
+      vector<Point2f> X, Y;
+      X.reserve(initial_indices[i][j].size());
+      Y.reserve(initial_indices[i][j].size());
+      for (int k = 0; k < initial_indices[i][j].size(); k ++) {
+        const pair<int, int> tmpPair = initial_indices[i][j][k];
+        X.emplace_back(origin_features[i][tmpPair.first ]);
+        Y.emplace_back(origin_features[j][tmpPair.second]);
+      }
+
+      indices[i][j] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices[i][j]);
+      LOG("%d %d has feature pairs %ld", i, j, initial_indices[i][j].size());
+    }
   }
-
-  // RANSAC 筛选
-  getFeaturePairsBySequentialRANSAC(X, Y);
-
-  // 记录结果
-  for (int i = 0; i < indices.size(); i ++) {
-    const pair<int, int> it = indices[i];
-    feature_pair1.emplace_back(feature_points1[it.first ]);
-    feature_pair2.emplace_back(feature_points2[it.second]);
-  }
-
-  LOG("feature pairs %ld", feature_pair1.size());
 }
 
-void Translate::getInitialFeaturePairs() {  
+vector<pair<int, int> > Translate::getInitialFeaturePairs(int _m1, int _m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
 
-  int size_1 = feature_points1.size();
-  int size_2 = feature_points2.size();
+
+  int size_1 = origin_features[_m1].size();
+  int size_2 = origin_features[_m2].size();
   const int feature_size[2] = { size_1, size_2 };
 
   const int another_feature_size = feature_size[1];
@@ -164,8 +184,7 @@ void Translate::getInitialFeaturePairs() {
     set<FeatureDistance> feature_distance_set;// set 中每个元素都唯一, 降序
     feature_distance_set.insert(FeatureDistance(MAXFLOAT, 0, -1, -1));// 存放计算结果
     for (int f2 = 0; f2 < feature_size[1]; f2 ++) {
-      const double dist = getDistance(descriptor1[f1],
-          descriptor2[f2],
+      const double dist = getDistance(descriptors[_m1][f1], descriptors[_m2][f2],
           feature_distance_set.begin()->distance);
       if (dist < feature_distance_set.begin()->distance) {// 如果比最大值小
         if (feature_distance_set.size() == nearest_k) {// 如果容器满了, 删掉最大值
@@ -199,18 +218,21 @@ void Translate::getInitialFeaturePairs() {
 
   // 保存结果: 两幅图片的特征点总索引配对
   const double OUTLIER_THRESHOLD = (INLIER_TOLERANT_STD_DISTANCE * std) + mean;// 计算特征配对筛选条件
-  initial_indices.reserve(feature_pairs_result.size());
+  vector<pair<int, int> > result;
+  result.reserve(feature_pairs_result.size());
   for (int i = 0; i < feature_pairs_result.size(); i ++) {
     if (feature_pairs_result[i].distance < OUTLIER_THRESHOLD) {// 如果没有超出范围
-      initial_indices.emplace_back(feature_pairs_result[i].feature_index[0],
+      result.emplace_back(feature_pairs_result[i].feature_index[0],
           feature_pairs_result[i].feature_index[1]);
     }
   }
+  return result;
 }
 
-void Translate::getFeaturePairsBySequentialRANSAC(
+vector<pair<int, int> > Translate::getFeaturePairsBySequentialRANSAC(
     const vector<Point2f> & _X,
-    const vector<Point2f> & _Y) {
+    const vector<Point2f> & _Y,
+    const vector<pair<int, int> > & _initial_indices) {
   vector<char> final_mask(initial_indices.size(), 0);// 存储最终的结果
   findHomography(_X, _Y, CV_RANSAC, GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST, final_mask, GLOBAL_MAX_ITERATION);
 
@@ -254,11 +276,13 @@ void Translate::getFeaturePairsBySequentialRANSAC(
     tmp_Y = next_Y;
   }
 
+  vector<pair<int, int> > result;
   for (int i = 0; i < final_mask.size(); i ++) {
     if (final_mask[i]) {
-      indices.emplace_back(initial_indices[i]);
+      result.emplace_back(_initial_indices[i]);
     }
   }
+  return result;
 }
 
 void Translate::getDescriptors(
@@ -324,26 +348,33 @@ double Translate::getDistance(
   return result;
 }
 
-void Translate::drawFeature() {
+void Translate::drawFeature(int _m1, int _m2) {
+  if (_m1 > _m2) {
+    int tmp = _m1;
+    _m1 = _m2;
+    _m2 = tmp;
+  }
+
   Mat result;
   Mat left, right;
-  result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC4);
-  left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
-  right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
-  img1.copyTo(left);
-  img2.copyTo(right);
-  for (int i = 0; i < indices.size(); i ++) {
-    int src = indices[i].first;
-    int dst = indices[i].second;
+  result = Mat::zeros(max(imgRGBA[_m1].rows, imgRGBA[_m2].rows), imgRGBA[_m1].cols + imgRGBA[_m2].cols, CV_8UC4);
+  left  = Mat(result, Rect(0, 0, imgRGBA[_m1].cols, imgRGBA[_m1].rows));
+  right = Mat(result, Rect(imgRGBA[_m1].cols, 0, imgRGBA[_m2].cols, imgRGBA[_m2].rows));
+  imgRGBA[_m1].copyTo(left);
+  imgRGBA[_m2].copyTo(right);
+
+  for (int i = 0; i < indices[_m1][_m2].size(); i ++) {
+    int src = indices[_m1][_m2][i].first;
+    int dst = indices[_m1][_m2][i].second;
 
     Point2f src_p, dst_p;
-    src_p = feature_points1[src];
-    dst_p = feature_points2[dst];
+    src_p = origin_features[_m1][src];
+    dst_p = origin_features[_m2][dst];
 
     Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
     circle(result, src_p, SIZE_CIRCLE, color, -1);
-    line(result, src_p, dst_p + Point2f(img1.cols, 0), color, SIZE_LINE, LINE_AA);
-    circle(result, dst_p + Point2f(img1.cols, 0), SIZE_CIRCLE, color, -1);
+    line(result, src_p, dst_p + Point2f(imgRGBA[_m1].cols, 0), color, SIZE_LINE, LINE_AA);
+    circle(result, dst_p + Point2f(imgRGBA[_m1].cols, 0), SIZE_CIRCLE, color, -1);
   }
-  show_img("feature pairs", result);
+  show_img(result, "%d %d matches", _m1, _m2);
 }

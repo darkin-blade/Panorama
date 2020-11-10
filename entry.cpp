@@ -17,11 +17,17 @@ int main(int argc, char *argv[]) {
   if (1) {
     // 计算相机平移
     
-    Mat img1 = imread("../../1.jpg");
-    Mat img2 = imread("../../2.jpg");
-    Translate translator(img1, img2);
-    translator.setRotation(0, 0, 0, 0, 0, 0);
-    translator.computeTranslate();
+    vector<Mat> imgs;
+    for (int i = 1; i <= 2; i ++) {
+      sprintf(img_path, "%s/%d.jpg", app_path, i);
+      imgs.emplace_back(imread(img_path));
+    }
+    Translate translator();
+    translator.init(imgs);
+    translator.getFeaturePairs();
+    translator.computeTranslate(0, 1);
+    translator.computeTranslate(0, 2);
+    translator.computeTranslate(1, 2);
 
   } else if (true) {
     // 调用自己的方法

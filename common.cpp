@@ -68,6 +68,28 @@ void set_progress(const int progress, const int mode) {
 #endif
 }
 
+void show_img(Mat img, const char *fmt, ...) {
+  va_list args;
+  int n;
+  va_start(args, fmt);
+
+  n = vsprintf(sprint_buf, fmt, args);
+  va_end(args);
+
+  show_img(sprint_buf, img);
+}
+
+void show_img(UMat img, const char *fmt, ...) {
+  va_list args;
+  int n;
+  va_start(args, fmt);
+
+  n = vsprintf(sprint_buf, fmt, args);
+  va_end(args);
+
+  show_img(sprint_buf, img);
+}
+
 void show_img(const char *window_name, Mat img) {
 #if defined(UBUNTU)
   if (img.rows * img.cols <= 0) {
@@ -96,4 +118,10 @@ void show_img(const char *window_name, Mat img) {
     LOG("can't save img");
   }
 #endif
+}
+
+void show_img(const char *window_name, UMat img) {
+  Mat tmp;
+  img.copyTo(tmp);
+  show_img(window_name, tmp);
 }
