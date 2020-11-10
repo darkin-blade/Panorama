@@ -100,6 +100,14 @@ Mat Translate::computeTranslate() {
   LOG("new");
   T = E * R.t();
   cout << T << endl;
+  vector<double> translation;
+  translation.emplace_back(T.at<double>(1, 2));
+  translation.emplace_back(T.at<double>(2, 0));
+  translation.emplace_back(T.at<double>(0, 1));
+  normalize(translation, translation);
+  for (int i = 0; i < 3; i ++) {
+    LOG("%d %lf", i, translation[i]);
+  }
 
   end_time = clock();
   LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
