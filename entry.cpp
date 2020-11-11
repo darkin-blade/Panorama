@@ -18,11 +18,11 @@ int main(int argc, char *argv[]) {
     // 计算相机平移
     
     vector<Mat> imgs;
-    for (int i = 1; i <= 2; i ++) {
+    for (int i = 1; i <= 4; i ++) {
       sprintf(img_path, "%s/%d.jpg", app_path, i);
       imgs.emplace_back(imread(img_path));
     }
-    Translate translator();
+    Translate translator(0);
     translator.init(imgs);
     translator.getFeaturePairs();
     translator.computeTranslate(0, 1);

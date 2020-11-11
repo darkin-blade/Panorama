@@ -8,7 +8,7 @@
 
 class Translate {
 public:
-  Translate();
+  Translate(int _useless);
 
   const int SIZE_SMALL = 1920 * 1080;
   const int SIZE_CIRCLE = 8;

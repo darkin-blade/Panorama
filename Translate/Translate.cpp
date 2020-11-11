@@ -1,14 +1,14 @@
 #include "Translate.h"
 
-Translate::Translate() {
+Translate::Translate(int _useless) {
   // 初始化内参矩阵
   K = Mat::zeros(3, 3, CV_64FC1);
-  K.at<double>(0, 0) = 646.3999802324365; 
+  K.at<double>(0, 0) = 646.3999802324365;// fx
   K.at<double>(0, 1) = 0; 
-  K.at<double>(0, 2) = 439.6819232174948; 
+  K.at<double>(0, 2) = 439.6819232174948;// cx
   K.at<double>(1, 0) = 0; 
-  K.at<double>(1, 1) = 695.073515875543; 
-  K.at<double>(1, 2) = 395.4597934067736; 
+  K.at<double>(1, 1) = 695.073515875543;// fy
+  K.at<double>(1, 2) = 395.4597934067736;// cy
   K.at<double>(2, 0) = 0; 
   K.at<double>(2, 1) = 0; 
   K.at<double>(2, 2) = 1; 
@@ -114,7 +114,7 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   translation.emplace_back(T.at<double>(1, 2));
   translation.emplace_back(T.at<double>(2, 0));
   translation.emplace_back(T.at<double>(0, 1));
-  normalize(translation, translation);
+  // normalize(translation, translation);
   for (int i = 0; i < 3; i ++) {
     LOG("%lf", translation[i]);
   }
