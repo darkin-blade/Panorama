@@ -99,8 +99,14 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
     X.emplace_back(origin_features[_m1][src]);
     Y.emplace_back(origin_features[_m2][dst]);
   }
+  /*
+    p1 = R1 p
+    p2 = R2 p
+    p2 = R2 R1T p
+  */
   E = findEssentialMat(X, Y, K);
   int result = recoverPose(E, X, Y, K, R, t);
+  // R = rotations[_m2] * rotations[_m1].t();
 
   cout << E << endl;
   cout << R << endl;
@@ -149,6 +155,7 @@ void Translate::getFeaturePairs() {
   for (int i = 0; i < imgNum; i ++) {
     for (int j = i + 1; j < imgNum; j ++) {
       initial_indices[i][j] = getInitialFeaturePairs(i, j);
+      LOG("%d %d has initial pairs %ld", i, j, initial_indices[i][j].size());
       
       // RANSAC 筛选
       vector<Point2f> X, Y;
@@ -161,7 +168,7 @@ void Translate::getFeaturePairs() {
       }
 
       indices[i][j] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices[i][j]);
-      LOG("%d %d has feature pairs %ld", i, j, initial_indices[i][j].size());
+      LOG("%d %d has feature pairs %ld", i, j, indices[i][j].size());
     }
   }
 }
@@ -233,12 +240,12 @@ vector<pair<int, int> > Translate::getFeaturePairsBySequentialRANSAC(
     const vector<Point2f> & _X,
     const vector<Point2f> & _Y,
     const vector<pair<int, int> > & _initial_indices) {
-  vector<char> final_mask(initial_indices.size(), 0);// 存储最终的结果
+  vector<char> final_mask(_initial_indices.size(), 0);// 存储最终的结果
   findHomography(_X, _Y, CV_RANSAC, GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST, final_mask, GLOBAL_MAX_ITERATION);
 
   vector<Point2f> tmp_X = _X, tmp_Y = _Y;
 
-  vector<int> mask_indices(initial_indices.size(), 0);
+  vector<int> mask_indices(_initial_indices.size(), 0);
   for (int i = 0; i < mask_indices.size(); i ++) {
     mask_indices[i] = i;
   }
