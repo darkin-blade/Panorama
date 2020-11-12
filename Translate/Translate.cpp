@@ -124,19 +124,46 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   t.at<double>(1, 0) = T.at<double>(0, 2);
   t.at<double>(2, 0) = T.at<double>(1, 0);
 
-  // 4 对解进行筛选
+  // 4 对解进行筛选: 对t进行符号判断
+  selectSolution(X, Y);
+
+  return T;
+}
+
+void Translate::selectSolution(InputArray _points1, InputArray _points2) {
+
+  // 初始化特征点对
+  Mat points1, points2;
+  _points1.getMat().convertTo(points1, CV_64F);
+  _points2.getMat().convertTo(points2, CV_64F);
+  int npoints = points1.checkVector(2);
+  if (points1.channels() > 1) {
+    points1 = points1.reshape(1, npoints);
+    points2 = points2.reshape(1, npoints);
+  }
+  double fx = K.at<double>(0, 0);
+  double fy = K.at<double>(1, 1);
+  double cx = K.at<double>(0, 2);
+  double cy = K.at<double>(1, 2);
+  points1.col(0) = (points1.col(0) - cx) / fx;
+  points1.col(1) = (points1.col(1) - cy) / fy;
+  points2.col(0) = (points2.col(0) - cx) / fx;
+  points2.col(1) = (points2.col(1) - cy) / fy;
+  points1 = points1.t();
+  points2 = points2.t();
+
+  // 初始化
   Mat P0 = Mat::eye(3, 4, R.type());
   Mat P1(3, 4, R.type()), P2(3, 4, R.type());
   P1(Range::all(), Range(0, 3)) = R * 1.0;
   P1.col(3) = t * 1.0;
   P2(Range::all(), Range(0, 3)) = R * 1.0;
   P2.col(3) = -t * 1.0;
-
   Mat Q;
   double distanceThresh = 50;
 
   // 第一组解
-  triangulatePoints(P0, P1, X, Y, Q);
+  triangulatePoints(P0, P1, points1, points2, Q);
   Q.convertTo(Q, CV_64FC1);
   Mat mask1 = Q.row(2).mul(Q.row(3)) > 0;
   Q.row(0) /= Q.row(3);
@@ -149,7 +176,7 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   mask1 = (Q.row(2) < distanceThresh) & mask1;
 
   // 第二组解
-  triangulatePoints(P0, P2, X, Y, Q);
+  triangulatePoints(P0, P2, points1, points2, Q);
   Q.convertTo(Q, CV_64FC1);
   Mat mask2 = Q.row(2).mul(Q.row(3)) > 0;
   Q.row(0) /= Q.row(3);
@@ -164,6 +191,8 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   // 计算景深为正的点
   int good1 = countNonZero(mask1);
   int good2 = countNonZero(mask2);
+  LOG("%d %d", good1, good2);
+  cout << t << endl;
   if (good1 < good2) {
     t = -t;
   }
@@ -171,17 +200,15 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   normalize(t, t);
   cout << t << endl;
 
-  /* DEBUG */
+  // opencv官方结果作比较
   LOG("Debug");
   Mat R1, R2;
   decomposeEssentialMat(E, R1, R2, t);
   cout << R1 << endl;
   cout << R2 << endl;
-  int result = recoverPose(E, X, Y, K, R, t);
+  int result = recoverPose(E, _points1, _points2, K, R, t);
   cout << R << endl;
   cout << t << endl;
-
-  return T;
 }
 
 void Translate::getFeaturePairs() {
