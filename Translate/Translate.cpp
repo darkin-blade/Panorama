@@ -99,32 +99,87 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
     X.emplace_back(origin_features[_m1][src]);
     Y.emplace_back(origin_features[_m2][dst]);
   }
+
+  // 1 计算本质矩阵
+  LOG("%d %d", _m1, _m2);
+  E = findEssentialMat(X, Y, K);
+  // cout << E << endl;
+
+  // 2 计算旋转矩阵
   /*
     p1 = R1 p
     p2 = R2 p
     p2 = R2 R1T p
   */
-  E = findEssentialMat(X, Y, K);
-  int result = recoverPose(E, X, Y, K, R, t);
-  // R = rotations[_m2] * rotations[_m1].t();
-
-  cout << E << endl;
+  R = rotations[_m2] * rotations[_m1].t();
+  LOG("My result");
   cout << R << endl;
+
+  // 3 计算平移向量
+  T = E * R.t();
+  // cout << T << endl;
+
+  t = Mat::zeros(3, 1, R.type());
+  t.at<double>(0, 0) = T.at<double>(2, 1);
+  t.at<double>(1, 0) = T.at<double>(0, 2);
+  t.at<double>(2, 0) = T.at<double>(1, 0);
+
+  // 4 对解进行筛选
+  Mat P0 = Mat::eye(3, 4, R.type());
+  Mat P1(3, 4, R.type()), P2(3, 4, R.type());
+  P1(Range::all(), Range(0, 3)) = R * 1.0;
+  P1.col(3) = t * 1.0;
+  P2(Range::all(), Range(0, 3)) = R * 1.0;
+  P2.col(3) = -t * 1.0;
+
+  Mat Q;
+  double distanceThresh = 50;
+
+  // 第一组解
+  triangulatePoints(P0, P1, X, Y, Q);
+  Q.convertTo(Q, CV_64FC1);
+  Mat mask1 = Q.row(2).mul(Q.row(3)) > 0;
+  Q.row(0) /= Q.row(3);
+  Q.row(1) /= Q.row(3);
+  Q.row(2) /= Q.row(3);
+  Q.row(3) /= Q.row(3);
+  mask1 = (Q.row(2) < distanceThresh) & mask1;
+  Q = P1 * Q;
+  mask1 = (Q.row(2) > 0) & mask1;
+  mask1 = (Q.row(2) < distanceThresh) & mask1;
+
+  // 第二组解
+  triangulatePoints(P0, P2, X, Y, Q);
+  Q.convertTo(Q, CV_64FC1);
+  Mat mask2 = Q.row(2).mul(Q.row(3)) > 0;
+  Q.row(0) /= Q.row(3);
+  Q.row(1) /= Q.row(3);
+  Q.row(2) /= Q.row(3);
+  Q.row(3) /= Q.row(3);
+  mask2 = (Q.row(2) < distanceThresh) & mask2;
+  Q = P2 * Q;
+  mask2 = (Q.row(2) > 0) & mask2;
+  mask2 = (Q.row(2) < distanceThresh) & mask2;
+
+  // 计算景深为正的点
+  int good1 = countNonZero(mask1);
+  int good2 = countNonZero(mask2);
+  if (good1 < good2) {
+    t = -t;
+  }
+  // cout << t << endl;
+  normalize(t, t);
   cout << t << endl;
 
-  LOG("T:");
-  T = E * R.t();
-  cout << T << endl;
-
-  vector<double> translation;
-  translation.emplace_back(T.at<double>(1, 2));
-  translation.emplace_back(T.at<double>(2, 0));
-  translation.emplace_back(T.at<double>(0, 1));
-  // normalize(translation, translation);
-  for (int i = 0; i < 3; i ++) {
-    LOG("%lf", translation[i]);
-  }
-
+  /* DEBUG */
+  LOG("Debug");
+  Mat R1, R2;
+  decomposeEssentialMat(E, R1, R2, t);
+  cout << R1 << endl;
+  cout << R2 << endl;
+  int result = recoverPose(E, X, Y, K, R, t);
+  cout << R << endl;
+  cout << t << endl;
 
   return T;
 }
