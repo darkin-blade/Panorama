@@ -51,10 +51,14 @@ public:
     const double _threshold);
 
   Mat computeTranslate(int _m1, int _m2);// 计算两张图片之间的位置关系
+  void pixel2Cam(InputArray _src, Mat & _dst);
+  void cam2Cam(InputArray _src, Mat & _dst);
   void selectSolution(InputArray _points1, InputArray _points2);
+  void computeDistance(InputArray _points1, InputArray _points2);// 计算平移距离
   
   /* DEBUG */
   void drawFeature(int _m1, int _m2);
+  void officialResult(InputArray _points1, InputArray _points2);
 };
 
 #endif

@@ -45,9 +45,8 @@ int main(int argc, char *argv[]) {
     translator.init(imgs, rotations);
     translator.getFeaturePairs();
     translator.computeTranslate(0, 1);
-    translator.computeTranslate(1, 2);
-    translator.computeTranslate(2, 3);
-    translator.computeTranslate(3, 4);
+    // translator.computeTranslate(1, 2);
+    // translator.computeTranslate(2, 3);
 
   } else if (true) {
     // 调用自己的方法

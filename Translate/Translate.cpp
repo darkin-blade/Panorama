@@ -90,8 +90,10 @@ void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
 
 Mat Translate::computeTranslate(int _m1, int _m2) {
   // 计算两张图片的平移
-  drawFeature(_m1, _m2);
 
+  // drawFeature(_m1, _m2);
+
+  LOG("%d %d matches", _m1, _m2);
   vector<Point2f> X, Y;// 筛选后的特征点
   for (int k = 0; k < indices[_m1][_m2].size(); k ++) {
     int src = indices[_m1][_m2][k].first;
@@ -101,7 +103,6 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   }
 
   // 1 计算本质矩阵
-  LOG("%d %d", _m1, _m2);
   E = findEssentialMat(X, Y, K);
   // cout << E << endl;
 
@@ -112,7 +113,6 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
     p2 = R2 R1T p
   */
   R = rotations[_m2] * rotations[_m1].t();
-  LOG("My result");
   cout << R << endl;
 
   // 3 计算平移向量
@@ -126,31 +126,43 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
 
   // 4 对解进行筛选: 对t进行符号判断
   selectSolution(X, Y);
+  officialResult(X, Y);
+
+  // 5 计算平移的相对距离
+  computeDistance(X, Y);
 
   return T;
 }
 
-void Translate::selectSolution(InputArray _points1, InputArray _points2) {
-
-  // 初始化特征点对
-  Mat points1, points2;
-  _points1.getMat().convertTo(points1, CV_64F);
-  _points2.getMat().convertTo(points2, CV_64F);
-  int npoints = points1.checkVector(2);
-  if (points1.channels() > 1) {
-    points1 = points1.reshape(1, npoints);
-    points2 = points2.reshape(1, npoints);
+void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
+  // TODO 将像素坐标转换为相机坐标
+  _src.getMat().convertTo(_dst, CV_64F);
+  int npoints = _dst.checkVector(2);
+  if (_dst.channels() > 1) {
+    _dst = _dst.reshape(1, npoints);
   }
   double fx = K.at<double>(0, 0);
   double fy = K.at<double>(1, 1);
   double cx = K.at<double>(0, 2);
   double cy = K.at<double>(1, 2);
-  points1.col(0) = (points1.col(0) - cx) / fx;
-  points1.col(1) = (points1.col(1) - cy) / fy;
-  points2.col(0) = (points2.col(0) - cx) / fx;
-  points2.col(1) = (points2.col(1) - cy) / fy;
-  points1 = points1.t();
-  points2 = points2.t();
+  _dst.col(0) = (_dst.col(0) - cx) / fx;
+  _dst.col(1) = (_dst.col(1) - cy) / fy;
+  _dst = _dst.t();
+}
+
+void Translate::cam2Cam(InputArray _src, Mat & _dst) {
+  // TODO 二维坐标转齐次坐标
+  Mat src;
+  _src.getMat().copyTo(src);
+  _dst = Mat::ones(3, src.cols, src.type());// 对于单通道, 所有元素为1
+  _dst(Range(0, 2), Range::all()) = src * 1.0;
+}
+
+void Translate::selectSolution(InputArray _points1, InputArray _points2) {
+  // 初始化特征点对
+  Mat points1, points2;
+  pixel2Cam(_points1, points1);
+  pixel2Cam(_points2, points2);
 
   // 初始化
   Mat P0 = Mat::eye(3, 4, R.type());
@@ -191,24 +203,94 @@ void Translate::selectSolution(InputArray _points1, InputArray _points2) {
   // 计算景深为正的点
   int good1 = countNonZero(mask1);
   int good2 = countNonZero(mask2);
-  LOG("%d %d", good1, good2);
-  cout << t << endl;
   if (good1 < good2) {
     t = -t;
   }
   // cout << t << endl;
-  normalize(t, t);
+  // normalize(t, t);
   cout << t << endl;
+}
 
+void Translate::computeDistance(InputArray _points1, InputArray _points2) {
+
+  // 将特征点从图像参考系转换到相机参考系中
+  Mat points1, points2;
+  pixel2Cam(_points1, points1);
+  pixel2Cam(_points2, points2);
+  cam2Cam(points1, points1);
+  cam2Cam(points2, points2);
+
+  // 计算相机参考系中特征点的转换
+  Mat distance = points2 - R * points1;
+  cout << distance << endl;
+
+  /*
+  // 三角测量
+  Mat P1, P2; 
+  Mat Q1, Q2;
+  Mat tmpPoint;
+  
+  // 正向计算
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P2(Range::all(), Range(0, 3)) = R * 1.0;
+  P2.col(3) = t * 1.0;
+
+  triangulatePoints(P1, P2, points1, points2, Q1);
+
+  // 转换成非齐次坐标
+  tmpPoint = Q1.col(0);
+  tmpPoint /= tmpPoint.at<double>(3, 0);
+  Mat p1 = Mat::zeros(3, 1, CV_64FC1);
+  p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+  p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+  p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+  cout << p1 << endl;
+  
+  // 反向计算
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P1(Range::all(), Range(0, 3)) = R.t() * 1.0;
+  P1.col(3) = -t * 1.0;
+
+  triangulatePoints(P1, P2, points1, points2, Q2);
+
+  // 转换成非齐次坐标
+  tmpPoint = Q2.col(0);
+  tmpPoint /= tmpPoint.at<double>(3, 0);
+  Mat p2 = Mat::zeros(3, 1, CV_64FC1);
+  p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+  p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+  p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+  cout << p2 << endl;
+  cout << R.t() * p2 - t << endl;
+  */
+}
+
+void Translate::officialResult(InputArray _points1, InputArray _points2) {
   // opencv官方结果作比较
-  LOG("Debug");
-  Mat R1, R2;
-  decomposeEssentialMat(E, R1, R2, t);
-  cout << R1 << endl;
-  cout << R2 << endl;
-  int result = recoverPose(E, _points1, _points2, K, R, t);
-  cout << R << endl;
-  cout << t << endl;
+  // Mat R1, R2;
+  // decomposeEssentialMat(E, R1, R2, t);
+  // cout << R1 << endl;
+  // cout << R2 << endl;
+  Mat tmpE, tmpR, tmpt;
+
+  // 正向
+  LOG("forward");
+  tmpE = findEssentialMat(_points1, _points2, K);
+  recoverPose(tmpE, _points1, _points2, K, tmpR, tmpt);
+  cout << tmpR << endl;
+  cout << tmpt << endl;
+  // TODO 保存结果
+  E = tmpE;
+  R = tmpR;
+  t = tmpt;
+  // 反向
+  LOG("backward");
+  tmpE = findEssentialMat(_points2, _points1, K);
+  recoverPose(tmpE, _points2, _points1, K, tmpR, tmpt);
+  cout << tmpR << endl;
+  cout << tmpt << endl;
 }
 
 void Translate::getFeaturePairs() {
@@ -250,6 +332,10 @@ void Translate::getFeaturePairs() {
       }
 
       indices[i][j] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices[i][j]);
+      // 反向配对
+      for (int k = 0; k < indices[i][j].size(); k ++) {
+        indices[j][i].emplace_back(make_pair(indices[i][j][k].second, indices[i][j][k].first));
+      }
       LOG("%d %d has feature pairs %ld", i, j, indices[i][j].size());
     }
   }
