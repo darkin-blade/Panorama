@@ -45,8 +45,9 @@ int main(int argc, char *argv[]) {
     translator.init(imgs, rotations);
     translator.getFeaturePairs();
     translator.computeTranslate(0, 1);
-    // translator.computeTranslate(1, 2);
+    translator.computeTranslate(1, 2);
     // translator.computeTranslate(2, 3);
+    translator.computeDistance(0, 1, 2);
 
   } else if (true) {
     // 调用自己的方法
@@ -54,8 +55,8 @@ int main(int argc, char *argv[]) {
     // 读取图片
     MultiImages multi_images;
     for (int i = 1; i <= 2; i ++) {
-        sprintf(img_path, "%s/%d.jpg", app_path, i);
-        multi_images.readImg(img_path);
+      sprintf(img_path, "%s/%d.jpg", app_path, i);
+      multi_images.readImg(img_path);
     }
     // 自动从前往后匹配
     for (int i = 1; i < multi_images.img_num; i ++) {
@@ -81,9 +82,9 @@ int main(int argc, char *argv[]) {
     
     vector<Mat> images;
     for (int i = 1; i <= 2; i ++) {
-        sprintf(img_path, "%s/%d.jpg", app_path, i);
-        Mat tmp_img = imread(img_path);
-        images.push_back(tmp_img);
+      sprintf(img_path, "%s/%d.jpg", app_path, i);
+      Mat tmp_img = imread(img_path);
+      images.push_back(tmp_img);
     }
     Mat result_1 = OpenCV_Stitching::opencv_stitch(images);
 

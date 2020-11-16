@@ -5,7 +5,6 @@
 #include "../Feature/MultiImages.h" /* TODO */
 #include "../Util/Statistics.h"
 
-
 class Translate {
 public:
   Translate(int _useless);
@@ -22,8 +21,8 @@ public:
   vector<vector<Point2f> >         origin_features;// 每幅图像原始特征点
   vector<vector<vector<Mat> > >    descriptors;
   /* 匹配 */
-  vector<vector<vector<pair<int, int> > > > initial_indices;// RANSAC之前的配对信息
-  vector<vector<vector<pair<int, int> > > > indices;// RANSAC之后的配对信息
+  vector<vector<vector<pair<int, int> > > >  initial_indices;// RANSAC之前的配对信息
+  vector<vector<vector<pair<int, int> > > >  indices;// RANSAC之后的配对信息
   /* 结果 */
   Mat R;// 两张照片之间的相对旋转矩阵
   Mat H;// 单应矩阵
@@ -32,6 +31,12 @@ public:
   Mat F;// 基本矩阵
   Mat T;// 平移矩阵
   Mat t;// 平移向量
+  vector<vector<Mat> >  translations;
+  vector<Point3f>       positions;
+
+  static bool my_cmp(pair<int, int> _p1, pair<int, int> _p2) {
+    return _p1.first < _p2.first;
+  }
 
   void init(vector<Mat> imgs);
   void init(vector<Mat> imgs, vector<vector<double> > rotations);
@@ -50,11 +55,11 @@ public:
     const vector<Mat> & _descriptor2,
     const double _threshold);
 
-  Mat computeTranslate(int _m1, int _m2);// 计算两张图片之间的位置关系
+  void computeTranslate(int _m1, int _m2);// 计算两张图片之间的位置关系
+  void computeDistance(int _m1, int _m2, int _m3);// 计算平移距离
   void pixel2Cam(InputArray _src, Mat & _dst);
   void cam2Cam(InputArray _src, Mat & _dst);
   void selectSolution(InputArray _points1, InputArray _points2);
-  void computeDistance(InputArray _points1, InputArray _points2);// 计算平移距离
   
   /* DEBUG */
   void drawFeature(int _m1, int _m2);

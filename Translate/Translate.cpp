@@ -88,7 +88,7 @@ void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
   }
 }
 
-Mat Translate::computeTranslate(int _m1, int _m2) {
+void Translate::computeTranslate(int _m1, int _m2) {
   // 计算两张图片的平移
 
   // drawFeature(_m1, _m2);
@@ -107,31 +107,101 @@ Mat Translate::computeTranslate(int _m1, int _m2) {
   // cout << E << endl;
 
   // 2 计算旋转矩阵
-  /*
-    p1 = R1 p
-    p2 = R2 p
-    p2 = R2 R1T p
-  */
-  R = rotations[_m2] * rotations[_m1].t();
-  cout << R << endl;
+  // R = rotations[_m2] * rotations[_m1].t();
+  // cout << R << endl;
 
   // 3 计算平移向量
-  T = E * R.t();
+  // T = E * R.t();
   // cout << T << endl;
-
-  t = Mat::zeros(3, 1, R.type());
-  t.at<double>(0, 0) = T.at<double>(2, 1);
-  t.at<double>(1, 0) = T.at<double>(0, 2);
-  t.at<double>(2, 0) = T.at<double>(1, 0);
+  // t = Mat::zeros(3, 1, R.type());
+  // t.at<double>(0, 0) = T.at<double>(2, 1);
+  // t.at<double>(1, 0) = T.at<double>(0, 2);
+  // t.at<double>(2, 0) = T.at<double>(1, 0);
 
   // 4 对解进行筛选: 对t进行符号判断
-  selectSolution(X, Y);
+  // selectSolution(X, Y);
   officialResult(X, Y);
 
-  // 5 计算平移的相对距离
-  computeDistance(X, Y);
+  // 5 保存无量纲的结果
+  if (translations.empty()) {
+    translations.resize(imgNum);
+    for (int i = 0; i < imgNum; i ++) {
+      translations[i].resize(imgNum);
+    }
+  }
+  translations[_m1][_m2] = t;
+  translations[_m2][_m1] = -t;
+}
 
-  return T;
+void Translate::computeDistance(int _m1, int _m2, int _m3) {
+  // 必须有_m1与_m2邻接, _m2与_m3邻接
+
+  // 筛选公共特征点对
+  vector<pair<int, int> >  indices1 = indices[_m2][_m1];
+  vector<pair<int, int> >  indices2 = indices[_m2][_m3];
+  vector<Point2f> points1, points2, points3;
+  for (int i = 0, j = 0; i < indices1.size() && j < indices2.size(); ) {
+    if (indices1[i].first < indices2[j].first) {
+      i ++;
+    } else if (indices1[i].first > indices2[j].first) {
+      j ++;
+    } else {
+      points1.emplace_back(origin_features[_m1][indices1[i].second]);
+      points2.emplace_back(origin_features[_m2][indices1[i].first]);
+      points3.emplace_back(origin_features[_m3][indices2[j].second]);
+      LOG("%d %d %d", indices1[i].second, indices1[i].first, indices2[j].second);
+      i ++;
+      j ++;
+    }
+  }
+
+  // 将特征点从图像参考系转换到相机参考系中
+  Mat cPoints1, cPoints2, cPoints3;
+  pixel2Cam(points1, cPoints1);
+  pixel2Cam(points2, cPoints2);
+  pixel2Cam(points3, cPoints3);
+
+  /*
+  // 三角测量
+  Mat P1, P2; 
+  Mat Q1, Q2;
+  Mat tmpPoint;
+  
+  // 正向计算
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P2(Range::all(), Range(0, 3)) = R * 1.0;
+  P2.col(3) = t * 1.0;
+
+  triangulatePoints(P1, P2, points1, points2, Q1);
+
+  // 转换成非齐次坐标
+  tmpPoint = Q1.col(0);
+  tmpPoint /= tmpPoint.at<double>(3, 0);
+  Mat p1 = Mat::zeros(3, 1, CV_64FC1);
+  p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+  p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+  p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+  cout << p1 << endl;
+  
+  // 反向计算
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P1(Range::all(), Range(0, 3)) = R.t() * 1.0;
+  P1.col(3) = -t * 1.0;
+
+  triangulatePoints(P1, P2, points1, points2, Q2);
+
+  // 转换成非齐次坐标
+  tmpPoint = Q2.col(0);
+  tmpPoint /= tmpPoint.at<double>(3, 0);
+  Mat p2 = Mat::zeros(3, 1, CV_64FC1);
+  p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+  p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+  p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+  cout << p2 << endl;
+  cout << R.t() * p2 - t << endl;
+  */
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
@@ -211,62 +281,6 @@ void Translate::selectSolution(InputArray _points1, InputArray _points2) {
   cout << t << endl;
 }
 
-void Translate::computeDistance(InputArray _points1, InputArray _points2) {
-
-  // 将特征点从图像参考系转换到相机参考系中
-  Mat points1, points2;
-  pixel2Cam(_points1, points1);
-  pixel2Cam(_points2, points2);
-  cam2Cam(points1, points1);
-  cam2Cam(points2, points2);
-
-  // 计算相机参考系中特征点的转换
-  Mat distance = points2 - R * points1;
-  cout << distance << endl;
-
-  /*
-  // 三角测量
-  Mat P1, P2; 
-  Mat Q1, Q2;
-  Mat tmpPoint;
-  
-  // 正向计算
-  P1 = Mat::eye(3, 4, R.type());
-  P2 = Mat::eye(3, 4, R.type());
-  P2(Range::all(), Range(0, 3)) = R * 1.0;
-  P2.col(3) = t * 1.0;
-
-  triangulatePoints(P1, P2, points1, points2, Q1);
-
-  // 转换成非齐次坐标
-  tmpPoint = Q1.col(0);
-  tmpPoint /= tmpPoint.at<double>(3, 0);
-  Mat p1 = Mat::zeros(3, 1, CV_64FC1);
-  p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-  p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-  p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-  cout << p1 << endl;
-  
-  // 反向计算
-  P1 = Mat::eye(3, 4, R.type());
-  P2 = Mat::eye(3, 4, R.type());
-  P1(Range::all(), Range(0, 3)) = R.t() * 1.0;
-  P1.col(3) = -t * 1.0;
-
-  triangulatePoints(P1, P2, points1, points2, Q2);
-
-  // 转换成非齐次坐标
-  tmpPoint = Q2.col(0);
-  tmpPoint /= tmpPoint.at<double>(3, 0);
-  Mat p2 = Mat::zeros(3, 1, CV_64FC1);
-  p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-  p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-  p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-  cout << p2 << endl;
-  cout << R.t() * p2 - t << endl;
-  */
-}
-
 void Translate::officialResult(InputArray _points1, InputArray _points2) {
   // opencv官方结果作比较
   // Mat R1, R2;
@@ -336,6 +350,8 @@ void Translate::getFeaturePairs() {
       for (int k = 0; k < indices[i][j].size(); k ++) {
         indices[j][i].emplace_back(make_pair(indices[i][j][k].second, indices[i][j][k].first));
       }
+      // 将反向配对进行排序
+      sort(indices[j][i].begin(), indices[j][i].end(), my_cmp);
       LOG("%d %d has feature pairs %ld", i, j, indices[i][j].size());
     }
   }
