@@ -46,11 +46,11 @@ int main(int argc, char *argv[]) {
     Translate translator(0);
     translator.init(imgs, angles);
     translator.getFeaturePairs();
-    translator.computeTranslate(0, 2);
     translator.computeTranslate(0, 1);
-    translator.computeTranslate(1, 2);
-    translator.computeDistance(1, 0, 2);
-    translator.computeDistance(0, 1, 2);
+    // translator.computeTranslate(0, 2);
+    // translator.computeTranslate(1, 2);
+    // translator.computeDistance(1, 0, 2);
+    // translator.computeDistance(0, 1, 2);
 
   } else if (true) {
     // 调用自己的方法

@@ -117,7 +117,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
   // 列方程
   points1 = points1.t();
-  int equations = points1.cols;
+  int equations = points2.cols;
   Mat tmpA = Mat::zeros(equations, 3, CV_64FC1);
   for (int i = 0; i < equations; i ++) {
     Mat tmp1 = points1.row(i);
@@ -135,7 +135,15 @@ void Translate::computeTranslate(int _m1, int _m2) {
   }
   MatrixXd A(equations, 3);
   cv2eigen(tmpA, A);
+  VectorXd b(equations);
+  for (int i = 0; i < equations; i ++) {
+    b(i) = 0;
+  }
   cout << A << endl;
+  cout << b << endl;
+  VectorXd x = A.colPivHouseholderQr().solve(b);
+  cout << x << endl;
+
   /*
            0 -z  y
       T =  z  0 -x
@@ -260,10 +268,16 @@ void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
 void Translate::homogenization(InputArray _src, Mat & _dst) {
   // TODO 坐标齐次化
   Mat src;
-  _src.getMat().copyTo(src);
-  int dimension = src.rows;// 坐标的维度
-  _dst = Mat::ones(dimension + 1, src.cols, src.type());// 对于单通道, 所有元素为1
-  _dst(Range(0, dimension), Range::all()) = src * 1.0;
+  _src.getMat().convertTo(src, CV_64F);
+  int npoints = src.checkVector(2);
+  if (src.channels() > 1) {
+    src = src.reshape(1, npoints);
+  }
+
+  int dimension = src.cols;// 坐标的维度
+  _dst = Mat::ones(src.rows, dimension + 1, src.type());// 对于单通道, 所有元素为1
+  _dst(Range::all(), Range(0, dimension)) = src * 1.0;
+  _dst = _dst.t();
 }
 
 void Translate::selectSolution(InputArray _points1, InputArray _points2) {
