@@ -28,6 +28,7 @@
 #include <opencv2/calib3d/calib3d_c.h> /* CV_RANSAC */
 #include <opencv2/calib3d.hpp> /* findHomography */
 #include <opencv2/core.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/features2d.hpp>

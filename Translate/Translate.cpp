@@ -103,20 +103,45 @@ void Translate::computeTranslate(int _m1, int _m2) {
     Y.emplace_back(origin_features[_m2][dst]);
   }
 
-  // 计算平移矩阵
+  // 计算旋转矩阵
+  R = angles[_m2] * angles[_m1].t();
+  // cout << R << endl;
+
+  // 坐标齐次化
+  Mat points1, points2;
+  homogenization(X, points1);
+  homogenization(Y, points2);
+  // 将像素坐标转换至相机坐标系
+  points1 = K.inv() * points1;
+  points2 = K.inv() * points2;
+
+  // 列方程
+  points1 = points1.t();
+  int equations = points1.cols;
+  Mat tmpA = Mat::zeros(equations, 3, CV_64FC1);
+  for (int i = 0; i < equations; i ++) {
+    Mat tmp1 = points1.row(i);
+    Mat tmp2 = points2.col(i);
+    tmp2 = R * tmp2;
+    double a = tmp1.at<double>(0, 0);
+    double b = tmp1.at<double>(0, 1);
+    double c = tmp1.at<double>(0, 2);
+    double d = tmp2.at<double>(0, 0);
+    double e = tmp2.at<double>(1, 0);
+    double f = tmp2.at<double>(2, 0);
+    tmpA.at<double>(i, 0) = c*e - b*f;
+    tmpA.at<double>(i, 1) = a*f - c*d;
+    tmpA.at<double>(i, 2) = b*d - a*e;
+  }
+  MatrixXd A(equations, 3);
+  cv2eigen(tmpA, A);
+  cout << A << endl;
   /*
            0 -z  y
       T =  z  0 -x
           -y  x  0
   */
-  E = findEssentialMat(X, Y, K);
-  // cout << E << endl;
 
-  // 2 计算旋转矩阵
-  // R = angles[_m2] * angles[_m1].t();
-  // cout << R << endl;
-
-  // 3 计算平移向量
   // T = E * R.t();
   // cout << T << endl;
   // t = Mat::zeros(3, 1, R.type());
@@ -126,25 +151,25 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
   // 4 对解进行筛选: 对t进行符号判断
   // selectSolution(X, Y);
-  officialResult(X, Y);
+  // officialResult(X, Y);
 
   // 5 保存无量纲的结果
-  if (translations.empty()) {
-    translations.resize(imgNum);
-    for (int i = 0; i < imgNum; i ++) {
-      translations[i].resize(imgNum);
-    }
-  }
-  if (rotations.empty()) {
-    rotations.resize(imgNum);
-    for (int i = 0; i < imgNum; i ++) {
-      rotations[i].resize(imgNum);
-    }
-  }
-  translations[_m1][_m2] = t;
-  translations[_m2][_m1] = -t;
-  rotations[_m1][_m2]    = R;
-  rotations[_m2][_m1]    = R.t();
+  // if (translations.empty()) {
+  //   translations.resize(imgNum);
+  //   for (int i = 0; i < imgNum; i ++) {
+  //     translations[i].resize(imgNum);
+  //   }
+  // }
+  // if (rotations.empty()) {
+  //   rotations.resize(imgNum);
+  //   for (int i = 0; i < imgNum; i ++) {
+  //     rotations[i].resize(imgNum);
+  //   }
+  // }
+  // translations[_m1][_m2] = t;
+  // translations[_m2][_m1] = -t;
+  // rotations[_m1][_m2]    = R;
+  // rotations[_m2][_m1]    = R.t();
 }
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
@@ -232,12 +257,13 @@ void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
   _dst = _dst.t();
 }
 
-void Translate::cam2Cam(InputArray _src, Mat & _dst) {
-  // TODO 二维坐标转齐次坐标
+void Translate::homogenization(InputArray _src, Mat & _dst) {
+  // TODO 坐标齐次化
   Mat src;
   _src.getMat().copyTo(src);
-  _dst = Mat::ones(3, src.cols, src.type());// 对于单通道, 所有元素为1
-  _dst(Range(0, 2), Range::all()) = src * 1.0;
+  int dimension = src.rows;// 坐标的维度
+  _dst = Mat::ones(dimension + 1, src.cols, src.type());// 对于单通道, 所有元素为1
+  _dst(Range(0, dimension), Range::all()) = src * 1.0;
 }
 
 void Translate::selectSolution(InputArray _points1, InputArray _points2) {

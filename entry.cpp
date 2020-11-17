@@ -24,8 +24,27 @@ int main(int argc, char *argv[]) {
       imgs.emplace_back(imread(img_path));
     }
     
+    // 旋转角度
+    vector<vector<double> > angles;
+    angles.resize(img_num);
+    angles[0].emplace_back(-1.7727747821623423);
+    angles[0].emplace_back(-1.2046083611906258);
+    angles[0].emplace_back(-0.07636999126248714);
+    angles[1].emplace_back(-1.7961681081772853);
+    angles[1].emplace_back(-1.1063589686289546);
+    angles[1].emplace_back(-0.05165574200540764);
+    angles[2].emplace_back(-1.8131099428487696);
+    angles[2].emplace_back(-1.0113484666496424);
+    angles[2].emplace_back(-0.029075093450736226);
+    // angles[3].emplace_back(-1.8129701671241036);
+    // angles[3].emplace_back(-0.8932221241652141);
+    // angles[3].emplace_back(-0.031870336417531085);
+    // angles[4].emplace_back(-1.7987892537750525);
+    // angles[4].emplace_back(-0.6939892561591119);
+    // angles[4].emplace_back(-0.04792004343748554);
+
     Translate translator(0);
-    translator.init(imgs);
+    translator.init(imgs, angles);
     translator.getFeaturePairs();
     translator.computeTranslate(0, 2);
     translator.computeTranslate(0, 1);
