@@ -52,7 +52,7 @@ void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
   // 读取图片
   init(imgs);
 
-  rotations.clear();
+  angles.clear();
 
   // 计算旋转矩阵
   assert(_rotations.size() == imgNum);
@@ -84,7 +84,7 @@ void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
     R_z.at<double>(2, 2) = 1;
 
     // 计算旋转矩阵: https://zhuanlan.zhihu.com/p/144032401
-    rotations.emplace_back(R_x * R_y * R_z);
+    angles.emplace_back(R_x * R_y * R_z);
   }
 }
 
@@ -94,6 +94,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
   // drawFeature(_m1, _m2);
 
   LOG("%d %d matches", _m1, _m2);
+  // 筛选特征点对
   vector<Point2f> X, Y;// 筛选后的特征点
   for (int k = 0; k < indices[_m1][_m2].size(); k ++) {
     int src = indices[_m1][_m2][k].first;
@@ -102,12 +103,17 @@ void Translate::computeTranslate(int _m1, int _m2) {
     Y.emplace_back(origin_features[_m2][dst]);
   }
 
-  // 1 计算本质矩阵
+  // 计算平移矩阵
+  /*
+           0 -z  y
+      T =  z  0 -x
+          -y  x  0
+  */
   E = findEssentialMat(X, Y, K);
   // cout << E << endl;
 
   // 2 计算旋转矩阵
-  // R = rotations[_m2] * rotations[_m1].t();
+  // R = angles[_m2] * angles[_m1].t();
   // cout << R << endl;
 
   // 3 计算平移向量
@@ -129,8 +135,16 @@ void Translate::computeTranslate(int _m1, int _m2) {
       translations[i].resize(imgNum);
     }
   }
+  if (rotations.empty()) {
+    rotations.resize(imgNum);
+    for (int i = 0; i < imgNum; i ++) {
+      rotations[i].resize(imgNum);
+    }
+  }
   translations[_m1][_m2] = t;
   translations[_m2][_m1] = -t;
+  rotations[_m1][_m2]    = R;
+  rotations[_m2][_m1]    = R.t();
 }
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
@@ -149,7 +163,6 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
       points1.emplace_back(origin_features[_m1][indices1[i].second]);
       points2.emplace_back(origin_features[_m2][indices1[i].first]);
       points3.emplace_back(origin_features[_m3][indices2[j].second]);
-      LOG("%d %d %d", indices1[i].second, indices1[i].first, indices2[j].second);
       i ++;
       j ++;
     }
@@ -160,23 +173,25 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
   pixel2Cam(points1, cPoints1);
   pixel2Cam(points2, cPoints2);
   pixel2Cam(points3, cPoints3);
+  LOG("%d %d t:", _m2, _m1);
+  cout << translations[_m2][_m1] << endl;
+  LOG("%d %d t:", _m2, _m3);
+  cout << translations[_m2][_m3] << endl;
 
-  /*
   // 三角测量
   Mat P1, P2; 
-  Mat Q1, Q2;
+  Mat Q;
   Mat tmpPoint;
   
-  // 正向计算
+  // m2 - m1
   P1 = Mat::eye(3, 4, R.type());
   P2 = Mat::eye(3, 4, R.type());
-  P2(Range::all(), Range(0, 3)) = R * 1.0;
-  P2.col(3) = t * 1.0;
-
-  triangulatePoints(P1, P2, points1, points2, Q1);
+  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m1] * 1.0;
+  P2.col(3) = translations[_m2][_m1] * 1.0;
+  triangulatePoints(P1, P2, cPoints2, cPoints1, Q);
 
   // 转换成非齐次坐标
-  tmpPoint = Q1.col(0);
+  tmpPoint = Q.col(0);
   tmpPoint /= tmpPoint.at<double>(3, 0);
   Mat p1 = Mat::zeros(3, 1, CV_64FC1);
   p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
@@ -184,24 +199,21 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
   p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
   cout << p1 << endl;
   
-  // 反向计算
+  // m2 - m3
   P1 = Mat::eye(3, 4, R.type());
   P2 = Mat::eye(3, 4, R.type());
-  P1(Range::all(), Range(0, 3)) = R.t() * 1.0;
-  P1.col(3) = -t * 1.0;
-
-  triangulatePoints(P1, P2, points1, points2, Q2);
+  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m3] * 1.0;
+  P2.col(3) = translations[_m2][_m3] * 1.0;
+  triangulatePoints(P1, P2, cPoints2, cPoints3, Q);
 
   // 转换成非齐次坐标
-  tmpPoint = Q2.col(0);
+  tmpPoint = Q.col(0);
   tmpPoint /= tmpPoint.at<double>(3, 0);
   Mat p2 = Mat::zeros(3, 1, CV_64FC1);
   p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
   p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
   p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
   cout << p2 << endl;
-  cout << R.t() * p2 - t << endl;
-  */
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
@@ -290,21 +302,21 @@ void Translate::officialResult(InputArray _points1, InputArray _points2) {
   Mat tmpE, tmpR, tmpt;
 
   // 正向
-  LOG("forward");
+  // LOG("forward");
   tmpE = findEssentialMat(_points1, _points2, K);
   recoverPose(tmpE, _points1, _points2, K, tmpR, tmpt);
-  cout << tmpR << endl;
-  cout << tmpt << endl;
+  // cout << tmpR << endl;
+  // cout << tmpt << endl;
   // TODO 保存结果
   E = tmpE;
   R = tmpR;
   t = tmpt;
   // 反向
-  LOG("backward");
-  tmpE = findEssentialMat(_points2, _points1, K);
-  recoverPose(tmpE, _points2, _points1, K, tmpR, tmpt);
-  cout << tmpR << endl;
-  cout << tmpt << endl;
+  // LOG("backward");
+  // tmpE = findEssentialMat(_points2, _points1, K);
+  // recoverPose(tmpE, _points2, _points1, K, tmpR, tmpt);
+  // cout << tmpR << endl;
+  // cout << tmpt << endl;
 }
 
 void Translate::getFeaturePairs() {
