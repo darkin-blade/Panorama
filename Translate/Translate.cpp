@@ -118,7 +118,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
   // 列方程
   points1 = points1.t();
   int equations = points2.cols;
-  Mat tmpA = Mat::zeros(equations, 3, CV_64FC1);
+  Mat tmpA = Mat::zeros(equations + 1, 3, CV_64FC1);// TODO 去除奇异解
   for (int i = 0; i < equations; i ++) {
     Mat tmp1 = points1.row(i);
     Mat tmp2 = points2.col(i);
@@ -135,13 +135,17 @@ void Translate::computeTranslate(int _m1, int _m2) {
   }
   MatrixXd A(equations, 3);
   cv2eigen(tmpA, A);
-  VectorXd b(equations);
+  // 去除奇异解
+  A(equations, 0) = 1;
+  VectorXd b(equations + 1);
   for (int i = 0; i < equations; i ++) {
     b(i) = 0;
   }
-  cout << A << endl;
-  cout << b << endl;
+  b(equations) = 1;
+
   VectorXd x = A.colPivHouseholderQr().solve(b);
+  // cout << A << endl;
+  // cout << b << endl;
   cout << x << endl;
 
   /*
@@ -162,22 +166,22 @@ void Translate::computeTranslate(int _m1, int _m2) {
   // officialResult(X, Y);
 
   // 5 保存无量纲的结果
-  // if (translations.empty()) {
-  //   translations.resize(imgNum);
-  //   for (int i = 0; i < imgNum; i ++) {
-  //     translations[i].resize(imgNum);
-  //   }
-  // }
-  // if (rotations.empty()) {
-  //   rotations.resize(imgNum);
-  //   for (int i = 0; i < imgNum; i ++) {
-  //     rotations[i].resize(imgNum);
-  //   }
-  // }
-  // translations[_m1][_m2] = t;
-  // translations[_m2][_m1] = -t;
-  // rotations[_m1][_m2]    = R;
-  // rotations[_m2][_m1]    = R.t();
+  if (translations.empty()) {
+    translations.resize(imgNum);
+    for (int i = 0; i < imgNum; i ++) {
+      translations[i].resize(imgNum);
+    }
+  }
+  if (rotations.empty()) {
+    rotations.resize(imgNum);
+    for (int i = 0; i < imgNum; i ++) {
+      rotations[i].resize(imgNum);
+    }
+  }
+  translations[_m1][_m2] = t;
+  translations[_m2][_m1] = -t;
+  rotations[_m1][_m2]    = R;
+  rotations[_m2][_m1]    = R.t();
 }
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
