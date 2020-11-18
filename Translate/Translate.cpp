@@ -156,13 +156,13 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
   // T = E * R.t();
   // cout << T << endl;
-  // t = Mat::zeros(3, 1, R.type());
-  // t.at<double>(0, 0) = T.at<double>(2, 1);
-  // t.at<double>(1, 0) = T.at<double>(0, 2);
-  // t.at<double>(2, 0) = T.at<double>(1, 0);
+  t = Mat::zeros(3, 1, R.type());
+  t.at<double>(0, 0) = x(0);
+  t.at<double>(1, 0) = x(1);
+  t.at<double>(2, 0) = x(2);
 
-  // 4 对解进行筛选: 对t进行符号判断
-  // selectSolution(X, Y);
+  // 对解进行筛选: 对t进行符号判断
+  selectSolution(X, Y);
   // officialResult(X, Y);
 
   // 5 保存无量纲的结果
