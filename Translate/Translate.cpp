@@ -90,6 +90,11 @@ void Translate::init(vector<Mat> imgs, vector<vector<double> > _rotations) {
 
 void Translate::computeTranslate(int _m1, int _m2) {
   // 计算两张图片的平移
+  /* t = [x, y, z], 以输入图片为参考
+     x: 正为右, 负为左
+     y: 正为上, 负为下
+     z: 正为后, 负为前
+   */
 
   // drawFeature(_m1, _m2);
 
@@ -216,10 +221,10 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
 
 void Translate::computeOrigin(vector<pair<int, int> > _img_pairs) {
   // 计算每幅图像的相对原点
-  computeDistance(0, 1, 2);
-  computeDistance(0, 2, 3);
-  computeDistance(0, 1, 2);
-  computeDistance(0, 2, 3);
+  // computeDistance(0, 1, 2);
+  // computeDistance(0, 2, 3);
+  // computeDistance(0, 1, 2);
+  // computeDistance(0, 2, 3);
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
