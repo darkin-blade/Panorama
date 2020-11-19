@@ -105,7 +105,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
   // 计算旋转矩阵
   R = angles[_m2] * angles[_m1].t();
-  // cout << R << endl;
+  cout << R << endl;
 
   // 坐标齐次化
   Mat points1, points2;

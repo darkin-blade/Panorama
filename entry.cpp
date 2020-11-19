@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     // 计算相机平移
     
     vector<Mat> imgs;
-    int img_num = 5;
+    int img_num = 7;
     for (int i = 1; i <= img_num; i ++) {
       sprintf(img_path, "%s/%d.jpg", app_path, i);
       imgs.emplace_back(imread(img_path));
@@ -27,50 +27,37 @@ int main(int argc, char *argv[]) {
     // 旋转角度
     vector<vector<double> > angles;
     angles.resize(img_num);
-    angles[0].emplace_back(-0.00);
-    angles[0].emplace_back(-0.00);
-    angles[0].emplace_back(+0.00);
-    angles[1].emplace_back(-0.00);
-    angles[1].emplace_back(-0.00);
-    angles[1].emplace_back(+0.00);
-    angles[2].emplace_back(-0.00);
-    angles[2].emplace_back(-0.00);
-    angles[2].emplace_back(+0.00);
-    angles[3].emplace_back(-0.00);
-    angles[3].emplace_back(-0.00);
-    angles[3].emplace_back(+0.00);
-    angles[4].emplace_back(-0.00);
-    angles[4].emplace_back(-0.00);
-    angles[4].emplace_back(+0.00);
-    // angles[0].emplace_back(-1.08);
-    // angles[0].emplace_back(-0.18);
-    // angles[0].emplace_back(+1.56);
-    // angles[1].emplace_back(-1.08);
-    // angles[1].emplace_back(-0.13);
-    // angles[1].emplace_back(+1.57);
-    // angles[2].emplace_back(-1.08);
-    // angles[2].emplace_back(-0.23);
-    // angles[2].emplace_back(+1.57);
-    // angles[3].emplace_back(-1.04);
-    // angles[3].emplace_back(-0.15);
-    // angles[3].emplace_back(+1.56);
-    // angles[4].emplace_back(-1.10);
-    // angles[4].emplace_back(-0.13);
-    // angles[4].emplace_back(+1.55);
-    // angles[5].emplace_back(-1.31);
-    // angles[5].emplace_back(-0.20);
-    // angles[5].emplace_back(+1.55);
-    // angles[6].emplace_back(-1.36);
-    // angles[6].emplace_back(-0.20);
-    // angles[6].emplace_back(+1.54);
+    angles[0].emplace_back(+1.55);
+    angles[0].emplace_back(-0.21);
+    angles[0].emplace_back(-1.48);
+    angles[1].emplace_back(+1.55);
+    angles[1].emplace_back(-0.21);
+    angles[1].emplace_back(-1.43);
+    angles[2].emplace_back(+1.55);
+    angles[2].emplace_back(-0.22);
+    angles[2].emplace_back(-1.44);
+    angles[3].emplace_back(+1.56);
+    angles[3].emplace_back(-0.17);
+    angles[3].emplace_back(-1.41);
+    angles[4].emplace_back(+1.55);
+    angles[4].emplace_back(-0.27);
+    angles[4].emplace_back(-1.36);
+    angles[5].emplace_back(+1.55);
+    angles[5].emplace_back(-0.20);
+    angles[5].emplace_back(-1.31);
+    angles[6].emplace_back(+1.54);
+    angles[6].emplace_back(-0.20);
+    angles[6].emplace_back(-1.36);
 
     Translate translator(0);
     translator.init(imgs, angles);
     translator.getFeaturePairs();
-    // translator.computeTranslate(0, 1);
-    // translator.computeTranslate(0, 2);
+    translator.computeTranslate(0, 1);
+    translator.computeTranslate(0, 2);
     translator.computeTranslate(0, 3);
     translator.computeTranslate(0, 4);
+    translator.computeTranslate(0, 5);
+    translator.computeTranslate(0, 6);
     // translator.computeDistance(1, 0, 2);
     // translator.computeDistance(0, 1, 2);
 
