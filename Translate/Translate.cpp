@@ -186,99 +186,40 @@ void Translate::computeTranslate(int _m1, int _m2) {
 }
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
-  // 必须有_m1与_m2邻接, _m2与_m3邻接
+  // 求解(_m1, _m2) = a(_m2, _m3) + b(_m1, _m3)
+  MatrixXd A(3, 2);
+  VectorXd b(3);
+  A(0, 0) = translations[_m2][_m3].at<double>(0, 0);
+  A(1, 0) = translations[_m2][_m3].at<double>(1, 0);
+  A(2, 0) = translations[_m2][_m3].at<double>(2, 0);
+  A(0, 1) = translations[_m1][_m3].at<double>(0, 0);
+  A(1, 1) = translations[_m1][_m3].at<double>(1, 0);
+  A(2, 1) = translations[_m1][_m3].at<double>(2, 0);
+  b(0)    = translations[_m1][_m2].at<double>(0, 0);
+  b(1)    = translations[_m1][_m2].at<double>(1, 0);
+  b(2)    = translations[_m1][_m2].at<double>(2, 0);
+  VectorXd x = A.colPivHouseholderQr().solve(b);
+  double rate1 = x(0);
+  double rate2 = x(1);
 
-  // 筛选公共特征点对
-  vector<pair<int, int> >  indices1 = indices[_m2][_m1];
-  vector<pair<int, int> >  indices2 = indices[_m2][_m3];
-  vector<Point2f> points1, points2, points3;
-  for (int i = 0, j = 0; i < indices1.size() && j < indices2.size(); ) {
-    if (indices1[i].first < indices2[j].first) {
-      i ++;
-    } else if (indices1[i].first > indices2[j].first) {
-      j ++;
-    } else {
-      points1.emplace_back(origin_features[_m1][indices1[i].second]);
-      points2.emplace_back(origin_features[_m2][indices1[i].first]);
-      points3.emplace_back(origin_features[_m3][indices2[j].second]);
-      i ++;
-      j ++;
-    }
-  }
-
-  // 将特征点从图像参考系转换到相机参考系中
-  Mat cPoints1, cPoints2, cPoints3;
-  pixel2Cam(points1, cPoints1);
-  pixel2Cam(points2, cPoints2);
-  pixel2Cam(points3, cPoints3);
-  LOG("%d %d t:", _m2, _m1);
-  cout << translations[_m2][_m1] << endl;
+  // 进行缩放
+  LOG("(%d,%d) = %lf(%d,%d) + %lf(%d,%d)", _m1, _m2, rate1, _m2, _m3, rate2, _m1, _m3);
   LOG("%d %d t:", _m2, _m3);
-  cout << translations[_m2][_m3] << endl;
-
-  // 三角测量
-  Mat P1, P2; 
-  Mat Q1, Q2;
-  
-  // m2 - m1
-  P1 = Mat::eye(3, 4, R.type());
-  P2 = Mat::eye(3, 4, R.type());
-  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m1] * 1.0;
-  P2.col(3) = translations[_m2][_m1] * 1.0;
-  triangulatePoints(P1, P2, cPoints2, cPoints1, Q1);
-  
-  // m2 - m3
-  P1 = Mat::eye(3, 4, R.type());
-  P2 = Mat::eye(3, 4, R.type());
-  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m3] * 1.0;
-  P2.col(3) = translations[_m2][_m3] * 1.0;
-  triangulatePoints(P1, P2, cPoints2, cPoints3, Q2);
-
-  // 计算缩放比
-  int pointNum = points1.size();
-  Mat tmpPoint;
-  double rateSum = 0;
-  for (int i = 0; i < pointNum; i ++) {
-    tmpPoint = Q1.col(i);
-    tmpPoint /= tmpPoint.at<double>(3, 0);
-    Mat p1 = Mat::zeros(3, 1, CV_64FC1);
-    p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-    p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-    p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-
-    tmpPoint = Q2.col(i);
-    tmpPoint /= tmpPoint.at<double>(3, 0);
-    Mat p2 = Mat::zeros(3, 1, CV_64FC1);
-    p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-    p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-    p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-
-    // 查看三角化的坐标
-    if (i == 0) {
-      cout << p1 << endl;
-      cout << p2 << endl;
-    }
-
-    // 计算比例
-    // double rateX = p1.at<double>(0, 0) / p2.at<double>(0, 0);
-    // double rateY = p1.at<double>(1, 0) / p2.at<double>(1, 0);
-    // double rateZ = p1.at<double>(2, 0) / p2.at<double>(2, 0);
-    // LOG("%d: %lf %lf %lf", i, rateX, rateY, rateZ);
-    double rate = (p1.at<double>(0, 0) * p1.at<double>(0, 0)
-                 + p1.at<double>(1, 0) * p1.at<double>(1, 0)
-                 + p1.at<double>(2, 0) * p1.at<double>(2, 0))
-                 /(p2.at<double>(0, 0) * p2.at<double>(0, 0)
-                 + p2.at<double>(1, 0) * p2.at<double>(1, 0)
-                 + p2.at<double>(2, 0) * p2.at<double>(2, 0));
-    rate = sqrt(rate);
-    rateSum += rate;
-    LOG("%d: %lf", i, rate);
-  }
-  LOG("%d %d average %lf", _m1, _m3, rateSum / pointNum);
+  cout << translations[_m2][_m3] * rate1 << endl;
+  LOG("%d %d t:", _m1, _m3);
+  cout << translations[_m1][_m3] * rate2 << endl;
+  translations[_m2][_m3] *= rate1;
+  translations[_m3][_m2] *= -rate1;
+  translations[_m1][_m2] *= rate2;
+  translations[_m2][_m1] *= -rate2;
 }
 
 void Translate::computeOrigin(vector<pair<int, int> > _img_pairs) {
   // 计算每幅图像的相对原点
+  computeDistance(0, 1, 2);
+  computeDistance(0, 2, 3);
+  computeDistance(0, 1, 2);
+  computeDistance(0, 2, 3);
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
