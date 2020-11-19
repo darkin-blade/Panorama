@@ -14,12 +14,25 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
-  if (1) {
+  if (0) {
+    // 单纯地解方程
+    {
+      MatrixXd A(3, 2);
+      A << -0.95, -0.94,
+            2.48, -2.63,
+            0.27,  0.09;
+      VectorXd b(3);
+      b << 0.60, -5.18, 0.14;
+      VectorXd x = A.colPivHouseholderQr().solve(b);
+      cout << x << endl;
+    }
+
+  } else if (1) {
     // 计算相机平移
     
     // 读取图片
     vector<Mat> imgs;
-    int img_num = 3;
+    int img_num = 4;
     for (int i = 1; i <= img_num; i ++) {
       sprintf(img_path, "%s/%d.jpg", app_path, i);
       imgs.emplace_back(imread(img_path));
@@ -28,15 +41,18 @@ int main(int argc, char *argv[]) {
     // 初始化旋转角度
     vector<vector<double> > angles;
     angles.resize(img_num);
-    angles[0].emplace_back(0);
-    angles[0].emplace_back(0);
-    angles[0].emplace_back(0);
-    angles[1].emplace_back(0);
-    angles[1].emplace_back(0);
-    angles[1].emplace_back(0);
-    angles[2].emplace_back(0);
-    angles[2].emplace_back(0);
-    angles[2].emplace_back(0);
+    angles[0].emplace_back(+1.59);
+    angles[0].emplace_back(-1.50);
+    angles[0].emplace_back(-1.44);
+    angles[1].emplace_back(+1.63);
+    angles[1].emplace_back(-1.49);
+    angles[1].emplace_back(-1.48);
+    angles[2].emplace_back(+1.62);
+    angles[2].emplace_back(-1.47);
+    angles[2].emplace_back(-1.48);
+    angles[3].emplace_back(+1.70);
+    angles[3].emplace_back(-1.47);
+    angles[3].emplace_back(-1.53);
     // angles[0].emplace_back(+1.55);
     // angles[0].emplace_back(-0.21);
     // angles[0].emplace_back(-1.48);
@@ -64,14 +80,15 @@ int main(int argc, char *argv[]) {
     translator.init(imgs, angles);
     translator.getFeaturePairs();
     translator.computeTranslate(0, 1);
-    translator.computeTranslate(0, 2);
     translator.computeTranslate(1, 2);
+    translator.computeTranslate(2, 3);
+    translator.computeTranslate(3, 0);
     // translator.computeTranslate(0, 3);
     // translator.computeTranslate(0, 4);
     // translator.computeTranslate(0, 5);
     // translator.computeTranslate(0, 6);
-    translator.computeDistance(1, 0, 2);
-    translator.computeDistance(0, 1, 2);
+    // translator.computeDistance(1, 0, 2);
+    // translator.computeDistance(0, 1, 2);
 
     // 计算每幅图像的位置, TODO: 从安卓端用生成树得到匹配
     // vector<pair<int, int> > img_pairs;
