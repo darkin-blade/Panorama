@@ -105,7 +105,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
   // 计算旋转矩阵
   R = angles[_m2] * angles[_m1].t();
-  cout << R << endl;
+  // cout << R << endl;
 
   // 坐标齐次化
   Mat points1, points2;
@@ -146,7 +146,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
   VectorXd x = A.colPivHouseholderQr().solve(b);
   // cout << A << endl;
   // cout << b << endl;
-  cout << x << endl;
+  // cout << x << endl;
 
   /*
            0 -z  y
@@ -164,6 +164,7 @@ void Translate::computeTranslate(int _m1, int _m2) {
   // 对解进行筛选: 对t进行符号判断
   selectSolution(X, Y);
   // officialResult(X, Y);
+  cout << t << endl;
 
   // 5 保存无量纲的结果
   if (translations.empty()) {
@@ -178,10 +179,10 @@ void Translate::computeTranslate(int _m1, int _m2) {
       rotations[i].resize(imgNum);
     }
   }
-  translations[_m1][_m2] = t;
-  translations[_m2][_m1] = -t;
-  rotations[_m1][_m2]    = R;
-  rotations[_m2][_m1]    = R.t();
+  translations[_m1][_m2] = t * 1.0;
+  translations[_m2][_m1] = -t * 1.0;
+  rotations[_m1][_m2]    = R * 1.0;
+  rotations[_m2][_m1]    = R.t() * 1.0;
 }
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
@@ -217,40 +218,67 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
 
   // 三角测量
   Mat P1, P2; 
-  Mat Q;
-  Mat tmpPoint;
+  Mat Q1, Q2;
   
   // m2 - m1
   P1 = Mat::eye(3, 4, R.type());
   P2 = Mat::eye(3, 4, R.type());
   P2(Range::all(), Range(0, 3)) = rotations[_m2][_m1] * 1.0;
   P2.col(3) = translations[_m2][_m1] * 1.0;
-  triangulatePoints(P1, P2, cPoints2, cPoints1, Q);
-
-  // 转换成非齐次坐标
-  tmpPoint = Q.col(0);
-  tmpPoint /= tmpPoint.at<double>(3, 0);
-  Mat p1 = Mat::zeros(3, 1, CV_64FC1);
-  p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-  p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-  p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-  cout << p1 << endl;
+  triangulatePoints(P1, P2, cPoints2, cPoints1, Q1);
   
   // m2 - m3
   P1 = Mat::eye(3, 4, R.type());
   P2 = Mat::eye(3, 4, R.type());
   P2(Range::all(), Range(0, 3)) = rotations[_m2][_m3] * 1.0;
   P2.col(3) = translations[_m2][_m3] * 1.0;
-  triangulatePoints(P1, P2, cPoints2, cPoints3, Q);
+  triangulatePoints(P1, P2, cPoints2, cPoints3, Q2);
 
-  // 转换成非齐次坐标
-  tmpPoint = Q.col(0);
-  tmpPoint /= tmpPoint.at<double>(3, 0);
-  Mat p2 = Mat::zeros(3, 1, CV_64FC1);
-  p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
-  p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
-  p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
-  cout << p2 << endl;
+  // 计算缩放比
+  int pointNum = points1.size();
+  Mat tmpPoint;
+  double rateSum = 0;
+  for (int i = 0; i < pointNum; i ++) {
+    tmpPoint = Q1.col(i);
+    tmpPoint /= tmpPoint.at<double>(3, 0);
+    Mat p1 = Mat::zeros(3, 1, CV_64FC1);
+    p1.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+    p1.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+    p1.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+
+    tmpPoint = Q2.col(i);
+    tmpPoint /= tmpPoint.at<double>(3, 0);
+    Mat p2 = Mat::zeros(3, 1, CV_64FC1);
+    p2.at<double>(0, 0) = tmpPoint.at<double>(0, 0);
+    p2.at<double>(1, 0) = tmpPoint.at<double>(1, 0);
+    p2.at<double>(2, 0) = tmpPoint.at<double>(2, 0);
+
+    // 查看三角化的坐标
+    if (i == 0) {
+      cout << p1 << endl;
+      cout << p2 << endl;
+    }
+
+    // 计算比例
+    // double rateX = p1.at<double>(0, 0) / p2.at<double>(0, 0);
+    // double rateY = p1.at<double>(1, 0) / p2.at<double>(1, 0);
+    // double rateZ = p1.at<double>(2, 0) / p2.at<double>(2, 0);
+    // LOG("%d: %lf %lf %lf", i, rateX, rateY, rateZ);
+    double rate = (p1.at<double>(0, 0) * p1.at<double>(0, 0)
+                 + p1.at<double>(1, 0) * p1.at<double>(1, 0)
+                 + p1.at<double>(2, 0) * p1.at<double>(2, 0))
+                 /(p2.at<double>(0, 0) * p2.at<double>(0, 0)
+                 + p2.at<double>(1, 0) * p2.at<double>(1, 0)
+                 + p2.at<double>(2, 0) * p2.at<double>(2, 0));
+    rate = sqrt(rate);
+    rateSum += rate;
+    LOG("%d: %lf", i, rate);
+  }
+  LOG("%d %d average %lf", _m1, _m3, rateSum / pointNum);
+}
+
+void Translate::computeOrigin(vector<pair<int, int> > _img_pairs) {
+  // 计算每幅图像的相对原点
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
@@ -332,9 +360,6 @@ void Translate::selectSolution(InputArray _points1, InputArray _points2) {
   if (good1 < good2) {
     t = -t;
   }
-  // cout << t << endl;
-  // normalize(t, t);
-  cout << t << endl;
 }
 
 void Translate::officialResult(InputArray _points1, InputArray _points2) {
