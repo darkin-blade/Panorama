@@ -81,6 +81,9 @@ int main(int argc, char *argv[]) {
     translator.computeTranslate(0, 4);
     translator.computeTranslate(0, 5);
     translator.computeTranslate(0, 6);
+    translator.computeDistance(1, 0, 2);
+    translator.computeDistance(3, 0, 4);
+    translator.computeDistance(5, 0, 6);
     // translator.computeTranslate(0, 3);
     // translator.computeTranslate(0, 4);
     // translator.computeTranslate(0, 5);

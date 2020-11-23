@@ -192,39 +192,88 @@ void Translate::computeTranslate(int _m1, int _m2) {
 
 void Translate::computeDistance(int _m1, int _m2, int _m3) {
   // 求解(_m1, _m2) = a(_m2, _m3) + b(_m1, _m3)
-  MatrixXd A(3, 2);
-  VectorXd b(3);
-  A(0, 0) = translations[_m2][_m3].at<double>(0, 0);
-  A(1, 0) = translations[_m2][_m3].at<double>(1, 0);
-  A(2, 0) = translations[_m2][_m3].at<double>(2, 0);
-  A(0, 1) = translations[_m1][_m3].at<double>(0, 0);
-  A(1, 1) = translations[_m1][_m3].at<double>(1, 0);
-  A(2, 1) = translations[_m1][_m3].at<double>(2, 0);
-  b(0)    = translations[_m1][_m2].at<double>(0, 0);
-  b(1)    = translations[_m1][_m2].at<double>(1, 0);
-  b(2)    = translations[_m1][_m2].at<double>(2, 0);
-  VectorXd x = A.colPivHouseholderQr().solve(b);
-  double rate1 = x(0);
-  double rate2 = x(1);
+  // 求解(_m1, _m2) = a(_m2, _m3)
+  // 三角测量
+  Mat P1, P2; 
+  Mat Q1, Q2;
 
-  // 进行缩放
-  LOG("(%d,%d) = %lf(%d,%d) + %lf(%d,%d)", _m1, _m2, rate1, _m2, _m3, rate2, _m1, _m3);
+  // 筛选公共特征点对
+  vector<pair<int, int> >  indices1 = indices[_m2][_m1];
+  vector<pair<int, int> >  indices2 = indices[_m2][_m3];
+  vector<Point2f> points1, points2, points3;
+  for (int i = 0, j = 0; i < indices1.size() && j < indices2.size(); ) {
+    if (indices1[i].first < indices2[j].first) {
+      i ++;
+    } else if (indices1[i].first > indices2[j].first) {
+      j ++;
+    } else {
+      points1.emplace_back(origin_features[_m1][indices1[i].second]);
+      points2.emplace_back(origin_features[_m2][indices1[i].first]);
+      points3.emplace_back(origin_features[_m3][indices2[j].second]);
+      i ++;
+      j ++;
+    }
+  }
+
+  // 将特征点从图像参考系转换到相机参考系中
+  Mat cPoints1, cPoints2, cPoints3;
+  pixel2Cam(points1, cPoints1);
+  pixel2Cam(points2, cPoints2);
+  pixel2Cam(points3, cPoints3);
+  LOG("%d %d t:", _m2, _m1);
+  cout << translations[_m2][_m1] << endl;
   LOG("%d %d t:", _m2, _m3);
-  cout << translations[_m2][_m3] * rate1 << endl;
-  LOG("%d %d t:", _m1, _m3);
-  cout << translations[_m1][_m3] * rate2 << endl;
-  translations[_m2][_m3] *= rate1;
-  translations[_m3][_m2] *= -rate1;
-  translations[_m1][_m2] *= rate2;
-  translations[_m2][_m1] *= -rate2;
+  cout << translations[_m2][_m3] << endl;
+  
+  // m2 - m1
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m1] * 1.0;
+  P2.col(3) = translations[_m2][_m1] * 1.0;
+  triangulatePoints(P1, P2, cPoints2, cPoints1, Q1);
+  
+  // m2 - m3
+  P1 = Mat::eye(3, 4, R.type());
+  P2 = Mat::eye(3, 4, R.type());
+  P2(Range::all(), Range(0, 3)) = rotations[_m2][_m3] * 1.0;
+  P2.col(3) = translations[_m2][_m3] * 1.0;
+  triangulatePoints(P1, P2, cPoints2, cPoints3, Q2);
+  // 计算缩放比
+  int pointNum = points1.size();
+  Mat tmpPoint;
+  vector<double> rates;
+  for (int i = 0; i < pointNum; i ++) {
+    // 第一张图的第1个点
+    double x11 = Q1.at<double>(0, i);
+    double y11 = Q1.at<double>(1, i);
+    double z11 = Q1.at<double>(2, i);
+    // 第二张图的第1个点
+    double x21 = Q2.at<double>(0, i);
+    double y21 = Q2.at<double>(1, i);
+    double z21 = Q2.at<double>(2, i);
+    for (int j = i + 1; j < pointNum; j ++) {
+      // 第一张图的第2个点
+      double x12 = Q1.at<double>(0, j);
+      double y12 = Q1.at<double>(1, j);
+      double z12 = Q1.at<double>(2, j);
+      // 第二张图的第2个点
+      double x22 = Q1.at<double>(0, j);
+      double y22 = Q1.at<double>(1, j);
+      double z22 = Q1.at<double>(2, j);
+
+      double distance1 = sqrt((x11 - x12)*(x11 - x12) + (y11 - y12)*(y11 - y12) + (z11 - z12)*(z11 - z12));
+      double distance2 = sqrt((x21 - x22)*(x21 - x22) + (y21 - y22)*(y21 - y22) + (z21 - z22)*(z21 - z22));
+      double rate = distance1 / distance2;
+      rates.emplace_back(rate);
+    }
+  }
+  double mean, std;
+  Statistics::getMeanAndSTD(rates, mean, std);
+  LOG("average %lf, std %lf", mean, std);
 }
 
 void Translate::computeOrigin(vector<pair<int, int> > _img_pairs) {
   // 计算每幅图像的相对原点
-  // computeDistance(0, 1, 2);
-  // computeDistance(0, 2, 3);
-  // computeDistance(0, 1, 2);
-  // computeDistance(0, 2, 3);
 }
 
 void Translate::pixel2Cam(InputArray _src, Mat & _dst) {
@@ -515,8 +564,8 @@ void Translate::getDescriptors(
 
   VlSiftFilt * vlSift = vl_sift_new(width, height,
       log2(min(width, height)),  // noctaves
-      3,                         // nlevels
-      2);                        // o_min
+      SIFT_NLEVELS,                       // nlevels
+      SIFT_O_MIN);                        // o_min
 
   vl_sift_set_peak_thresh(vlSift, 0.);
   vl_sift_set_edge_thresh(vlSift, 10.);

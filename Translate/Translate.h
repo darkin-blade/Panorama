@@ -9,9 +9,12 @@ class Translate {
 public:
   Translate(int _useless);
 
-  const int SIZE_SMALL = 1920 * 1080;
+  const int SIZE_SMALL = 640 * 480;// 1920 * 1080;
   const int SIZE_CIRCLE = 8;
   const int SIZE_LINE   = 4;
+
+  const int SIFT_NLEVELS = 3;
+  const int SIFT_O_MIN   = 0;
 
   int imgNum;
   vector<Mat> imgRGBA;
