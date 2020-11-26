@@ -7,11 +7,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <TextureView
+        <SurfaceView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/camera_preview">
-        </TextureView>
+        </SurfaceView>
 
         <TextView
             android:layout_width="match_parent"
@@ -25,12 +25,6 @@
             android:textColor="@color/white"
             android:text="+">
         </TextView>
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/my_canvas">
-        </ImageView>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -102,7 +96,7 @@
                 style="@style/button_1"
                 android:id="@+id/start_button"
                 android:layout_marginRight="5dp"
-                android:text="capture">
+                android:text="start">
             </Button>
 
             <Button
@@ -110,7 +104,7 @@
                 android:id="@+id/confirm_button"
                 android:layout_marginLeft="5dp"
                 android:layout_marginRight="5dp"
-                android:text="stitch">
+                android:text="confirm">
             </Button>
 
             <Button
@@ -118,7 +112,7 @@
                 android:id="@+id/cancel_button"
                 android:layout_marginLeft="5dp"
                 android:layout_marginRight="5dp"
-                android:text="back">
+                android:text="cancel">
             </Button>
 
             <Button

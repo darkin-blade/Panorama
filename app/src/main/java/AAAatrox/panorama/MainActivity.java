@@ -6,7 +6,9 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -15,10 +17,15 @@ import android.widget.TextView;
 
 import org.opencv.android.OpenCVLoader;
 
-public class MainActivity extends AppCompatActivity implements DialogInterface.OnDismissListener {
+public class MainActivity extends AppCompatActivity {
 
     static public final int PERMISSION_CAMERA_REQUEST_CODE = 0x00000012;// 相机权限的 request code
+    static public final int CAMERA_ACTIVITY = 0x1;// 用于activity交互
     static public String appPath;
+
+    static public void infoLog(String log) {
+        Log.i("fuck", log);
+    }
 
     static {
         // 在程序执行前需要加载opencv的java库
@@ -54,11 +61,14 @@ public class MainActivity extends AppCompatActivity implements DialogInterface.O
     }
 
     @Override
-    public void onDismiss(DialogInterface dialogInterface) {
-        if (customCamera.dismiss_result == 0) {
-            // 保存视频
-        } else if (customCamera.dismiss_result == 1) {
-            // 取消保存
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == CAMERA_ACTIVITY) {
+            if (resultCode == 1) {
+                // TODO 需要对视频进行处理
+                infoLog("handle the video");
+            }
         }
     }
 
@@ -88,7 +98,9 @@ public class MainActivity extends AppCompatActivity implements DialogInterface.O
         btnCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                customCamera.show(getSupportFragmentManager(), "camera");
+                /* 切换相机 */
+                 Intent intent = new Intent(MainActivity.this, CustomCamera1.class);
+                 startActivityForResult(intent, CAMERA_ACTIVITY);
             }
         });
     }
@@ -98,8 +110,4 @@ public class MainActivity extends AppCompatActivity implements DialogInterface.O
      * which is packaged with this application.
      */
     public native String stringFromJNI();
-
-    static public void infoLog(String log) {
-        Log.i("fuck", log);
-    }
 }
