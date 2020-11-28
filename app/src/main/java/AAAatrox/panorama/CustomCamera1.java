@@ -106,7 +106,7 @@ public class CustomCamera1 extends Activity {
     /* 预览 */
     Size previewSize;// 在textureView预览的尺寸
     Size videoSize;// 拍摄的尺寸
-    ImageReader mImageReader;
+//    ImageReader mImageReader;
     Handler backgroundHandler;
 
     /* 传感器 */
@@ -195,6 +195,7 @@ public class CustomCamera1 extends Activity {
 
     void startRecord() {
         if (null == mCameraDevice || !cameraPreview.isAvailable() || null == previewSize) {
+            infoLog("" + (null == mCameraDevice));
             infoLog("can't record");
         } else {
             try {
@@ -250,18 +251,18 @@ public class CustomCamera1 extends Activity {
     }
 
     void setUpPreviewReader() {
-        mImageReader= ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
-        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-            @Override
-            public void onImageAvailable(ImageReader imageReader) {
-                Image image = imageReader.acquireLatestImage();
-                if (null == image) {
-                    return;
-                } else {
-                    image.close();
-                }
-            }
-        }, null);
+//        mImageReader= ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
+//        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+//            @Override
+//            public void onImageAvailable(ImageReader imageReader) {
+//                Image image = imageReader.acquireLatestImage();
+//                if (null == image) {
+//                    return;
+//                } else {
+//                    image.close();
+//                }
+//            }
+//        }, null);
     }
 
     void stopRecord() {
@@ -381,6 +382,7 @@ public class CustomCamera1 extends Activity {
 
     void createCameraPreview() {
         SurfaceTexture surfaceTexture = cameraPreview.getSurfaceTexture();
+        assert surfaceTexture != null;
         surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface previewSurface = new Surface(surfaceTexture);
 
@@ -388,7 +390,7 @@ public class CustomCamera1 extends Activity {
             captureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(previewSurface);
             /* 用于预览 */
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, mImageReader.getSurface()), previewCallback, null);
+            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface), previewCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -402,6 +404,7 @@ public class CustomCamera1 extends Activity {
             try {
                 createCameraPreview();
             } catch (Exception e) {
+                infoLog(e.toString());
                 e.printStackTrace();
                 camera.close();
                 mCameraDevice = null;
@@ -462,6 +465,7 @@ public class CustomCamera1 extends Activity {
     }
 
     Size getPreviewSize(Size[] choices, int width, int height) {
+        // 选择合适的尺寸
         List<Size> sameratios = new ArrayList<>();
         List<Size> unequalratios = new ArrayList<>();
 
