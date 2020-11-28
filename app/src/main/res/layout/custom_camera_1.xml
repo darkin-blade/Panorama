@@ -7,11 +7,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <SurfaceView
+        <TextureView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/camera_preview">
-        </SurfaceView>
+        </TextureView>
 
         <TextView
             android:layout_width="match_parent"

@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
                 // 允许
             } else {
                 // 拒绝
-                infoLog("camera not permitted");
+                infoLog("mCamera not permitted");
             }
         }
     }
@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         int hasCameraPermission = ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.CAMERA);
         if (hasCameraPermission == PackageManager.PERMISSION_GRANTED) {
             // 有调用相机权限
-            infoLog("camera is ready");
+            infoLog("mCamera is ready");
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, PERMISSION_CAMERA_REQUEST_CODE);
         }
