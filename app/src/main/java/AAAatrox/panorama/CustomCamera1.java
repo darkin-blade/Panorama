@@ -259,9 +259,7 @@ public class CustomCamera1 extends Activity {
                     }
 
                     @Override
-                    public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                        /* TODO 报错 */
-                    }
+                    public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) { }
                 }, backgroundHandler);
             } catch (Exception e) {
                 infoError(e);
@@ -277,14 +275,10 @@ public class CustomCamera1 extends Activity {
 
             /* 停止录制 */
             if (mediaRecorder != null) {
+                infoLog("stop record");
                 mediaRecorder.stop();
                 mediaRecorder.reset();
                 mediaRecorder.release();
-            }
-
-            /* TODO 保存视频 */
-            if (videoFile.exists()) {
-                videoFile.delete();
             }
 
             try {
@@ -315,12 +309,15 @@ public class CustomCamera1 extends Activity {
 
                 /* 设置视频输出文件 */
                 videoFile = new File(appPath, "video.mp4");
+                if (videoFile.exists()) {
+                    videoFile.delete();
+                }
                 mediaRecorder.setOutputFile(videoFile);
                 mediaRecorder.setVideoFrameRate(30);// fps
 
                 /* 设置编码和码率 */
                 mediaRecorder.setVideoSize(videoSize.getWidth(), videoSize.getHeight());
-                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
+                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);// 不能使用mp4
 
                 /* 准备录制 */
                 mediaRecorder.prepare();
