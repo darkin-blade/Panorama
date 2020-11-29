@@ -23,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -90,6 +91,26 @@ public class CustomCamera1 extends Activity {
     }
 
     /* 常量 */
+    static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
+    static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
+
+    static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
+    static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
+
+    static {
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+
+    static {
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_0, 270);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_90, 180);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
+    }
+
     double ratio = 0.25d;
 
     /* UI组件 */
@@ -112,6 +133,9 @@ public class CustomCamera1 extends Activity {
     Size videoSize;// 拍摄的尺寸
     Handler backgroundHandler;
 
+    /* 手机旋转角度 */
+    int screenRotation;
+    int mSensorOrientation;
     /* 传感器 */
     SensorManager mSensorManager;
     Sensor mGravity;// 重力传感器
@@ -233,12 +257,12 @@ public class CustomCamera1 extends Activity {
                 surfaces.add(previewSurface);
                 recordBuilder.addTarget(previewSurface);
 
-                /* mediaRecorder的surface, TODO BUG */
+                /* mediaRecorder的surface */
                 Surface recorderSurface = mediaRecorder.getSurface();
                 recordBuilder.addTarget(recorderSurface);
                 surfaces.add(recorderSurface);
 
-                /* TODO 更新UI */
+                /* 更新UI */
                 cameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
                     @Override
                     public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
@@ -319,6 +343,14 @@ public class CustomCamera1 extends Activity {
                 /* 设置编码和码率 */
                 mediaRecorder.setVideoSize(videoSize.getWidth(), videoSize.getHeight());
                 mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);// 不能使用mp4
+                switch (mSensorOrientation) {
+                    case SENSOR_ORIENTATION_DEFAULT_DEGREES:
+                        mediaRecorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(screenRotation));
+                        break;
+                    case SENSOR_ORIENTATION_INVERSE_DEGREES:
+                        mediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(screenRotation));
+                        break;
+                }
 
                 /* 准备录制 */
                 mediaRecorder.prepare();
@@ -341,9 +373,9 @@ public class CustomCamera1 extends Activity {
 
             /* 手机旋转处理 */
             boolean swappedDimensions = true;
-            int rotation = getDisplay().getRotation();
-            int mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-            switch (rotation) {
+            screenRotation = getDisplay().getRotation();
+            mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+            switch (screenRotation) {
                 case Surface.ROTATION_0:
                 case Surface.ROTATION_180:
                     if (mSensorOrientation == 90 || mSensorOrientation == 270) {
@@ -357,10 +389,10 @@ public class CustomCamera1 extends Activity {
                     }
                     break;
                 default:
-                    infoLog("invalid rotation");
+                    infoLog("invalid screenRotation");
             }
 
-            /* TODO 设置尺寸 */
+            /* 设置尺寸 */
             int rotatedPreviewWidth = width;
             int rotatedPreviewHeight = height;
             if (swappedDimensions) {
