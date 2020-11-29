@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -18,24 +17,22 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.Image;
-import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 
 import androidx.annotation.NonNull;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,6 +45,12 @@ import static AAAatrox.panorama.MainActivity.appPath;
 public class CustomCamera1 extends Activity {
     static public void infoLog(String log) {
         Log.i("fuck", log);
+    }
+
+    static public void infoError(Exception e) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        e.printStackTrace(new PrintStream(stream));
+        infoLog(stream.toString());
     }
 
     @Override
@@ -75,7 +78,7 @@ public class CustomCamera1 extends Activity {
 
     @Override
     public void onBackPressed() {
-        backToMain(0);// TODO 禁止返回
+        backToMain(0);// 禁止返回
     }
 
     @Override
@@ -96,17 +99,17 @@ public class CustomCamera1 extends Activity {
     boolean isRecording;
 
     /* 录制 */
+    File videoFile;
     MediaRecorder mediaRecorder;
     /* 相机相关 */
     String cameraId;
     CameraManager cameraManager;
-    CameraDevice mCameraDevice;// 摄像头设备,(参数:预览尺寸,拍照尺寸等)
-    CameraCaptureSession mCameraCaptureSession;// 相机捕获会话,用于处理拍照和预览的工作
-    CaptureRequest.Builder captureRequestBuilder;// 捕获请求,定义输出缓冲区及显示界面(TextureView或SurfaceView)
+    CameraDevice cameraDevice;// 摄像头设备,(参数:预览尺寸,拍照尺寸等)
+    CameraCaptureSession previewSession;// 相机捕获会话,用于处理拍照和预览的工作
+    CaptureRequest.Builder mPreviewRequestBuilder;// 捕获请求,定义输出缓冲区及显示界面(TextureView或SurfaceView)
     /* 预览 */
     Size previewSize;// 在textureView预览的尺寸
     Size videoSize;// 拍摄的尺寸
-//    ImageReader mImageReader;
     Handler backgroundHandler;
 
     /* 传感器 */
@@ -159,7 +162,7 @@ public class CustomCamera1 extends Activity {
             }
         });
 
-        /* 初始化相机预览 TODO */
+        /* 初始化相机预览 */
         cameraPreview = findViewById(R.id.camera_preview);
         cameraPreview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
@@ -194,8 +197,8 @@ public class CustomCamera1 extends Activity {
     }
 
     void startRecord() {
-        if (null == mCameraDevice || !cameraPreview.isAvailable() || null == previewSize) {
-            infoLog("" + (null == mCameraDevice));
+        if (null == cameraDevice || !cameraPreview.isAvailable() || null == previewSize) {
+            infoLog("" + (null == cameraDevice));
             infoLog("can't record");
         } else {
             try {
@@ -205,13 +208,12 @@ public class CustomCamera1 extends Activity {
 
                 /* 开始录制 */
                 setUpMediaRecorder();
-                setUpPreviewReader();
-                SurfaceTexture texture = cameraPreview.getSurfaceTexture();
-                texture.setDefaultBufferSize(videoSize.getWidth(), videoSize.getHeight());
-                final CaptureRequest.Builder recordBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+                final CaptureRequest.Builder recordBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
                 List<Surface> surfaces = new ArrayList<>();
 
-                /* 预览的surface */
+                /* 预览的surface TODO 会和非录制时段的预览重复, 需要关掉之前的进程 */
+                SurfaceTexture texture = cameraPreview.getSurfaceTexture();
+                assert texture != null;
                 Surface previewSurface = new Surface(texture);
                 surfaces.add(previewSurface);
                 recordBuilder.addTarget(previewSurface);
@@ -222,20 +224,22 @@ public class CustomCamera1 extends Activity {
                 surfaces.add(recorderSurface);
 
                 /* TODO 更新UI */
-                mCameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
+                cameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
                     @Override
                     public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                        if (null == mCameraDevice) {
+                        if (null == cameraDevice) {
+                            infoLog("not camera");
                             return;
                         }
                         try {
                             /* 实时更新预览 */
+                            previewSession = cameraCaptureSession;
                             recordBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-                            cameraCaptureSession.setRepeatingRequest(recordBuilder.build(), null, backgroundHandler);
+                            previewSession.setRepeatingRequest(recordBuilder.build(), null, backgroundHandler);
 
                             mediaRecorder.start();
                         } catch (CameraAccessException e) {
-                            e.printStackTrace();
+                            infoError(e);
                         }
                     }
 
@@ -245,24 +249,9 @@ public class CustomCamera1 extends Activity {
                     }
                 }, backgroundHandler);
             } catch (Exception e) {
-                e.printStackTrace();
+                infoError(e);
             }
         }
-    }
-
-    void setUpPreviewReader() {
-//        mImageReader= ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
-//        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-//            @Override
-//            public void onImageAvailable(ImageReader imageReader) {
-//                Image image = imageReader.acquireLatestImage();
-//                if (null == image) {
-//                    return;
-//                } else {
-//                    image.close();
-//                }
-//            }
-//        }, null);
     }
 
     void stopRecord() {
@@ -278,9 +267,27 @@ public class CustomCamera1 extends Activity {
                 mediaRecorder.release();
             }
 
-            /* 保存视频 */
+            /* TODO 保存视频 */
+            if (videoFile.exists()) {
+                videoFile.delete();
+            }
+
+            /* TODO 停止预览 */
+            try {
+                if (previewSession != null) {
+                    infoLog("stop preview");
+                    previewSession.stopRepeating();
+                    previewSession.abortCaptures();
+                    previewSession.close();
+                    previewSession = null;
+                }
+                /* 重新开始预览 */
+                createCameraPreview();
+            } catch (Exception e) {
+                infoError(e);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            infoError(e);
         } finally {
             mediaRecorder = null;
         }
@@ -299,14 +306,11 @@ public class CustomCamera1 extends Activity {
                 mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
 
                 /* 设置视频输出文件 */
-                File videoFile = new File(appPath, "video.mp4");
-                if (videoFile.exists()) {
-                    videoFile.delete();
-                }
+                videoFile = new File(appPath, "video.mp4");
                 mediaRecorder.setOutputFile(videoFile);
                 mediaRecorder.setVideoFrameRate(30);// fps
 
-                /* 设置编码和码率 TODO */
+                /* 设置编码和码率 */
                 mediaRecorder.setVideoSize(videoSize.getWidth(), videoSize.getHeight());
                 mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
 
@@ -316,7 +320,7 @@ public class CustomCamera1 extends Activity {
                 infoLog("can't save video");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            infoError(e);
         }
     }
 
@@ -331,7 +335,7 @@ public class CustomCamera1 extends Activity {
 
             cameraManager.openCamera(cameraId, deviceCallback, null);
         } catch (CameraAccessException e) {
-            e.printStackTrace();
+            infoError(e);
         }
     }
 
@@ -344,11 +348,10 @@ public class CustomCamera1 extends Activity {
                 return;
             }
 
-            /* TODO 手机旋转处理 */
+            /* 手机旋转处理 */
             boolean swappedDimensions = true;
-            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            int rotation = getDisplay().getRotation();
             int mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-            int rotation = windowManager.getDefaultDisplay().getRotation();
             switch (rotation) {
                 case Surface.ROTATION_0:
                 case Surface.ROTATION_180:
@@ -366,7 +369,7 @@ public class CustomCamera1 extends Activity {
                     infoLog("invalid rotation");
             }
 
-            /* TODO 设置尺寸 */
+            /* 设置尺寸 */
             int rotatedPreviewWidth = width;
             int rotatedPreviewHeight = height;
             if (swappedDimensions) {
@@ -376,65 +379,61 @@ public class CustomCamera1 extends Activity {
             previewSize = getPreviewSize(map.getOutputSizes(SurfaceTexture.class), rotatedPreviewWidth, rotatedPreviewHeight);
             videoSize = getPreviewSize(map.getOutputSizes(MediaRecorder.class), rotatedPreviewWidth, rotatedPreviewHeight);
         } catch (Exception e) {
-            e.printStackTrace();
+            infoError(e);
         }
     }
 
-    void createCameraPreview() {
+    void createCameraPreview() throws Exception {
         SurfaceTexture surfaceTexture = cameraPreview.getSurfaceTexture();
         assert surfaceTexture != null;
+
         surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface previewSurface = new Surface(surfaceTexture);
-
-        try {
-            captureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            captureRequestBuilder.addTarget(previewSurface);
-            /* 用于预览 */
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface), previewCallback, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+        /* 该builder用于非录像时段的预览 */
+        mPreviewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+        mPreviewRequestBuilder.addTarget(previewSurface);
+        /* 用于预览 */
+        cameraDevice.createCaptureSession(Arrays.asList(previewSurface), previewCallback, null);
     }
 
     CameraDevice.StateCallback deviceCallback = new CameraDevice.StateCallback() {
         // 打开相机后调用
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
-            mCameraDevice = camera;// 获取camera对象
+            cameraDevice = camera;// 获取camera对象
             try {
                 createCameraPreview();
             } catch (Exception e) {
-                infoLog(e.toString());
-                e.printStackTrace();
+                infoError(e);
                 camera.close();
-                mCameraDevice = null;
+                cameraDevice = null;
             }
         }
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
             camera.close();
-            mCameraDevice = null;
+            cameraDevice = null;
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int i) {
             camera.close();
-            mCameraDevice = null;
+            cameraDevice = null;
         }
     };
 
     CameraCaptureSession.StateCallback previewCallback = new CameraCaptureSession.StateCallback() {
         @Override
-        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-            if (null == mCameraDevice) {
+        public void onConfigured(@NonNull CameraCaptureSession session) {
+            if (null == cameraDevice) {
                 return;
             }
-            mCameraCaptureSession = cameraCaptureSession;
+            previewSession = session;
             try {
-                mCameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+                previewSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, backgroundHandler);
             } catch (Exception e) {
-                e.printStackTrace();
+                infoError(e);
             }
         }
 
