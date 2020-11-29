@@ -187,6 +187,21 @@ public class CustomCamera1 extends Activity {
         });
     }
 
+
+    @SuppressLint("MissingPermission")
+    void openCamera(int width, int height) {
+        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            cameraId = cameraManager.getCameraIdList()[CameraCharacteristics.LENS_FACING_FRONT];// 后置摄像头
+
+            setUpCameraOutputs(width, height);
+
+            cameraManager.openCamera(cameraId, deviceCallback, null);
+        } catch (CameraAccessException e) {
+            infoError(e);
+        }
+    }
+
     void backToMain(int result_code) {
         // 返回到MainActivity
         if (!isRecording) {
@@ -218,7 +233,7 @@ public class CustomCamera1 extends Activity {
                 surfaces.add(previewSurface);
                 recordBuilder.addTarget(previewSurface);
 
-                /* mediaRecorder的surface */
+                /* mediaRecorder的surface, TODO BUG */
                 Surface recorderSurface = mediaRecorder.getSurface();
                 recordBuilder.addTarget(recorderSurface);
                 surfaces.add(recorderSurface);
@@ -272,17 +287,10 @@ public class CustomCamera1 extends Activity {
                 videoFile.delete();
             }
 
-            /* TODO 停止预览 */
             try {
-                if (previewSession != null) {
-                    infoLog("stop preview");
-                    previewSession.stopRepeating();
-                    previewSession.abortCaptures();
-                    previewSession.close();
-                    previewSession = null;
-                }
                 /* 重新开始预览 */
-                createCameraPreview();
+                assert cameraPreview.isAvailable();
+                openCamera(cameraPreview.getWidth(), cameraPreview.getHeight());
             } catch (Exception e) {
                 infoError(e);
             }
@@ -320,21 +328,6 @@ public class CustomCamera1 extends Activity {
                 infoLog("can't save video");
             }
         } catch (Exception e) {
-            infoError(e);
-        }
-    }
-
-
-    @SuppressLint("MissingPermission")
-    void openCamera(int width, int height) {
-        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        try {
-            cameraId = cameraManager.getCameraIdList()[CameraCharacteristics.LENS_FACING_FRONT];// 后置摄像头
-
-            setUpCameraOutputs(width, height);
-
-            cameraManager.openCamera(cameraId, deviceCallback, null);
-        } catch (CameraAccessException e) {
             infoError(e);
         }
     }
