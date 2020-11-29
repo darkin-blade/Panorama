@@ -313,6 +313,7 @@ public class CustomCamera1 extends Activity {
                     videoFile.delete();
                 }
                 mediaRecorder.setOutputFile(videoFile);
+                mediaRecorder.setVideoEncodingBitRate(30 * 800000);
                 mediaRecorder.setVideoFrameRate(30);// fps
 
                 /* 设置编码和码率 */
@@ -359,7 +360,7 @@ public class CustomCamera1 extends Activity {
                     infoLog("invalid rotation");
             }
 
-            /* 设置尺寸 */
+            /* TODO 设置尺寸 */
             int rotatedPreviewWidth = width;
             int rotatedPreviewHeight = height;
             if (swappedDimensions) {
@@ -368,6 +369,7 @@ public class CustomCamera1 extends Activity {
             }
             previewSize = getPreviewSize(map.getOutputSizes(SurfaceTexture.class), rotatedPreviewWidth, rotatedPreviewHeight);
             videoSize = getPreviewSize(map.getOutputSizes(MediaRecorder.class), rotatedPreviewWidth, rotatedPreviewHeight);
+            infoLog("video size: " + videoSize);
         } catch (Exception e) {
             infoError(e);
         }
