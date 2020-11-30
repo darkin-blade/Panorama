@@ -28,17 +28,21 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import static AAAatrox.panorama.MainActivity.PERMISSION_CAMERA_REQUEST_CODE;
 import static AAAatrox.panorama.MainActivity.appPath;
@@ -115,9 +119,14 @@ public class CustomCamera1 extends Activity {
 
     /* UI组件 */
     Button btnStart, btnConfirm, btnCancel, btnDebug;
+    TextView text_1, text_2, text_3, text_4;
     TextureView cameraPreview;
+
     /* 控制 */
     boolean isRecording;
+    /* 录像计时 */
+    long recordStartTime;
+    long recordTimeStamp;
 
     /* 录制 */
     File videoFile;
@@ -128,6 +137,7 @@ public class CustomCamera1 extends Activity {
     CameraDevice cameraDevice;// 摄像头设备,(参数:预览尺寸,拍照尺寸等)
     CameraCaptureSession previewSession;// 相机捕获会话,用于处理拍照和预览的工作
     CaptureRequest.Builder mPreviewRequestBuilder;// 捕获请求,定义输出缓冲区及显示界面(TextureView或SurfaceView)
+
     /* 预览 */
     Size previewSize;// 在textureView预览的尺寸
     Size videoSize;// 拍摄的尺寸
@@ -136,14 +146,30 @@ public class CustomCamera1 extends Activity {
     /* 手机旋转角度 */
     int screenRotation;
     int mSensorOrientation;
+
+    /* 传感器角度 */
+    long sensorTime;
+    double tangent;// 切面角度
+    double longitude;
+    double latitude;
     /* 传感器 */
     SensorManager mSensorManager;
     Sensor mGravity;// 重力传感器
     Sensor mRotation;// 旋转矢量传感器
 
+    void backToMain(int result_code) {
+        // 返回到MainActivity
+        if (!isRecording) {
+            infoLog("back pressed");
+            setResult(result_code);
+            finish();
+        }
+    }
+
     void initCamera() {
         /* 初始化变量*/
         isRecording = false;
+        sensorTime = 0;
 
         /* 初始化传感器 */
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -209,8 +235,15 @@ public class CustomCamera1 extends Activity {
 
             }
         });
-    }
 
+        /* 初始化文本框 */
+        text_1 = findViewById(R.id.text1_1);
+        text_2 = findViewById(R.id.text1_2);
+        text_3 = findViewById(R.id.text1_3);
+        text_4 = findViewById(R.id.text1_4);
+
+        text_4.setText("NAN");
+    }
 
     @SuppressLint("MissingPermission")
     void openCamera(int width, int height) {
@@ -226,15 +259,6 @@ public class CustomCamera1 extends Activity {
         }
     }
 
-    void backToMain(int result_code) {
-        // 返回到MainActivity
-        if (!isRecording) {
-            infoLog("back pressed");
-            setResult(result_code);
-            finish();
-        }
-    }
-
     void startRecord() {
         if (null == cameraDevice || !cameraPreview.isAvailable() || null == previewSize) {
             infoLog("" + (null == cameraDevice));
@@ -245,7 +269,7 @@ public class CustomCamera1 extends Activity {
                 isRecording = true;
                 btnStart.setText("Stop");
 
-                /* 开始录制 */
+                /* 初始化 */
                 setUpMediaRecorder();
                 final CaptureRequest.Builder recordBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
                 List<Surface> surfaces = new ArrayList<>();
@@ -276,7 +300,10 @@ public class CustomCamera1 extends Activity {
                             recordBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
                             previewSession.setRepeatingRequest(recordBuilder.build(), null, backgroundHandler);
 
+                            /* 开始录像 */
                             mediaRecorder.start();
+                            recordStartTime = System.currentTimeMillis();
+                            recordTimeStamp = recordStartTime;
                         } catch (CameraAccessException e) {
                             infoError(e);
                         }
@@ -337,7 +364,7 @@ public class CustomCamera1 extends Activity {
                     videoFile.delete();
                 }
                 mediaRecorder.setOutputFile(videoFile);
-                mediaRecorder.setVideoEncodingBitRate(30 * 800000);
+                mediaRecorder.setVideoEncodingBitRate(30 * 1000000);
                 mediaRecorder.setVideoFrameRate(30);// fps
 
                 /* 设置编码和码率 */
@@ -472,8 +499,52 @@ public class CustomCamera1 extends Activity {
         public void onSensorChanged(SensorEvent sensorEvent) {
             if (sensorEvent.sensor.getType() == Sensor.TYPE_GRAVITY) {
                 // 重力
+                double x = sensorEvent.values[0];
+                double y = sensorEvent.values[1];
+                double z = sensorEvent.values[2];
+                double gravity = Math.sqrt(x*x + y*y + z*z);
+                tangent = Math.atan(x / y);// tan = x / y
+                if (tangent > 0 && x < 0) {
+                    tangent -= Math.PI;
+                } else if (tangent < 0 && x > 0) {
+                    tangent += Math.PI;
+                }
+                latitude = Math.acos(z / gravity) - Math.PI / 2;// cos = z / g
+
+                long curTime = System.currentTimeMillis();
+                long timeInterval = curTime - sensorTime;
+                if (timeInterval > 500) {
+                    sensorTime = curTime;
+                    text_1.setText("水平: " + (int) Math.toDegrees(longitude));
+                    text_2.setText("仰角: " + (int) Math.toDegrees(latitude));
+                    text_3.setText("切面: " + (int) Math.toDegrees(tangent));
+                }
+
+                /* 更新计时 */
+                if (isRecording) {
+                    timeInterval = curTime - recordTimeStamp;
+                    if (timeInterval > 100) {
+                        recordTimeStamp = curTime;
+
+                        /* 将毫秒转换成日期 */
+                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("mm:ss:SSS");
+                        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0:00"));
+
+                        Date date = new Date(curTime - recordStartTime);
+                        String totalTime = simpleDateFormat.format(date);
+                        text_4.setText(totalTime);
+                    }
+                }
             } else if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
                 // 旋转
+                double x = sensorEvent.values[0];
+                double y = sensorEvent.values[1];
+                longitude = Math.atan(y / x) * 2 + tangent;// tan = y / x
+                if (longitude < -Math.PI) {
+                    longitude += 2 * Math.PI;
+                } else if (longitude > Math.PI) {
+                    longitude -= 2 * Math.PI;
+                }
             }
         }
 
