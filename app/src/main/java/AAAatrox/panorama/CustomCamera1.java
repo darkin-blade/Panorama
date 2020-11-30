@@ -34,6 +34,8 @@ import androidx.annotation.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -152,6 +154,9 @@ public class CustomCamera1 extends Activity {
     double tangent;// 切面角度
     double longitude;
     double latitude;
+    /* 记录传感器信息 */
+    File sensorInfoFile;
+    FileOutputStream sensorInfoStream;
     /* 传感器 */
     SensorManager mSensorManager;
     Sensor mGravity;// 重力传感器
@@ -304,7 +309,13 @@ public class CustomCamera1 extends Activity {
                             mediaRecorder.start();
                             recordStartTime = System.currentTimeMillis();
                             recordTimeStamp = recordStartTime;
-                        } catch (CameraAccessException e) {
+                            /* 开始记录传感器信息 */
+                            sensorInfoFile = new File(appPath, "rotation.txt");
+                            if (!sensorInfoFile.exists()) {
+                                sensorInfoFile.createNewFile();
+                            }
+                            sensorInfoStream = new FileOutputStream(sensorInfoFile);
+                        } catch (CameraAccessException | IOException e) {
                             infoError(e);
                         }
                     }
@@ -328,6 +339,11 @@ public class CustomCamera1 extends Activity {
             if (mediaRecorder != null) {
                 infoLog("stop record");
                 mediaRecorder.stop();
+                /* TODO 立即刷新数据 */
+                updateInfo();
+                sensorInfoStream.close();
+                sensorInfoStream = null;
+
                 mediaRecorder.reset();
                 mediaRecorder.release();
             }
@@ -343,6 +359,32 @@ public class CustomCamera1 extends Activity {
             infoError(e);
         } finally {
             mediaRecorder = null;
+        }
+    }
+
+    void updateInfo() {
+        // 更新计时, 更新传感器数据的保存
+
+        long curTime = System.currentTimeMillis();
+        long duration = curTime - recordStartTime;
+        /* 将毫秒转换成日期 */
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("mm:ss:SSS");
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0:00"));
+
+        Date date = new Date(duration);
+        String totalTime = simpleDateFormat.format(date);
+        text_4.setText(totalTime);
+
+        /* 写入角度信息 */
+        if (sensorInfoStream != null) {
+            try {
+                String infoString = duration + " " + tangent + " " + latitude + " " + longitude + "\n";
+                byte[] infoBytes = infoString.getBytes();
+                sensorInfoStream.write(infoBytes);
+                sensorInfoStream.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -525,14 +567,7 @@ public class CustomCamera1 extends Activity {
                     timeInterval = curTime - recordTimeStamp;
                     if (timeInterval > 100) {
                         recordTimeStamp = curTime;
-
-                        /* 将毫秒转换成日期 */
-                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("mm:ss:SSS");
-                        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+0:00"));
-
-                        Date date = new Date(curTime - recordStartTime);
-                        String totalTime = simpleDateFormat.format(date);
-                        text_4.setText(totalTime);
+                        updateInfo();
                     }
                 }
             } else if (sensorEvent.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
