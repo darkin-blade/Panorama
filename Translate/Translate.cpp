@@ -111,68 +111,66 @@ void Translate::computeTranslate(int _m1, int _m2) {
   cout << t << endl;
 
   // 计算旋转矩阵
-  if (0) {
-    R = angles[_m2] * angles[_m1].t();
-    // cout << R << endl;
+  R = angles[_m2] * angles[_m1].t();
+  // cout << R << endl;
 
-    // 坐标齐次化
-    Mat points1, points2;
-    homogenization(X, points1);
-    homogenization(Y, points2);
-    // 将像素坐标转换至相机坐标系
-    points1 = K.inv() * points1;
-    points2 = K.inv() * points2;
+  // 坐标齐次化
+  Mat points1, points2;
+  homogenization(X, points1);
+  homogenization(Y, points2);
+  // 将像素坐标转换至相机坐标系
+  points1 = K.inv() * points1;
+  points2 = K.inv() * points2;
 
-    // 列方程
-    points1 = points1.t();
-    int equations = points2.cols;
-    Mat tmpA = Mat::zeros(equations + 1, 3, CV_64FC1);// TODO 去除奇异解
-    for (int i = 0; i < equations; i ++) {
-      Mat tmp1 = points1.row(i);
-      Mat tmp2 = points2.col(i);
-      tmp2 = R * tmp2;
-      double a = tmp1.at<double>(0, 0);
-      double b = tmp1.at<double>(0, 1);
-      double c = tmp1.at<double>(0, 2);
-      double d = tmp2.at<double>(0, 0);
-      double e = tmp2.at<double>(1, 0);
-      double f = tmp2.at<double>(2, 0);
-      tmpA.at<double>(i, 0) = c*e - b*f;
-      tmpA.at<double>(i, 1) = a*f - c*d;
-      tmpA.at<double>(i, 2) = b*d - a*e;
-    }
-    MatrixXd A(equations, 3);
-    cv2eigen(tmpA, A);
-    // 去除奇异解
-    A(equations, 0) = 1;
-    VectorXd b(equations + 1);
-    for (int i = 0; i < equations; i ++) {
-      b(i) = 0;
-    }
-    b(equations) = 1;
-
-    VectorXd x = A.colPivHouseholderQr().solve(b);
-    // cout << A << endl;
-    // cout << b << endl;
-    // cout << x << endl;
-
-    /*
-             0 -z  y
-        T =  z  0 -x
-            -y  x  0
-    */
-
-    // T = E * R.t();
-    // cout << T << endl;
-    t = Mat::zeros(3, 1, R.type());
-    t.at<double>(0, 0) = x(0);
-    t.at<double>(1, 0) = x(1);
-    t.at<double>(2, 0) = x(2);
-
-    // 对解进行筛选: 对t进行符号判断
-    selectSolution(X, Y);
-    cout << t << endl;
+  // 列方程
+  points1 = points1.t();
+  int equations = points2.cols;
+  Mat tmpA = Mat::zeros(equations + 1, 3, CV_64FC1);// TODO 去除奇异解
+  for (int i = 0; i < equations; i ++) {
+    Mat tmp1 = points1.row(i);
+    Mat tmp2 = points2.col(i);
+    tmp2 = R * tmp2;
+    double a = tmp1.at<double>(0, 0);
+    double b = tmp1.at<double>(0, 1);
+    double c = tmp1.at<double>(0, 2);
+    double d = tmp2.at<double>(0, 0);
+    double e = tmp2.at<double>(1, 0);
+    double f = tmp2.at<double>(2, 0);
+    tmpA.at<double>(i, 0) = c*e - b*f;
+    tmpA.at<double>(i, 1) = a*f - c*d;
+    tmpA.at<double>(i, 2) = b*d - a*e;
   }
+  MatrixXd A(equations, 3);
+  cv2eigen(tmpA, A);
+  // 去除奇异解
+  A(equations, 0) = 1;
+  VectorXd b(equations + 1);
+  for (int i = 0; i < equations; i ++) {
+    b(i) = 0;
+  }
+  b(equations) = 1;
+
+  VectorXd x = A.colPivHouseholderQr().solve(b);
+  // cout << A << endl;
+  // cout << b << endl;
+  // cout << x << endl;
+
+  /*
+            0 -z  y
+      T =  z  0 -x
+          -y  x  0
+  */
+
+  // T = E * R.t();
+  // cout << T << endl;
+  t = Mat::zeros(3, 1, R.type());
+  t.at<double>(0, 0) = x(0);
+  t.at<double>(1, 0) = x(1);
+  t.at<double>(2, 0) = x(2);
+
+  // 对解进行筛选: 对t进行符号判断
+  selectSolution(X, Y);
+  cout << t << endl;
 
   // 5 保存无量纲的结果
   if (translations.empty()) {
@@ -203,26 +201,36 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
   // 筛选公共特征点对
   vector<pair<int, int> >  indices1 = indices[_m2][_m1];
   vector<pair<int, int> >  indices2 = indices[_m2][_m3];
-  vector<Point2f> points1, points2, points3;
+  vector<int> index1, index2;
   for (int i = 0, j = 0; i < indices1.size() && j < indices2.size(); ) {
     if (indices1[i].first < indices2[j].first) {
       i ++;
     } else if (indices1[i].first > indices2[j].first) {
       j ++;
     } else {
-      points1.emplace_back(origin_features[_m1][indices1[i].second]);
-      points2.emplace_back(origin_features[_m2][indices1[i].first]);
-      points3.emplace_back(origin_features[_m3][indices2[j].second]);
+      index1.emplace_back(i);
+      index2.emplace_back(j);
       i ++;
       j ++;
     }
   }
 
+  vector<Point2f> points1, points2, points3, points4;
+  for (int i = 0; i < indices1.size(); i ++) {
+    points1.emplace_back(origin_features[_m1][indices1[i].second]);
+    points2.emplace_back(origin_features[_m1][indices1[i].first]);
+  }
+  for (int i = 0; i < indices2.size(); i ++) {
+    points3.emplace_back(origin_features[_m2][indices2[i].first]);
+    points4.emplace_back(origin_features[_m2][indices2[i].second]);
+  }
+
   // 将特征点从图像参考系转换到相机参考系中
-  Mat cPoints1, cPoints2, cPoints3;
+  Mat cPoints1, cPoints2, cPoints3, cPoints4;
   pixel2Cam(points1, cPoints1);
   pixel2Cam(points2, cPoints2);
   pixel2Cam(points3, cPoints3);
+  pixel2Cam(points4, cPoints4);
   LOG("%d %d t: %lf", _m1, _m2, sqrt(translations[_m1][_m2].at<double>(0, 0)*translations[_m1][_m2].at<double>(0, 0) + translations[_m1][_m2].at<double>(1, 0)*translations[_m1][_m2].at<double>(1, 0) + translations[_m1][_m2].at<double>(2, 0)*translations[_m1][_m2].at<double>(2, 0)));
   cout << translations[_m2][_m1] << endl;
   LOG("%d %d t: %lf", _m2, _m3, sqrt(translations[_m2][_m3].at<double>(0, 0)*translations[_m2][_m3].at<double>(0, 0) + translations[_m2][_m3].at<double>(1, 0)*translations[_m2][_m3].at<double>(1, 0) + translations[_m2][_m3].at<double>(2, 0)*translations[_m2][_m3].at<double>(2, 0)));
@@ -240,33 +248,33 @@ void Translate::computeDistance(int _m1, int _m2, int _m3) {
   P2 = Mat::eye(3, 4, R.type());
   P2(Range::all(), Range(0, 3)) = rotations[_m2][_m3] * 1.0;
   P2.col(3) = translations[_m2][_m3] * 1.0;
-  triangulatePoints(P1, P2, cPoints2, cPoints3, Q2);
+  triangulatePoints(P1, P2, cPoints3, cPoints4, Q2);
+  
   // 计算缩放比
-  int pointNum = points1.size();
   Mat tmpPoint;
   vector<double> rates;
-  for (int i = 0; i < pointNum; i ++) {
+  for (int i = 0; i < index1.size(); i ++) {
     // 第一张图的第1个点
-    double w11 = Q1.at<double>(3, i);
-    double x11 = Q1.at<double>(0, i) / w11;
-    double y11 = Q1.at<double>(1, i) / w11;
-    double z11 = Q1.at<double>(2, i) / w11;
+    double w11 = Q1.at<double>(3, index1[i]);
+    double x11 = Q1.at<double>(0, index1[i]) / w11;
+    double y11 = Q1.at<double>(1, index1[i]) / w11;
+    double z11 = Q1.at<double>(2, index1[i]) / w11;
     // 第二张图的第1个点
-    double w21 = Q2.at<double>(3, i);
-    double x21 = Q2.at<double>(0, i) / w21;
-    double y21 = Q2.at<double>(1, i) / w21;
-    double z21 = Q2.at<double>(2, i) / w21;
-    for (int j = i + 1; j < pointNum; j ++) {
+    double w21 = Q2.at<double>(3, index2[i]);
+    double x21 = Q2.at<double>(0, index2[i]) / w21;
+    double y21 = Q2.at<double>(1, index2[i]) / w21;
+    double z21 = Q2.at<double>(2, index2[i]) / w21;
+    for (int j = i + 1; j < index2.size(); j ++) {
       // 第一张图的第2个点
-      double w12 = Q1.at<double>(3, j);
-      double y12 = Q1.at<double>(1, j) / w12;
-      double x12 = Q1.at<double>(0, j) / w12;
-      double z12 = Q1.at<double>(2, j) / w12;
+      double w12 = Q1.at<double>(3, index1[j]);
+      double y12 = Q1.at<double>(1, index1[j]) / w12;
+      double x12 = Q1.at<double>(0, index1[j]) / w12;
+      double z12 = Q1.at<double>(2, index1[j]) / w12;
       // 第二张图的第2个点
-      double w22 = Q1.at<double>(3, j);
-      double x22 = Q1.at<double>(0, j) / w22;
-      double y22 = Q1.at<double>(1, j) / w22;
-      double z22 = Q1.at<double>(2, j) / w22;
+      double w22 = Q1.at<double>(3, index2[j]);
+      double x22 = Q1.at<double>(0, index2[j]) / w22;
+      double y22 = Q1.at<double>(1, index2[j]) / w22;
+      double z22 = Q1.at<double>(2, index2[j]) / w22;
 
       double distance1 = sqrt((x11 - x12)*(x11 - x12) + (y11 - y12)*(y11 - y12) + (z11 - z12)*(z11 - z12));
       double distance2 = sqrt((x21 - x22)*(x21 - x22) + (y21 - y22)*(y21 - y22) + (z21 - z22)*(z21 - z22));
