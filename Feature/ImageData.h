@@ -72,9 +72,6 @@ class ImageData {
     vector<vector<Point2f> > matching_points;// 此图片在第i个图片的匹配点
     vector<vector<Mat> > homographies;// 此图片的单应矩阵在第i张图片的单应矩阵
 
-    // 直线检测
-    vector<LineData> img_lines;// 直线
-
     void init_data(const char *img_path);
     void get_img(const char *img_path);
     /** Mesh2D **/
