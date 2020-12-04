@@ -14,71 +14,7 @@ int main(int argc, char *argv[]) {
   char app_path[64] = "../..";
   char img_path[128];// 图片路径
 
-  if (1) {
-    // 计算相机平移
-    
-    // 读取图片
-    vector<Mat> imgs;
-    int img_num = 4;
-    for (int i = 1; i <= img_num; i ++) {
-      sprintf(img_path, "%s/%d.jpg", app_path, i);
-      imgs.emplace_back(imread(img_path));
-    }
-    
-    // 初始化旋转角度
-    vector<vector<double> > angles;
-    angles.resize(img_num);
-    // angles[0].emplace_back(+1.55);
-    // angles[0].emplace_back(-0.21);
-    // angles[0].emplace_back(-1.48);
-    // angles[1].emplace_back(+1.55);
-    // angles[1].emplace_back(-0.21);
-    // angles[1].emplace_back(-1.43);
-    // angles[2].emplace_back(+1.55);
-    // angles[2].emplace_back(-0.22);
-    // angles[2].emplace_back(-1.44);
-    // angles[3].emplace_back(+1.56);
-    // angles[3].emplace_back(-0.17);
-    // angles[3].emplace_back(-1.41);
-    // angles[4].emplace_back(+1.55);
-    // angles[4].emplace_back(-0.27);
-    // angles[4].emplace_back(-1.36);
-    // angles[5].emplace_back(+1.55);
-    // angles[5].emplace_back(-0.20);
-    // angles[5].emplace_back(-1.31);
-    // angles[6].emplace_back(+1.54);
-    // angles[6].emplace_back(-0.20);
-    // angles[6].emplace_back(-1.36);
-    angles[0].emplace_back(-0.00);
-    angles[0].emplace_back(+0.09);
-    angles[0].emplace_back(-2.77);
-    angles[1].emplace_back(+0.02);
-    angles[1].emplace_back(+0.10);
-    angles[1].emplace_back(-2.75);
-    angles[2].emplace_back(+0.02);
-    angles[2].emplace_back(+0.10);
-    angles[2].emplace_back(-2.72);
-    angles[3].emplace_back(+0.03);
-    angles[3].emplace_back(+0.10);
-    angles[3].emplace_back(-2.73);
-
-    // 计算平移
-    Translate translator(0);
-    translator.init(imgs, angles);
-    translator.getFeaturePairs();
-    translator.computeTranslate(0, 1);
-    translator.computeTranslate(1, 2);
-    translator.computeTranslate(2, 3);
-    translator.computeDistance(0, 1, 2);
-    translator.computeDistance(1, 2, 3);
-    // translator.computeDistance(3, 0, 4);
-    // translator.computeDistance(5, 0, 6);
-
-    // 计算每幅图像的位置, TODO: 从安卓端用生成树得到匹配
-    vector<pair<int, int> > img_pairs;
-    translator.computeOrigin(img_pairs);
-
-  } else if (true) {
+  if (true) {
     // 调用自己的方法
     
     // 读取图片
@@ -98,13 +34,16 @@ int main(int argc, char *argv[]) {
     // multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
     My_Stitching my_stitcher(multi_images);
-    Mat result = my_stitcher.getMyResult();
-    // Mat result = my_stitcher.getNISResult();
+    // Mat result = my_stitcher.getMyResult();
+    // show_img("My", result);
+    Mat result = my_stitcher.getNISResult();
+    show_img("NIS", result);
+    // Mat result = my_stitcher.getAPAPResult();
+    // show_img("APAP", result);
 
     end_time = clock();
     LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);
 
-    show_img("My", result);
 
   } else {
     // 调用OpenCV
