@@ -201,15 +201,8 @@ void MultiImages::getHomographyInfo() {
                   homography,
                   tmp_size);
   // 计算另一张图片
-  Mat tmp_pano;
-  homography = getPerspectiveTransform(corners_origin[1], corners_warped[1]);
-  warpPerspective(imgs[1]->data,
-                  tmp_pano,
-                  homography,
-                  tmp_size);
-  Mat mask = Mat(imgs[1]->data.size(), CV_8UC1, Scalar(255));
-  warpPerspective(mask, mask, homography, tmp_size);
-  tmp_pano.copyTo(result, mask);
+  Mat dst = Mat(result, Rect(corners_warped[1][0], corners_warped[1][3]));
+  imgs[1]->data.copyTo(dst);
 
   show_img("My", result);
 }
