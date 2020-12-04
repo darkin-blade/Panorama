@@ -25,7 +25,7 @@ void MultiImages::getFeatureInfo() {
     LOG("[picture %d] feature points: %ld", i, imgs[i]->feature_points.size());
   }
 
-  // 特征点匹配(内含自动检测图片匹配)
+  // 特征点匹配
   getFeaturePairs();
 
   // 筛选所有图片的成功匹配的特征点
@@ -162,6 +162,22 @@ void MultiImages::getMeshInfo() {
         image_features[m1].keypoints.emplace_back(tmp_points[k], 0);
       }
     }
+  }
+}
+
+void MultiImages::getHomographyInfo() {
+  Mat homography = findHomography(feature_points[0][1], feature_points[1][0]);
+
+  // 计算图像顶点坐标: 左上, 右上, 左下, 右下
+  img_corners.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    int width  = imgs[i]->data.cols;
+    int height = imgs[i]->data.rows;
+    img_corners[i].emplace_back(0, 0);
+    img_corners[i].emplace_back(width, 0);
+    img_corners[i].emplace_back(0, height);
+    img_corners[i].emplace_back(width, height);
+    LOG("%d %d", width, height);
   }
 }
 

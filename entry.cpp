@@ -34,10 +34,10 @@ int main(int argc, char *argv[]) {
     // multi_images.img_pairs.emplace_back(make_pair(2, 3));
 
     My_Stitching my_stitcher(multi_images);
-    // Mat result = my_stitcher.getMyResult();
+    Mat result = my_stitcher.getMyResult();
     // show_img("My", result);
-    Mat result = my_stitcher.getNISResult();
-    show_img("NIS", result);
+    // Mat result = my_stitcher.getNISResult();
+    // show_img("NIS", result);
     // Mat result = my_stitcher.getAPAPResult();
     // show_img("APAP", result);
 

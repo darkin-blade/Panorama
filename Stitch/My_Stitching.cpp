@@ -4,50 +4,12 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) : MeshOptimization(_mult
 }
 
 Mat My_Stitching::getMyResult() {
-
-  set_progress(5, MODE_MY);
+  int img_num = multi_images->img_num;
+  assert(img_num == 2);
   multi_images->getFeatureInfo();
-  set_progress(10, MODE_MY);
-  multi_images->getMeshInfo();
-  set_progress(20, MODE_MY);
+  multi_images->getHomographyInfo();
 
-  /**** 网格优化 ****/
-
-  alignment_weight               = 1;// 1
-  local_similarity_weight        = 0.56;// 0.56
-  global_similarity_weight_beta  = 6;// 6
-  global_similarity_weight_gamma = 20;// 20
-
-  vector<Triplet<double> > triplets;
-  vector<pair<int, double> > b_vector;
-
-  reserveData(triplets, b_vector, 0);// DIMENSION_2D
-
-  triplets.emplace_back(0, 0, STRONG_CONSTRAINT);
-  triplets.emplace_back(1, 1, STRONG_CONSTRAINT);
-  b_vector.emplace_back(0,    STRONG_CONSTRAINT);
-  b_vector.emplace_back(1,    STRONG_CONSTRAINT);
-
-  prepareAlignmentTerm(triplets);
-  prepareSimilarityTerm(triplets, b_vector);
-
-  getImageVerticesBySolving(triplets, b_vector);
-
-  /*****************/
-
-  set_progress(70, MODE_MY);
-  multi_images->ignore_weight_mask = true;
-  multi_images->warpImages();
-  set_progress(80, MODE_MY);
-  // 曝光补偿
-  // multi_images->exposureCompensate();
-  // 寻找接缝线
-  multi_images->getSeam();
-  set_progress(90, MODE_MY);
-  
-  Mat result = multi_images->blending();
-  set_progress(100, MODE_MY);
-  return result;
+  return Mat();
 }
 
 Mat My_Stitching::getNISResult() {

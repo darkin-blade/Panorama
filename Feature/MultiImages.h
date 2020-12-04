@@ -69,8 +69,9 @@ public:
   /* Base */
   int center_index = 0;// 参照图片的索引
   int img_num;
-  vector<ImageData *> imgs;
-  vector<double>      img_rotations;// 拍摄时的旋转角度
+  vector<ImageData *>      imgs;
+  vector<double>           img_rotations;// 拍摄时的旋转角度
+  vector<vector<Point2f> > img_corners;// 图像的顶点坐标(绝对)
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   vector<vector<bool> >   images_match_graph;// 配对矩阵
@@ -141,6 +142,7 @@ public:
 
   void getFeatureInfo();
   void getMeshInfo();
+  void getHomographyInfo();
   void warpImages();
   void exposureCompensate();// 曝光补偿
   void getSeam();// 寻找接缝线
