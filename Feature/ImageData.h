@@ -40,17 +40,6 @@ class InterpolateVertex {
     }
 };
 
-class LineData {
-  public:
-    LineData(const Point2f & _a,
-        const Point2f & _b,
-        const double _width,
-        const double _length);
-    Point2f data[2];
-    double width, length;
-  private:
-};
-
 class ImageData {
   public:
     // Mesh2D

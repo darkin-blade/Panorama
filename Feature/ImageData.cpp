@@ -1,15 +1,5 @@
 #include "ImageData.h"
 
-LineData::LineData(const Point2f & _a,
-    const Point2f & _b,
-    const double _width,
-    const double _length) {
-  data[0] = _a;
-  data[1] = _b;
-  width   = _width;
-  length  = _length;
-}
-
 void ImageData::init_data(const char *img_path) {
   get_img(img_path);
   get_size();

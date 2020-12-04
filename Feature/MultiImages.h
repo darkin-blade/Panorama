@@ -71,7 +71,8 @@ public:
   int img_num;
   vector<ImageData *>      imgs;
   vector<double>           img_rotations;// 拍摄时的旋转角度
-  vector<vector<Point2f> > img_corners;// 图像的顶点坐标(绝对)
+  vector<vector<Point2f> > corners_origin;// 图像的初始顶点坐标(绝对)
+  vector<vector<Point2f> > corners_warped;// 图像的最终顶点坐标(绝对)
 
   vector<pair<int, int> > img_pairs;// 图片的配对信息
   vector<vector<bool> >   images_match_graph;// 配对矩阵
@@ -115,8 +116,8 @@ public:
   vector<UMat>             gpu_images_warped;
   vector<UMat>             gpu_masks_warped;
 
-  vector<Point2f>          origins;// 每幅warped图像的初始坐标
-  vector<Point2i>          corners;// 初始坐标的整数形式
+  vector<Point2f>          corners_float;// 每幅warped图像的初始坐标
+  vector<Point2i>          corners_int;// 初始坐标的整数形式
   vector<Mat>              blend_weight_mask;// new_weight_mask
 
   /* Seam */

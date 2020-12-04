@@ -166,19 +166,52 @@ void MultiImages::getMeshInfo() {
 }
 
 void MultiImages::getHomographyInfo() {
-  Mat homography = findHomography(feature_points[0][1], feature_points[1][0]);
 
   // 计算图像顶点坐标: 左上, 右上, 左下, 右下
-  img_corners.resize(img_num);
+  corners_origin.resize(img_num);
+  corners_warped.resize(img_num);
   for (int i = 0; i < img_num; i ++) {
     int width  = imgs[i]->data.cols;
     int height = imgs[i]->data.rows;
-    img_corners[i].emplace_back(0, 0);
-    img_corners[i].emplace_back(width, 0);
-    img_corners[i].emplace_back(0, height);
-    img_corners[i].emplace_back(width, height);
-    LOG("%d %d", width, height);
+    corners_origin[i].emplace_back(0, 0);
+    corners_origin[i].emplace_back(width, 0);
+    corners_origin[i].emplace_back(0, height);
+    corners_origin[i].emplace_back(width, height);
+    corners_warped[i].emplace_back(0, 0);
+    corners_warped[i].emplace_back(width, 0);
+    corners_warped[i].emplace_back(0, height);
+    corners_warped[i].emplace_back(width, height);
   }
+
+  // 透视变换
+  Mat homography = findHomography(feature_points[0][1], feature_points[1][0]);
+  // 计算新顶点位置
+  for (int i = 0; i < 4; i ++) {
+    corners_warped[0][i] = applyTransform3x3(corners_origin[0][i].x, corners_origin[0][i].y, homography);
+    LOG("new point: ");
+    cout << corners_warped[0][i] << endl;
+  }
+
+  // 计算最终结果
+  Mat result;
+  Size tmp_size = normalizeVertices(corners_warped);// 去除负偏移
+  homography = getPerspectiveTransform(corners_origin[0], corners_warped[0]);
+  warpPerspective(imgs[0]->data,
+                  result,
+                  homography,
+                  tmp_size);
+  // 计算另一张图片
+  Mat tmp_pano;
+  homography = getPerspectiveTransform(corners_origin[1], corners_warped[1]);
+  warpPerspective(imgs[1]->data,
+                  tmp_pano,
+                  homography,
+                  tmp_size);
+  Mat mask = Mat(imgs[1]->data.size(), CV_8UC1, Scalar(255));
+  warpPerspective(mask, mask, homography, tmp_size);
+  tmp_pano.copyTo(result, mask);
+
+  show_img("My", result);
 }
 
 vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const int m2) {  
@@ -686,7 +719,7 @@ void MultiImages::warpImages() {
   assert(vertices.size() == img_num);
   images_warped.reserve(img_num);// 图片数
   masks_warped.reserve(img_num);
-  origins.reserve(img_num);
+  corners_float.reserve(img_num);
   blend_weight_mask.reserve(img_num);
 
   const bool isLinear = true;
@@ -765,7 +798,7 @@ void MultiImages::warpImages() {
     affine_transforms.emplace_back(affine_transform);// 保存单应矩阵变换
     images_warped.emplace_back(image);
     masks_warped.emplace_back(image_mask);
-    origins.emplace_back(rects[i].x, rects[i].y);
+    corners_float.emplace_back(rects[i].x, rects[i].y);
     if (!ignore_weight_mask) {// linear
       blend_weight_mask.emplace_back(w_mask);
     }
@@ -776,23 +809,23 @@ void MultiImages::warpImages() {
   // 预处理
   // 去除透明通道, 同步UMat和Mat
   for (int i = 0; i < img_num; i ++) {
-    corners.emplace_back((int) origins[i].x, (int) origins[i].y);// 不要用括号把x, y括起来
+    corners_int.emplace_back((int) corners_float[i].x, (int) corners_float[i].y);// 不要用括号把x, y括起来
     UMat tmp_img, tmp_mask;
     cvtColor(images_warped[i], tmp_img, COLOR_RGBA2RGB);// 不要使用convertTo
     masks_warped[i].copyTo(tmp_mask);// 不要使用getMat, 否则会产生关联
 
     gpu_images_warped.emplace_back(tmp_img);
     gpu_masks_warped.emplace_back(tmp_mask);
-    LOG("%d (%d, %d)", i, corners[i].x, corners[i].y);
+    LOG("%d (%d, %d)", i, corners_int[i].x, corners_int[i].y);
   }
 }
 
 void MultiImages::exposureCompensate() {
   // 曝光补偿
   Ptr<ExposureCompensator> compensator = ExposureCompensator::createDefault(ExposureCompensator::GAIN);// 使用增益补偿
-  compensator->feed(corners, gpu_images_warped, gpu_masks_warped);
+  compensator->feed(corners_int, gpu_images_warped, gpu_masks_warped);
   for (int i = 0; i < img_num; i ++) {
-    compensator->apply(i, origins[i], gpu_images_warped[i], gpu_masks_warped[i]);
+    compensator->apply(i, corners_float[i], gpu_images_warped[i], gpu_masks_warped[i]);
     cvtColor(gpu_images_warped[i], images_warped[i], COLOR_RGB2RGBA);// 同步UMat和Mat, Mat要添加透明通道
   }
 }
@@ -804,7 +837,7 @@ void MultiImages::getSeam() {
   // 对mask进行平移
   for (int i = 0; i < img_num; i ++) {
     Mat mask_translated = Mat::zeros(target_size, CV_8UC1);
-    Mat dst_mask = Mat(mask_translated, Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    Mat dst_mask = Mat(mask_translated, Rect(corners_int[i].x, corners_int[i].y, masks_warped[i].cols, masks_warped[i].rows));
     masks_warped[i].copyTo(dst_mask);
     pano_masks_warped.emplace_back(mask_translated);
   }
@@ -826,8 +859,8 @@ void MultiImages::getSeam() {
         for (int c = 0; c < pano_cols; c ++) {// 从上往下
           if (intersect_p[c] > 0) {
             // 存在交集
-            Vec4b dst_pix = images_warped[j].at<Vec4b>(r - corners[j].x, c - corners[j].y);
-            Vec4b src_pix = images_warped[i].at<Vec4b>(r - corners[i].x, c - corners[i].y);
+            Vec4b dst_pix = images_warped[j].at<Vec4b>(r - corners_int[j].x, c - corners_int[j].y);
+            Vec4b src_pix = images_warped[i].at<Vec4b>(r - corners_int[i].x, c - corners_int[i].y);
             int pix_delta = abs(dst_pix[0] - src_pix[0]) + abs(dst_pix[1] - src_pix[1]) + abs(dst_pix[2] - src_pix[2]);
             if (pix_delta > 300) {
               // pano_masks_warped[j].at<uchar>(r, c) = 0;
@@ -846,7 +879,7 @@ void MultiImages::getSeam() {
 
   // 将削减过后的mask还原到无偏移的Mat, 同步UMat
   for (int i = 0; i < img_num; i ++) {
-    Mat src_mask = Mat(pano_masks_warped[i], Rect(corners[i].x, corners[i].y, masks_warped[i].cols, masks_warped[i].rows));
+    Mat src_mask = Mat(pano_masks_warped[i], Rect(corners_int[i].x, corners_int[i].y, masks_warped[i].cols, masks_warped[i].rows));
     src_mask.copyTo(masks_warped[i]);
     masks_warped[i].copyTo(gpu_masks_warped[i]);
     sprintf(tmp_name, "mask%d", i);
@@ -862,7 +895,7 @@ void MultiImages::getSeam() {
   for (int i = 0; i < img_num; i ++) {
     gpu_images_warped[i].convertTo(images_warped_f[i], CV_32F);
   }
-  seam_finder->find(images_warped_f, corners, gpu_masks_warped);
+  seam_finder->find(images_warped_f, corners_int, gpu_masks_warped);
   // 同步Mat和UMat
   for (int i = 0; i < img_num; i ++) {
     gpu_masks_warped[i].copyTo(masks_warped[i]);
@@ -873,7 +906,7 @@ void MultiImages::getSeam() {
 Mat MultiImages::blending() {
   Mat blend_result = Mat::zeros(target_size, CV_8UC4);
   for (int i = 0; i < img_num; i ++) {
-    Mat dst_image = Mat(blend_result, Rect(corners[i].x, corners[i].y, images_warped[i].cols, images_warped[i].rows));
+    Mat dst_image = Mat(blend_result, Rect(corners_int[i].x, corners_int[i].y, images_warped[i].cols, images_warped[i].rows));
     images_warped[i].copyTo(dst_image, masks_warped[i]);
   }
   return blend_result;
@@ -883,7 +916,7 @@ Mat MultiImages::blending() {
   // for (int i = 0; i < img_num; i ++) {
   //   sizes.emplace_back(gpu_images_warped[i].size());
   // }
-  // Size dst_sz = resultRoi(corners, sizes).size();
+  // Size dst_sz = resultRoi(corners_int, sizes).size();
   // float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
   // Ptr<Blender> blender;
   // if (true) {
@@ -897,7 +930,7 @@ Mat MultiImages::blending() {
   //   FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
   //   fb->setSharpness(1.f/blend_width);
   // }
-  // blender->prepare(corners, sizes);
+  // blender->prepare(corners_int, sizes);
 
   // // 纹理映射
   // for (int i = 0; i < img_num; i ++) {
@@ -911,7 +944,7 @@ Mat MultiImages::blending() {
   //   // 转换图像格式
   //   Mat images_warped_s;
   //   gpu_images_warped[i].convertTo(images_warped_s, CV_16S);
-  //   blender->feed(images_warped_s, mask_warped, corners[i]);
+  //   blender->feed(images_warped_s, mask_warped, corners_int[i]);
   // }
   // Mat blend_result, blend_mask;
   // blender->blend(blend_result, blend_mask);
@@ -950,7 +983,7 @@ Mat MultiImages::textureMapping() {
   
   return Blending(
       images_warped,
-      origins,
+      corners_float,
       target_size,
       blend_weight_mask, // 最小0, 最大12000
       ignore_weight_mask);
