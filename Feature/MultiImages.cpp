@@ -62,47 +62,38 @@ void MultiImages::getFeatureInfo() {
 }
 
 void MultiImages::getMeshInfo() {
-  Mat homography = findHomography(feature_points[0][1], feature_points[1][0]);
+  // 初始化图像网格
+  vector<double> col_r, row_r;
+  col_r.emplace_back(0);
+  col_r.emplace_back(1);
+  row_r.emplace_back(0);
+  row_r.emplace_back(1);
+  imgs[0]->initVertices(col_r, row_r);
+  // 计算网格形变
+  Homographies::compute(
+    feature_points[0][1],
+    feature_points[1][0],
+    imgs[0]->vertices,
+    imgs[0]->matching_pts,
+    imgs[0]->homographies
+  );
 }
 
 void MultiImages::getHomographyInfo() {
-
-  // 计算图像顶点坐标: 左上, 右上, 左下, 右下
-  corners_origin.resize(img_num);
-  corners_warped.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    int width  = imgs[i]->data.cols;
-    int height = imgs[i]->data.rows;
-    corners_origin[i].emplace_back(0, 0);
-    corners_origin[i].emplace_back(width, 0);
-    corners_origin[i].emplace_back(0, height);
-    corners_origin[i].emplace_back(width, height);
-    corners_warped[i].emplace_back(0, 0);
-    corners_warped[i].emplace_back(width, 0);
-    corners_warped[i].emplace_back(0, height);
-    corners_warped[i].emplace_back(width, height);
+  int equations = feature_points[0][1].size();
+  // 式子是特征点数目的两倍, 未知数为x和y
+  MatrixXd A = MatrixXd::Zero(equations * 2, 2);
+  VectorXd b = VectorXd::Zero(equations * 2);
+  for (int i = 0; i < equations; i ++) {
+    // x + delX = x', 1delX + 0Dely = x' - x
+    // y + delY = y', 0delX + 1Dely = y' - y
+    A(i*2 + 0, 0) = 1;
+    b(i*2 + 0)    = feature_points[1][0][i].x - feature_points[0][1][i].x;
+    A(i*2 + 1, 0) = 1;
+    b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
   }
-
-  // 透视变换
-  Mat homography = findHomography(feature_points[0][1], feature_points[1][0]);
-  // 计算新顶点位置
-  for (int i = 0; i < 4; i ++) {
-    corners_warped[0][i] = applyTransform3x3(corners_origin[0][i].x, corners_origin[0][i].y, homography);
-    LOG("new point: ");
-    cout << corners_warped[0][i] << endl;
-  }
-
-  // 计算最终结果
-  Mat result;
-  Size tmp_size = normalizeVertices(corners_warped);// 去除负偏移
-  homography = getPerspectiveTransform(corners_origin[0], corners_warped[0]);
-  warpPerspective(imgs[0]->data,
-                  result,
-                  homography,
-                  tmp_size);
-  // 计算另一张图片
-  Mat dst = Mat(result, Rect(corners_warped[1][0], corners_warped[1][3]));
-  imgs[1]->data.copyTo(dst);
+  VectorXd x = A.colPivHouseholderQr().solve(b);
+  cout << x << endl;
 }
 
 void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
@@ -124,9 +115,9 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   
   for (int i = 0; i < _indices.size(); i ++) {
     const Point2i contour[] = {
-      _indices[i][0] - origin,
-      _indices[i][1] - origin,
-      _indices[i][2] - origin,
+      _dst_p[_indices[i][0]] - origin,
+      _dst_p[_indices[i][1]] - origin,
+      _dst_p[_indices[i][2]] - origin,
     };
     // 往索引矩阵中填充索引值
     fillConvexPoly(
@@ -167,16 +158,18 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
         if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
           Vec3b c = getSubpix<uchar, 3>(_src, p_f);
           _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);// 线性权值
+          w_mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
         }
       }
     }
   }
 
   /* debug */
-  Mat img = Mat::zeros(_dst.size(), CV_8UC1);
-  _dst.copyTo(img, polygon_index_mask);
-  show_img("mask", img);
+  // polygon_index_mask.convertTo(polygon_index_mask, CV_8UC1);
+  // show_img("mask", polygon_index_mask);
+  // Mat img = Mat::zeros(_dst.size(), CV_8UC1);
+  // _dst.copyTo(img, polygon_index_mask);
+  show_img("img", _dst);
 }
 
 /***

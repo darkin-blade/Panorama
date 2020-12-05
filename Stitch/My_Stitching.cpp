@@ -8,9 +8,16 @@ Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
   assert(img_num == 2);
   multi_images->getFeatureInfo();
-  multi_images->getHomographyInfo();
+  multi_images->getMeshInfo();
+  Mat result;
+  multi_images->warpImage(
+    multi_images->imgs[0]->vertices,
+    multi_images->imgs[0]->matching_pts,
+    multi_images->imgs[0]->triangulation_indices,
+    multi_images->imgs[0]->data,
+    result);
 
-  return Mat();
+  return result;
 }
 
 void My_Stitching::drawFeatureMatch() {

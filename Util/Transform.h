@@ -18,6 +18,8 @@ template <typename T>
 Point_<T> applyTransform2x3(T x, T y, const Mat & matT);
 
 template <typename T>
+Size_<T> normalizeVertices(vector<Point_<T> > & vertices);
+template <typename T>
 Size_<T> normalizeVertices(vector<vector<Point_<T> > > & vertices);
 
 template <typename T>

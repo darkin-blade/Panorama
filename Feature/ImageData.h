@@ -15,11 +15,19 @@ public:
 
   /* 特征 */
   vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
-  vector<Point2f> feature_points;// 特征点(全部)
+  vector<Point2f>      feature_points;// 特征点(全部)
 
   /* 网格 */
+  int rows, cols;// 网格顶点的行列数目 
+  vector<Point2f>      vertices;// 原始网格顶点
+  vector<vector<int> > triangulation_indices;// 三角形的线型索引
+
+  /* 线性变换 */
+  vector<Point2f>      matching_pts;// 形变后的网格顶点
+  vector<Mat>          homographies;
 
   void readImg(const char *img_path);
+  void initVertices(vector<double> _col, vector<double> _row);
 };
 
 #endif

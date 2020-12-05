@@ -50,10 +50,6 @@ public:
   vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
-  /* 透视变换 */
-  vector<vector<Point2f> > corners_origin;// 图像的初始顶点坐标(绝对)
-  vector<vector<Point2f> > corners_warped;// 图像的最终顶点坐标(绝对)
-
   /* 图片读取 */
   void readImg(const char *img_path);
 
@@ -68,6 +64,7 @@ public:
   /* 自定义 */
   void rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p);
   void getFeatureInfo();
+  void getMeshInfo();
   void getHomographyInfo();
   void warpImage(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
