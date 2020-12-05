@@ -39,7 +39,6 @@ public:
   MultiImages();
 
   /* 原始数据 */
-  int center_index = 0;// 参照图片的索引
   int img_num;
   vector<ImageData *>      imgs;
   vector<double>           img_rotations;// 拍摄时的旋转角度
@@ -61,16 +60,19 @@ public:
   /* 特征匹配 */
   void getFeaturePairs();
   vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
-  vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(const vector<Point2f> & _X,
-                                                            const vector<Point2f> & _Y,
-                                                            const vector<pair<int, int> > & _initial_indices);
+  vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(
+      const vector<Point2f> & _X,
+      const vector<Point2f> & _Y,
+      const vector<pair<int, int> > & _initial_indices);
 
   /* 自定义 */
+  void rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p);
   void getFeatureInfo();
   void getHomographyInfo();
-  void warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
-               int _col, int _row,
-               Mat _src, Mat & _dst);
+  void warpImage(
+      vector<Point2f> _src_p, vector<Point2f> _dst_p,
+      vector<vector<int> > _indices, // 三角形的线性索引
+      Mat _src, Mat & _dst);
 };
 
 #endif
