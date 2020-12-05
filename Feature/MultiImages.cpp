@@ -88,6 +88,86 @@ void MultiImages::getHomographyInfo() {
   imgs[1]->data.copyTo(dst);
 }
 
+void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
+      vector<vector<int> > _indices, // 三角形的线性索引
+      Mat _src, Mat & _dst) {
+
+  assert(_src_p.size() == _dst_p.size());
+  bool ignore_weight_mask = false;
+
+  Size2f target_size = normalizeVertices(_dst_p);// 归一化形变后的网格点
+  Rect2f rect        = getVerticesRects(_dst_p);// 获取图片的最终矩形
+
+  /* 计算每个三角形的仿射变换 */
+  const Point2f shift(0.5, 0.5);
+  const Point2f origin(rect.x, rect.y);// 最终坐标的原点
+  Mat polygon_index_mask(rect.height + shift.y, rect.width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 记录每个像素点对应三角形的索引矩阵, 并填充初始值
+  vector<Mat> affine_transform;
+  affine_transform.reserve(_indices.size());// 三角形数目
+  
+  for (int i = 0; i < _indices.size(); i ++) {
+    const Point2i contour[] = {
+      _indices[i][0] - origin,
+      _indices[i][1] - origin,
+      _indices[i][2] - origin,
+    };
+    // 往索引矩阵中填充索引值
+    fillConvexPoly(
+      polygon_index_mask, // 索引矩阵
+      contour,            // 三角形区域
+      TRIANGLE_COUNT,
+      i,
+      LINE_AA,
+      PRECISION);
+    // 计算三角形的仿射变换, TODO
+    Point2f src[] = {
+      _dst_p[_indices[i][0]] - origin,
+      _dst_p[_indices[i][1]] - origin,
+      _dst_p[_indices[i][2]] - origin,
+    };
+    Point2f dst[] = {
+      _src_p[_indices[i][0]],
+      _src_p[_indices[i][1]],
+      _src_p[_indices[i][2]],
+    };
+    // 按顺序保存(逆向的)仿射变换, 顺序对应三角形的索引
+    affine_transform.emplace_back(getAffineTransform(src, dst));
+  }
+
+  /* 计算目标图像 */
+  _dst = Mat::zeros(rect.height + shift.y, rect.width + shift.x, CV_8UC4);
+  Mat weight_mask;
+  Mat w_mask;
+  // 线性融合
+  weight_mask = getMatOfLinearBlendWeight(_src);// TODO
+  w_mask = Mat::zeros(_dst.size(), CV_32FC1);
+
+  for (int y = 0; y < _dst.rows; y ++) {
+    for (int x = 0; x < _dst.cols; x ++) {
+      int polygon_index = polygon_index_mask.at<int>(y, x);
+      if (polygon_index != NO_GRID) {
+        Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);// 根据(逆向的)仿射变换, 计算目标图像上每个像素对应的原图像坐标
+        if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
+          Vec3b c = getSubpix<uchar, 3>(_src, p_f);
+          _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
+          w_mask.at<float>(y, x) = getSubpix<float>(weight_mask[i], p_f);// 线性权值
+        }
+      }
+    }
+  }
+
+  /* debug */
+  Mat img = Mat::zeros(_dst.size(), CV_8UC1);
+  _dst.copyTo(img, polygon_index_mask);
+  show_img("mask", img);
+}
+
+/***
+  *
+  * 计算特征匹配
+  *
+  **/
+
 vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const int m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;

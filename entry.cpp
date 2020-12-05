@@ -32,11 +32,6 @@ int main(int argc, char *argv[]) {
 
   My_Stitching my_stitcher(multi_images);
   Mat result = my_stitcher.getMyResult();
-  // show_img("My", result);
-  // Mat result = my_stitcher.getNISResult();
-  // show_img("NIS", result);
-  // Mat result = my_stitcher.getAPAPResult();
-  // show_img("APAP", result);
 
   end_time = clock();
   LOG("totoal time %lf", (double)(end_time - begin_time)/CLOCKS_PER_SEC);

@@ -81,6 +81,23 @@ Point_<T> applyTransform2x3(T x, T y, const Mat & matT) {
 }
 
 template <typename T>
+Size_<T> normalizeVertices(vector<Point_<T> > & vertices) {
+  T min_x = std::numeric_limits<T>::max(), max_x = -std::numeric_limits<T>::max();
+  T min_y = std::numeric_limits<T>::max(), max_y = -std::numeric_limits<T>::max();
+  for(int i = 0; i < vertices.size(); ++i) {
+    min_x = min(min_x, vertices[i].x);
+    min_y = min(min_y, vertices[i].y);
+    max_x = max(max_x, vertices[i].x);
+    max_y = max(max_y, vertices[i].y);
+  }
+  for(int i = 0; i < vertices.size(); ++i) {
+    vertices[i].x = (vertices[i].x - min_x);
+    vertices[i].y = (vertices[i].y - min_y);
+  }
+  return Size_<T>(max_x - min_x, max_y - min_y);
+}
+
+template <typename T>
 Size_<T> normalizeVertices(vector<vector<Point_<T> > > & vertices) {
   T min_x = std::numeric_limits<T>::max(), max_x = -std::numeric_limits<T>::max();
   T min_y = std::numeric_limits<T>::max(), max_y = -std::numeric_limits<T>::max();
@@ -115,10 +132,6 @@ vector<Rect_<T> > getVerticesRects(const vector<vector<Point_<T> > > & vertices)
     T min_ix = MAXFLOAT, max_ix = -MAXFLOAT;
     T min_iy = MAXFLOAT, max_iy = -MAXFLOAT;
     for(int j = 0; j < vertices[i].size(); ++j) {
-      // if (vertices[i][j].x > max_ix) LOG("%d max x %lf", i, (double)vertices[i][j].x);
-      // if (vertices[i][j].x < min_ix) LOG("%d min x %lf", i, (double)vertices[i][j].x);
-      // if (vertices[i][j].y > max_ix) LOG("%d max y %lf", i, (double)vertices[i][j].y);
-      // if (vertices[i][j].y < min_ix) LOG("%d min y %lf", i, (double)vertices[i][j].y);
       min_ix = min(min_ix, vertices[i][j].x);
       max_ix = max(max_ix, vertices[i][j].x);
       min_iy = min(min_iy, vertices[i][j].y);
@@ -204,6 +217,9 @@ template Point_<double> applyTransform3x3<double>(double x, double y, const Mat 
 template Point_< float> applyTransform2x3< float>( float x,  float y, const Mat & matT);
 template Point_<double> applyTransform2x3<double>(double x, double y, const Mat & matT);
 
+template Size_<   int> normalizeVertices<   int>(vector<Point_<   int> > & vertices);
+template Size_< float> normalizeVertices< float>(vector<Point_< float> > & vertices);
+template Size_<double> normalizeVertices<double>(vector<Point_<double> > & vertices);
 template Size_<   int> normalizeVertices<   int>(vector<vector<Point_<   int> > > & vertices);
 template Size_< float> normalizeVertices< float>(vector<vector<Point_< float> > > & vertices);
 template Size_<double> normalizeVertices<double>(vector<vector<Point_<double> > > & vertices);
