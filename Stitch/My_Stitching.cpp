@@ -9,13 +9,14 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
+  drawMatchingPts();
   Mat result;
-  multi_images->warpImage(
-    multi_images->imgs[0]->vertices,
-    multi_images->imgs[0]->matching_pts,
-    multi_images->imgs[0]->triangulation_indices,
-    multi_images->imgs[0]->data,
-    result);
+  // multi_images->warpImage(
+  //   multi_images->imgs[0]->vertices,
+  //   multi_images->imgs[0]->matching_pts,
+  //   multi_images->imgs[0]->triangulation_indices,
+  //   multi_images->imgs[0]->data,
+  //   result);
 
   return result;
 }
@@ -83,4 +84,33 @@ void My_Stitching::drawFeatureMatch() {
     }
   }
   show_img("feature pairs", result);
+}
+
+void My_Stitching::drawMatchingPts() {
+  int m1 = 0;
+  int m2 = 1;
+  Mat result, left, right;
+
+  Mat img1 = multi_images->imgs[m1]->data;
+  Mat img2 = multi_images->imgs[m2]->data;
+  result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+  left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+  right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+  // 复制图片
+  // img1.copyTo(left);
+  // img2.copyTo(right);
+
+  // 描绘所有匹配点
+  for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
+    Point2f src_p, dst_p;
+    src_p = multi_images->imgs[m1]->vertices[i];
+    // dst_p = multi_images->imgs[m1]->matching_pts[i];
+
+    Scalar color1(255, 0, 0, 255);
+    circle(result, src_p, CIRCLE_SIZE, color1, -1);
+    // Scalar color2(0, 0, 255, 255);
+    // circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+  }
+
+  show_img("matching pts", result);
 }

@@ -13,4 +13,5 @@ public:
 
   // DEBUG 用
   void drawFeatureMatch();
+  void drawMatchingPts();
 };

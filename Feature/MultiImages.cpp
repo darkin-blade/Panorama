@@ -70,13 +70,13 @@ void MultiImages::getMeshInfo() {
   row_r.emplace_back(1);
   imgs[0]->initVertices(col_r, row_r);
   // 计算网格形变
-  Homographies::compute(
-    feature_points[0][1],
-    feature_points[1][0],
-    imgs[0]->vertices,
-    imgs[0]->matching_pts,
-    imgs[0]->homographies
-  );
+  // Homographies::compute(
+  //   feature_points[0][1],
+  //   feature_points[1][0],
+  //   imgs[0]->vertices,
+  //   imgs[0]->matching_pts,
+  //   imgs[0]->homographies
+  // );
 }
 
 void MultiImages::getHomographyInfo() {
