@@ -89,7 +89,7 @@ void My_Stitching::drawMatchingPts() {
   Mat result = Mat::zeros(multi_images->pano_size, CV_8UC3);
 
   // 描绘所有匹配点
-  for (int i = 0; i < multi_images->imgs[m1]->vertices.size() / 5; i ++) {
+  for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
     Point2f src_p, dst_p;
     src_p = multi_images->matching_pts[m1 + multi_images->img_num][i];
     dst_p = multi_images->matching_pts[m1][i];
