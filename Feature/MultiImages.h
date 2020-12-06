@@ -50,6 +50,9 @@ public:
   vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
+  /* 图像融合 */
+  vector<vector<Point2f> >     mesh_pts;// 每个图像最终的网格点
+
   /* 图片读取 */
   void readImg(const char *img_path);
 
