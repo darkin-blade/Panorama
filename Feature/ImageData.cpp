@@ -39,8 +39,9 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
       vertices.emplace_back(data.cols * _col[i], data.rows * _row[j]);
     }
   }
-  // 记录三角形线性索引
-  assert(triangulation_indices.empty());
+  // 记录网格线性索引
+  assert(triangle_indices.empty());
+  assert(rectangle_indices.empty());
   for (int i = 0; i < cols - 1; i ++) {
     for (int j = 0; j < rows - 1; j ++) {
       // 将一个mesh分为两个三角形记录
@@ -54,8 +55,16 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
       indice_2.emplace_back(j * rows + i);
       indice_2.emplace_back((j + 1) * rows + i);
       indice_2.emplace_back((j + 1) * rows + (i + 1));
-      triangulation_indices.emplace_back(indice_1);
-      triangulation_indices.emplace_back(indice_2);
+      triangle_indices.emplace_back(indice_1);
+      triangle_indices.emplace_back(indice_2);
+      // 将一个mesh分为一个矩形记录
+      vector<int> indice_3;
+      // 左上, 右上, 右下, 左下
+      indice_3.emplace_back(j * rows + i);
+      indice_3.emplace_back(j * rows + (i + 1));
+      indice_3.emplace_back((j + 1) * rows + (i + 1));
+      indice_3.emplace_back((j + 1) * rows + i);
+      rectangle_indices.emplace_back(indice_3);
     }
   }
 }

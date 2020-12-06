@@ -20,7 +20,8 @@ public:
   /* 网格 */
   int rows, cols;// 网格顶点的行列数目 
   vector<Point2f>      vertices;// 原始网格顶点
-  vector<vector<int> > triangulation_indices;// 三角形的线型索引
+  vector<vector<int> > triangle_indices;// 三角形的线型索引
+  vector<vector<int> > rectangle_indices;// 四边形的线性索引
 
   /* 线性变换 */
   vector<Point2f>      matching_pts;// 形变后的网格顶点
