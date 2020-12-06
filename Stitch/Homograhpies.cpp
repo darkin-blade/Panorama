@@ -26,7 +26,10 @@ void Homographies::compute(
     cf2.emplace_back(nf2[i].x * C2.at<double>(0, 0) + C2.at<double>(0, 2),
         nf2[i].y * C2.at<double>(1, 1) + C2.at<double>(1, 2));
   }
-  double sigma_inv_2 = 1. / (APAP_SIGMA * APAP_SIGMA), gamma = APAP_GAMMA;
+  // 计算常量
+  double sigma_inv_2 = 1. / (APAP_SIGMA * APAP_SIGMA);
+  double gamma = APAP_GAMMA;
+
   MatrixXd A = MatrixXd::Zero(cf1.size() * DIMENSION_2D, HOMOGRAPHY_VARIABLES_COUNT);
   assert(_src.size() > 0);
   _dst.reserve(_src.size());
@@ -35,7 +38,12 @@ void Homographies::compute(
   for (int i = 0; i < _src.size(); i ++) {
     for (int j = 0; j < _p_src.size(); j ++) {
       Point2f d = _src[i] - _p_src[j];
-      double www = max(gamma, exp(-sqrt(d.x * d.x + d.y * d.y) * sigma_inv_2));
+      double tmp_w = exp(-sqrt(d.x * d.x + d.y * d.y) * sigma_inv_2);
+      tmp_w = sqrt(sqrt(tmp_w));
+
+      double www = max(gamma, tmp_w);
+      LOG("%lf", www);
+      
       A(2*j  , 0) = www * cf1[j].x;
       A(2*j  , 1) = www * cf1[j].y;
       A(2*j  , 2) = www * 1;

@@ -9,7 +9,6 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
-  drawMatchingPts();
   Mat result;
   multi_images->warpImage(
     multi_images->imgs[0]->vertices,

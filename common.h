@@ -96,8 +96,8 @@ const int GRID_SIZE = 40;// 网格尺寸
 const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 600;
 
 /*** APAP ***/
-const double APAP_GAMMA = 0.0015;
-const double APAP_SIGMA = 8.5;
+const double APAP_GAMMA = 0.0015;// 0.0015
+const double APAP_SIGMA = 8.5;// 8.5
 
 /*** matching method ***/
 const double FEATURE_RATIO_TEST_THRESHOLD = 1.5;// atof("15e-1");
