@@ -33,10 +33,10 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
 
   // 从左往右, 从上往下
   assert(vertices.empty());
-  for (int i = 0; i < cols; i ++) {
-    for (int j = 0; j < rows; j ++) {
+  for (int i = 0; i < rows; i ++) {
+    for (int j = 0; j < cols; j ++) {
       // 记录网格顶点
-      vertices.emplace_back(data.cols * _col[i], data.rows * _row[j]);
+      vertices.emplace_back(data.cols * _col[j], data.rows * _row[i]);
     }
   }
   // 记录网格线性索引

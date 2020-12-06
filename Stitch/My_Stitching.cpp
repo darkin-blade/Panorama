@@ -8,12 +8,13 @@ Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
   assert(img_num == 2);
   multi_images->getFeatureInfo();
-  // multi_images->getMeshInfo();
+  multi_images->getMeshInfo();
   multi_images->getHomographyInfo();
 
   // return Mat();
   Mat result = multi_images->textureMapping();
-  show_img("result", result);
+  drawMatchingPts();
+  // show_img("result", result);
   return result;
 }
 
@@ -85,29 +86,23 @@ void My_Stitching::drawFeatureMatch() {
 void My_Stitching::drawMatchingPts() {
   int m1 = 0;
   int m2 = 1;
-  Mat result, left, right;
-
-  Mat img1 = multi_images->imgs[m1]->data;
-  Mat img2 = multi_images->imgs[m2]->data;
-  result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-  left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
-  right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
-  // 复制图片
-  // img1.copyTo(left);
-  // img2.copyTo(right);
+  Mat result = Mat::zeros(multi_images->pano_size, CV_8UC3);
 
   // 描绘所有匹配点
-  for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
+  for (int i = 0; i < multi_images->imgs[m1]->vertices.size() / 5; i ++) {
     Point2f src_p, dst_p;
-    src_p = multi_images->imgs[m1]->vertices[i];
-    dst_p = multi_images->matching_pts[m1][i] + Point2f(img1.cols, 0);
+    src_p = multi_images->matching_pts[m1 + multi_images->img_num][i];
+    dst_p = multi_images->matching_pts[m1][i];
 
     Scalar color1(255, 0, 0, 255);
     circle(result, src_p, CIRCLE_SIZE, color1, -1);
     Scalar color2(0, 0, 255, 255);
     circle(result, dst_p, CIRCLE_SIZE, color2, -1);
-    Scalar color3(0, 255, 0, 255);
-    line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
+
+    // debug
+    Point2f d = src_p - dst_p;
+    double distance = sqrt(d.x * d.x + d.y * d.y);
+    LOG("%d %lf", i, distance);
   }
 
   show_img("matching pts", result);

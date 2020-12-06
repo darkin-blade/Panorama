@@ -73,10 +73,19 @@ void Homographies::compute(
 
     _dst.emplace_back(applyTransform3x3(_src[i].x, _src[i].y, H));
     _homographies.emplace_back(H);
+  }
+}
 
-#if !defined(UBUNTU)
-    // LOG("process: [%d/%d]", i, (int) _src.size());
-#endif
-
+void Homographies::combine(
+    const vector<Point2f> & _pts_1,// mdlt
+    const vector<Point2f> & _pts_2,// shift
+    vector<Point2f>       & _result_pts) {
+  assert(_pts_1.size() == _pts_2.size());
+  
+  int pts_size = _pts_1.size();
+  for (int i = 0; i < pts_size; i ++) {
+    Point2f d = _pts_1[i] - _pts_2[i];
+    double distance = sqrt(d.x * d.x + d.y * d.y);
+    LOG("%d %lf", i, distance);
   }
 }

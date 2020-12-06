@@ -52,7 +52,7 @@ public:
 
   /* 图像融合 */
   Size2f                      pano_size;
-  vector<vector<Point2f> >    matching_pts;// 每个图像最终的网格点
+  vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
 
   /* 图片读取 */
   void readImg(const char *img_path);

@@ -259,7 +259,7 @@ void MultiImages::getMeshInfo() {
   
   // 计算网格形变
   assert(matching_pts.empty());
-  matching_pts.resize(img_num);
+  matching_pts.resize(img_num * 2);
   Homographies::compute(
     feature_points[0][1],
     feature_points[1][0],
@@ -284,24 +284,23 @@ void MultiImages::getHomographyInfo() {
     b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
   }
   VectorXd x = A.colPivHouseholderQr().solve(b);
-  cout << x << endl;
+  LOG("x=%lf, y=%lf", x(0), x(1));
 
   // 初始化图像网格
-  vector<double> col_r, row_r;
-  for (int i = 0; i <= 1; i ++) {
-    col_r.emplace_back(1 * i);
-    row_r.emplace_back(1 * i);
-  }
-  imgs[0]->initVertices(col_r, row_r);
-  imgs[1]->initVertices(col_r, row_r);
+  // vector<double> col_r, row_r;
+  // for (int i = 0; i <= 1; i ++) {
+  //   col_r.emplace_back(1 * i);
+  //   row_r.emplace_back(1 * i);
+  // }
+  // imgs[0]->initVertices(col_r, row_r);
+  // imgs[1]->initVertices(col_r, row_r);
 
   // 进行平移
-  assert(matching_pts.empty());
-  matching_pts.resize(img_num);
+  assert(matching_pts.size() == 2 * img_num);
   for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
-    matching_pts[0].emplace_back(imgs[0]->vertices[i] + Point2f(x(0), x(1)));
+    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] + Point2f(x(0), x(1)));
   }
-  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
+  matching_pts[1 + img_num].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
 /***
@@ -475,6 +474,14 @@ Mat MultiImages::textureMapping() {
 
   // 对所有图像的网格点归一化(去除负值)
   pano_size = normalizeVertices(matching_pts);
+  
+  // 单应矩阵融合
+  // vector<Point2f> tmp_pts;
+  // Homographies::combine(
+  //   matching_pts[0],
+  //   matching_pts[0 + img_num],
+  //   tmp_pts
+  // );
 
   // 记录每个图像最终的起点位置
   vector<Point2f> img_origins;
