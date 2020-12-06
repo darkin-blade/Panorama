@@ -36,7 +36,7 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
   for (int i = 0; i < cols; i ++) {
     for (int j = 0; j < rows; j ++) {
       // 记录网格顶点
-      vertices.emplace_back(data.cols * _col[i], data.rows * _row[i]);
+      vertices.emplace_back(data.cols * _col[i], data.rows * _row[j]);
     }
   }
   // 记录三角形线性索引

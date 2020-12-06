@@ -11,12 +11,12 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
   drawMatchingPts();
   Mat result;
-  // multi_images->warpImage(
-  //   multi_images->imgs[0]->vertices,
-  //   multi_images->imgs[0]->matching_pts,
-  //   multi_images->imgs[0]->triangulation_indices,
-  //   multi_images->imgs[0]->data,
-  //   result);
+  multi_images->warpImage(
+    multi_images->imgs[0]->vertices,
+    multi_images->imgs[0]->matching_pts,
+    multi_images->imgs[0]->triangulation_indices,
+    multi_images->imgs[0]->data,
+    result);
 
   return result;
 }
@@ -47,13 +47,13 @@ void My_Stitching::drawFeatureMatch() {
         // 获取特征点
         Point2f src_p, dst_p;
         src_p = multi_images->imgs[m1]->feature_points[src];
-        dst_p = multi_images->imgs[m2]->feature_points[dst];
+        dst_p = multi_images->imgs[m2]->feature_points[dst] + Point2f(img1.cols, 0);
 
         // 描绘
         Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
         circle(result, src_p, CIRCLE_SIZE, color, -1);
-        line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
-        circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+        line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
+        circle(result, dst_p, CIRCLE_SIZE, color, -1);
       }
     } else if (1) {
       // 匹配RANSAC之后的所有特征点
@@ -61,13 +61,13 @@ void My_Stitching::drawFeatureMatch() {
         // 获取特征点
         Point2f src_p, dst_p;
         src_p = multi_images->feature_points[m1][m2][i];
-        dst_p = multi_images->feature_points[m2][m1][i];
+        dst_p = multi_images->feature_points[m2][m1][i] + Point2f(img1.cols, 0);
 
         // 描绘
         Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
         circle(result, src_p, CIRCLE_SIZE, color, -1);
-        line(result, src_p, dst_p + Point2f(img1.cols, 0), color, LINE_SIZE, LINE_AA);
-        circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
+        line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
+        circle(result, dst_p, CIRCLE_SIZE, color, -1);
       }
     } else {
       // 描绘所有特征点
@@ -104,12 +104,14 @@ void My_Stitching::drawMatchingPts() {
   for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
     Point2f src_p, dst_p;
     src_p = multi_images->imgs[m1]->vertices[i];
-    // dst_p = multi_images->imgs[m1]->matching_pts[i];
+    dst_p = multi_images->imgs[m1]->matching_pts[i] + Point2f(img1.cols, 0);
 
     Scalar color1(255, 0, 0, 255);
     circle(result, src_p, CIRCLE_SIZE, color1, -1);
-    // Scalar color2(0, 0, 255, 255);
-    // circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+    Scalar color2(0, 0, 255, 255);
+    circle(result, dst_p, CIRCLE_SIZE, color2, -1);
+    Scalar color3(0, 255, 0, 255);
+    line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
   }
 
   show_img("matching pts", result);
