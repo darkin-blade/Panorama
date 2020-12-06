@@ -8,8 +8,10 @@ Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
   assert(img_num == 2);
   multi_images->getFeatureInfo();
-  multi_images->getMeshInfo();
+  // multi_images->getMeshInfo();
+  multi_images->getHomographyInfo();
 
+  // return Mat();
   Mat result = multi_images->textureMapping();
   show_img("result", result);
   return result;

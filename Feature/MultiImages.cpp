@@ -244,9 +244,9 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
-  for (int i = 0; i <= 10; i ++) {
-    col_r.emplace_back(0.1 * i);
-    row_r.emplace_back(0.1 * i);
+  for (int i = 0; i <= 4; i ++) {
+    col_r.emplace_back(0.25 * i);
+    row_r.emplace_back(0.25 * i);
   }
   imgs[0]->initVertices(col_r, row_r);
   col_r.clear();
@@ -258,6 +258,7 @@ void MultiImages::getMeshInfo() {
   imgs[1]->initVertices(col_r, row_r);
   
   // 计算网格形变
+  assert(matching_pts.empty());
   matching_pts.resize(img_num);
   Homographies::compute(
     feature_points[0][1],
@@ -279,11 +280,28 @@ void MultiImages::getHomographyInfo() {
     // y + delY = y', 0delX + 1Dely = y' - y
     A(i*2 + 0, 0) = 1;
     b(i*2 + 0)    = feature_points[1][0][i].x - feature_points[0][1][i].x;
-    A(i*2 + 1, 0) = 1;
+    A(i*2 + 1, 1) = 1;
     b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
   }
   VectorXd x = A.colPivHouseholderQr().solve(b);
   cout << x << endl;
+
+  // 初始化图像网格
+  vector<double> col_r, row_r;
+  for (int i = 0; i <= 1; i ++) {
+    col_r.emplace_back(1 * i);
+    row_r.emplace_back(1 * i);
+  }
+  imgs[0]->initVertices(col_r, row_r);
+  imgs[1]->initVertices(col_r, row_r);
+
+  // 进行平移
+  assert(matching_pts.empty());
+  matching_pts.resize(img_num);
+  for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
+    matching_pts[0].emplace_back(imgs[0]->vertices[i] + Point2f(x(0), x(1)));
+  }
+  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
 /***
