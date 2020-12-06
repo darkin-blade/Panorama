@@ -64,10 +64,10 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
-  col_r.emplace_back(0);
-  col_r.emplace_back(1);
-  row_r.emplace_back(0);
-  row_r.emplace_back(1);
+  for (int i = 0; i <= 10; i ++) {
+    col_r.emplace_back(0.1 * i);
+    row_r.emplace_back(0.1 * i);
+  }
   imgs[0]->initVertices(col_r, row_r);
   // 计算网格形变
   Homographies::compute(
@@ -123,7 +123,7 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
     fillConvexPoly(
       polygon_index_mask, // 索引矩阵
       contour,            // 三角形区域
-      TRIANGLE_COUNT,
+      TRIANGLE_COUNT,     // 三个角
       i,
       LINE_AA,
       PRECISION);
@@ -200,7 +200,7 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
     fillConvexPoly(
       polygon_index_mask, // 索引矩阵
       contour,            // 四边形区域
-      4,
+      4,                  // 四个角
       i,
       LINE_AA,
       PRECISION);

@@ -11,12 +11,12 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
   drawMatchingPts();
   Mat result;
-  // multi_images->warpImage(
-  //   multi_images->imgs[0]->vertices,
-  //   multi_images->imgs[0]->matching_pts,
-  //   multi_images->imgs[0]->triangle_indices,
-  //   multi_images->imgs[0]->data,
-  //   result);
+  multi_images->warpImage(
+    multi_images->imgs[0]->vertices,
+    multi_images->imgs[0]->matching_pts,
+    multi_images->imgs[0]->triangle_indices,
+    multi_images->imgs[0]->data,
+    result);
   multi_images->warpImage2(
     multi_images->imgs[0]->vertices,
     multi_images->imgs[0]->matching_pts,
