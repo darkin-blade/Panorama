@@ -9,20 +9,9 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
-  Mat result;
-  multi_images->warpImage(
-    multi_images->imgs[0]->vertices,
-    multi_images->imgs[0]->matching_pts,
-    multi_images->imgs[0]->triangle_indices,
-    multi_images->imgs[0]->data,
-    result);
-  multi_images->warpImage2(
-    multi_images->imgs[0]->vertices,
-    multi_images->imgs[0]->matching_pts,
-    multi_images->imgs[0]->rectangle_indices,
-    multi_images->imgs[0]->data,
-    result);
 
+  Mat result = multi_images->textureMapping();
+  show_img("result", result);
   return result;
 }
 
@@ -109,7 +98,7 @@ void My_Stitching::drawMatchingPts() {
   for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
     Point2f src_p, dst_p;
     src_p = multi_images->imgs[m1]->vertices[i];
-    dst_p = multi_images->imgs[m1]->matching_pts[i] + Point2f(img1.cols, 0);
+    dst_p = multi_images->matching_pts[m1][i] + Point2f(img1.cols, 0);
 
     Scalar color1(255, 0, 0, 255);
     circle(result, src_p, CIRCLE_SIZE, color1, -1);

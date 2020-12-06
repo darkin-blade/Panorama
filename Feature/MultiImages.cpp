@@ -256,16 +256,17 @@ void MultiImages::getMeshInfo() {
     row_r.emplace_back(1 * i);
   }
   imgs[1]->initVertices(col_r, row_r);
+  
   // 计算网格形变
+  matching_pts.resize(img_num);
   Homographies::compute(
     feature_points[0][1],
     feature_points[1][0],
     imgs[0]->vertices,
-    imgs[0]->matching_pts,
+    matching_pts[0],
     imgs[0]->homographies
   );
-  imgs[1]->matching_pts.assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-  // 对所有图像的网格点归一化(去除负值)
+  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
 void MultiImages::getHomographyInfo() {
@@ -285,9 +286,16 @@ void MultiImages::getHomographyInfo() {
   cout << x << endl;
 }
 
+/***
+  *
+  * 图像形变:
+    两个函数不会改变网格的位置, 且图像原点为(0, 0)
+  *
+  **/
+
 void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst) {
+      Mat _src, Mat & _dst, Mat & _mask) {
 
   assert(_src_p.size() == _dst_p.size());
   bool ignore_weight_mask = false;
@@ -297,16 +305,15 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
 
   /* 计算每个三角形的仿射变换 */
   const Point2f shift(0.5, 0.5);
-  const Point2f origin(rect.x, rect.y);// 最终坐标的原点
   Mat polygon_index_mask(rect.height + shift.y, rect.width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 记录每个像素点对应三角形的索引矩阵, 并填充初始值
   vector<Mat> affine_transform;
   affine_transform.reserve(_indices.size());// 三角形数目
   
   for (int i = 0; i < _indices.size(); i ++) {
     const Point2i contour[] = {
-      _dst_p[_indices[i][0]] - origin,
-      _dst_p[_indices[i][1]] - origin,
-      _dst_p[_indices[i][2]] - origin,
+      _dst_p[_indices[i][0]],
+      _dst_p[_indices[i][1]],
+      _dst_p[_indices[i][2]],
     };
     // 往索引矩阵中填充索引值
     fillConvexPoly(
@@ -318,9 +325,9 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       PRECISION);
     // 计算三角形的仿射变换
     Point2f src[] = {
-      _dst_p[_indices[i][0]] - origin,
-      _dst_p[_indices[i][1]] - origin,
-      _dst_p[_indices[i][2]] - origin,
+      _dst_p[_indices[i][0]],
+      _dst_p[_indices[i][1]],
+      _dst_p[_indices[i][2]],
     };
     Point2f dst[] = {
       _src_p[_indices[i][0]],
@@ -334,10 +341,9 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   /* 计算目标图像 */
   _dst = Mat::zeros(rect.height + shift.y, rect.width + shift.x, CV_8UC4);
   Mat weight_mask;
-  Mat w_mask;
   // 线性融合
   weight_mask = getMatOfLinearBlendWeight(_src);// TODO
-  w_mask = Mat::zeros(_dst.size(), CV_32FC1);
+  _mask = Mat::zeros(_dst.size(), CV_32FC1);
 
   for (int y = 0; y < _dst.rows; y ++) {
     for (int x = 0; x < _dst.cols; x ++) {
@@ -347,23 +353,16 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
         if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
           Vec3b c = getSubpix<uchar, 3>(_src, p_f);
           _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          w_mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
         }
       }
     }
   }
-
-  /* debug */
-  // polygon_index_mask.convertTo(polygon_index_mask, CV_8UC1);
-  // show_img("mask", polygon_index_mask);
-  // Mat img = Mat::zeros(_dst.size(), CV_8UC1);
-  // _dst.copyTo(img, polygon_index_mask);
-  show_img("img", _dst);
 }
 
 void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 四边形的线性索引
-      Mat _src, Mat & _dst) {
+      Mat _src, Mat & _dst, Mat & _mask) {
 
   assert(_src_p.size() == _dst_p.size());
   bool ignore_weight_mask = false;
@@ -373,17 +372,16 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
 
   /* 计算每个四边形的透视变换 */
   const Point2f shift(0.5, 0.5);
-  const Point2f origin(rect.x, rect.y);// 最终坐标的原点
   Mat polygon_index_mask(rect.height + shift.y, rect.width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 记录每个像素点对应四边形的索引矩阵, 并填充初始值
   vector<Mat> perspective_transform;
   perspective_transform.reserve(_indices.size());// 四边形数目
   
   for (int i = 0; i < _indices.size(); i ++) {
     const Point2i contour[] = {
-      _dst_p[_indices[i][0]] - origin,
-      _dst_p[_indices[i][1]] - origin,
-      _dst_p[_indices[i][2]] - origin,
-      _dst_p[_indices[i][3]] - origin,
+      _dst_p[_indices[i][0]],
+      _dst_p[_indices[i][1]],
+      _dst_p[_indices[i][2]],
+      _dst_p[_indices[i][3]],
     };
     // 往索引矩阵中填充索引值
     fillConvexPoly(
@@ -395,10 +393,10 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       PRECISION);
     // 计算四边形的透视变换
     Point2f src[] = {
-      _dst_p[_indices[i][0]] - origin,
-      _dst_p[_indices[i][1]] - origin,
-      _dst_p[_indices[i][2]] - origin,
-      _dst_p[_indices[i][3]] - origin,
+      _dst_p[_indices[i][0]],
+      _dst_p[_indices[i][1]],
+      _dst_p[_indices[i][2]],
+      _dst_p[_indices[i][3]],
     };
     Point2f dst[] = {
       _src_p[_indices[i][0]],
@@ -413,10 +411,9 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   /* 计算目标图像 */
   _dst = Mat::zeros(rect.height + shift.y, rect.width + shift.x, CV_8UC4);
   Mat weight_mask;
-  Mat w_mask;
   // 线性融合
   weight_mask = getMatOfLinearBlendWeight(_src);// TODO
-  w_mask = Mat::zeros(_dst.size(), CV_32FC1);
+  _mask = Mat::zeros(_dst.size(), CV_32FC1);
 
 
   for (int y = 0; y < _dst.rows; y ++) {
@@ -427,18 +424,11 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
         if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
           Vec3b c = getSubpix<uchar, 3>(_src, p_f);
           _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          w_mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
         }
       }
     }
   }
-
-  /* debug */
-  // polygon_index_mask.convertTo(polygon_index_mask, CV_8UC1);
-  // show_img("mask", polygon_index_mask);
-  // Mat img = Mat::zeros(_dst.size(), CV_8UC1);
-  // _dst.copyTo(img, polygon_index_mask);
-  show_img("img", _dst);
 }
 
 /***
@@ -448,5 +438,37 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   **/
 
 Mat MultiImages::textureMapping() {
-  vector<Point2f>
+  // 获得每个形变的图片, 图片的起点都是(0, 0)
+  vector<Mat> images_warped;
+  vector<Mat> blend_weight_mask;
+  for (int i = 0; i < img_num; i ++) {
+    Mat warped_image;
+    Mat weight_mask;
+    warpImage2(
+      imgs[i]->vertices,
+      matching_pts[i],
+      imgs[i]->rectangle_indices,
+      imgs[i]->data,
+      warped_image,
+      weight_mask);
+    images_warped.emplace_back(warped_image);
+    blend_weight_mask.emplace_back(weight_mask);
+  }
+
+  // 对所有图像的网格点归一化(去除负值)
+  pano_size = normalizeVertices(matching_pts);
+
+  // 记录每个图像最终的起点位置
+  vector<Point2f> img_origins;
+  for (int i = 0; i < img_num; i ++) {
+    img_origins.emplace_back(matching_pts[i][0]);
+  }
+
+  bool ignore_weight_mask = false;
+  return Blending(
+    images_warped,
+    img_origins,
+    pano_size,
+    blend_weight_mask,
+    ignore_weight_mask);
 }

@@ -39,11 +39,9 @@ void Homographies::compute(
     for (int j = 0; j < _p_src.size(); j ++) {
       Point2f d = _src[i] - _p_src[j];
       double tmp_w = exp(-sqrt(d.x * d.x + d.y * d.y) * sigma_inv_2);
-      tmp_w = sqrt(sqrt(tmp_w));
 
       double www = max(gamma, tmp_w);
-      LOG("%lf", www);
-      
+
       A(2*j  , 0) = www * cf1[j].x;
       A(2*j  , 1) = www * cf1[j].y;
       A(2*j  , 2) = www * 1;

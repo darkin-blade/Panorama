@@ -39,7 +39,7 @@ public:
   MultiImages();
 
   /* 原始数据 */
-  int img_num;
+  int                      img_num;
   vector<ImageData *>      imgs;
   vector<double>           img_rotations;// 拍摄时的旋转角度
   vector<pair<int, int> >  img_pairs;// 图片的配对信息
@@ -51,7 +51,8 @@ public:
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
   /* 图像融合 */
-  vector<vector<Point2f> >     mesh_pts;// 每个图像最终的网格点
+  Size2f                      pano_size;
+  vector<vector<Point2f> >    matching_pts;// 每个图像最终的网格点
 
   /* 图片读取 */
   void readImg(const char *img_path);
@@ -64,19 +65,24 @@ public:
       const vector<Point2f> & _Y,
       const vector<pair<int, int> > & _initial_indices);
 
-  /* 自定义 */
+  /* 图像配准 */
   void rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p);
   void getFeatureInfo();
   void getMeshInfo();
   void getHomographyInfo();
+
+  /* 图像形变 */
   void warpImage(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst);
+      Mat _src, Mat & _dst, Mat & _mask);
   void warpImage2(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst);
+      Mat _src, Mat & _dst, Mat & _mask);
+
+  /* 图像融合 */
+  Mat textureMapping();
 };
 
 #endif
