@@ -244,10 +244,15 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
-  for (int i = 0; i <= 20; i ++) {
-    col_r.emplace_back(0.05 * i);
-    row_r.emplace_back(0.05 * i);
+  double base = 0;
+  for (int i = 0; i <= 10; i ++) {
+    col_r.emplace_back(base);
+    row_r.emplace_back(base);
+    base += (1 - base) / 2;
   }
+  col_r.emplace_back(1);
+  row_r.emplace_back(1);
+
   imgs[0]->initVertices(col_r, row_r);
   col_r.clear();
   row_r.clear();
@@ -517,7 +522,8 @@ Mat MultiImages::textureMapping(int _mode) {
   // 记录每个图像最终的起点位置
   vector<Point2f> img_origins;
   for (int i = 0; i < img_num; i ++) {
-    img_origins.emplace_back(matching_pts[i + MODE_CHOICE][0]);
+    Rect2f rect = getVerticesRects(matching_pts[i + MODE_CHOICE]);
+    img_origins.emplace_back(rect.x, rect.y);
   }
 
   bool ignore_weight_mask = false;

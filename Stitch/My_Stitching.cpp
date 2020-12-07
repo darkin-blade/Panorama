@@ -10,12 +10,12 @@ Mat My_Stitching::getMyResult() {
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   multi_images->getHomographyInfo();
-  // multi_images->repairWarpping();
+  multi_images->repairWarpping();
 
   // return Mat();
   Mat result = multi_images->textureMapping(0);
   // drawFeatureMatch();
-  // drawMatchingPts();
+  drawMatchingPts();
   show_img("result", result);
   return result;
 }

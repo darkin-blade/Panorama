@@ -84,7 +84,7 @@ public:
       Mat _src, Mat & _dst, Mat & _mask);
 
   /* 图像融合 */
-  Mat textureMapping(int _mode);// 0 for mdlt, 1 for shift
+  Mat textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
 };
 
 #endif
