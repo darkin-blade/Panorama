@@ -288,13 +288,13 @@ void MultiImages::getHomographyInfo() {
     A(i*2 + 1, 1) = 1;
     b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
   }
-  VectorXd x = A.colPivHouseholderQr().solve(b);
-  LOG("x=%lf, y=%lf", x(0), x(1));
+  shift = A.colPivHouseholderQr().solve(b);
+  LOG("x=%lf, y=%lf", shift(0), shift(1));
 
   // 进行平移
   assert(matching_pts.size() == 2 * img_num);
   for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
-    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] + Point2f(x(0), x(1)));
+    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] + Point2f(shift(0), shift(1)));
   }
   matching_pts[1 + img_num].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
@@ -458,6 +458,7 @@ void MultiImages::repairWarpping() {
 
   Mat mask(imgs[1]->data.cols, imgs[1]->data.rows, CV_8UC1, Scalar::all(255));
   vector<bool> pts_mask(matching_pts[0].size());
+  vector<double> pts_distance(matching_pts[0].size());
   
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     double x = matching_pts[0][i].x;
@@ -474,9 +475,18 @@ void MultiImages::repairWarpping() {
     }
   }
 
+  // 参考点
+  double cols = imgs[0]->data.cols;
+  double rows = imgs[0]->data.rows;
+  Point2f refer(cols - shift(0), rows - shift(1));
+
   // 修正网格顶点
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     if (pts_mask[i]) {
+      // 计算权值
+      Point2f d = imgs[0]->vertices[i] - refer;
+      double weight = (d.x * d.x + d.y * d.y) / (cols * rows);
+
       double origin_x = matching_pts[0 + img_num][i].x;
       double origin_y = matching_pts[0 + img_num][i].y;
       double x = matching_pts[0][i].x - origin_x;
@@ -484,11 +494,10 @@ void MultiImages::repairWarpping() {
       // 修正长度
       // double delta_x = x < 0 ? -sqrt(-x) : sqrt(x);
       // double delta_y = y < 0 ? -sqrt(-y) : sqrt(y);
-      double delta_x = x / 2;
-      double delta_y = y / 2;
+      double delta_x = x / exp(weight);
+      double delta_y = y / exp(weight);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
-      LOG("%d %lf %lf", i, x, y);
     }
   }
 }

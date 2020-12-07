@@ -13,7 +13,7 @@ Mat My_Stitching::getMyResult() {
   multi_images->repairWarpping();
 
   // return Mat();
-  Mat result = multi_images->textureMapping(0);
+  Mat result = multi_images->textureMapping(1);
   // drawFeatureMatch();
   drawMatchingPts();
   show_img("result", result);
