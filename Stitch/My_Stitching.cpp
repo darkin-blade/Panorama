@@ -10,6 +10,7 @@ Mat My_Stitching::getMyResult() {
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   multi_images->getHomographyInfo();
+  multi_images->repairWarpping();
 
   // return Mat();
   Mat result = multi_images->textureMapping();
@@ -98,6 +99,8 @@ void My_Stitching::drawMatchingPts() {
     circle(result, src_p, CIRCLE_SIZE, color1, -1);
     Scalar color2(0, 0, 255, 255);
     circle(result, dst_p, CIRCLE_SIZE, color2, -1);
+    Scalar color3(0, 100, 0, 255);
+    line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
 
     // debug
     Point2f d = src_p - dst_p;

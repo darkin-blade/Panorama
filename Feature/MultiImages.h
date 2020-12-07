@@ -51,6 +51,7 @@ public:
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
   /* 图像融合 */
+  Mat                         pano_mask;// 全景图的mask
   Size2f                      pano_size;
   vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
 
@@ -70,6 +71,7 @@ public:
   void getFeatureInfo();
   void getMeshInfo();
   void getHomographyInfo();
+  void repairWarpping();
 
   /* 图像形变 */
   void warpImage(

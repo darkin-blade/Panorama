@@ -454,6 +454,46 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   *
   **/
 
+void MultiImages::repairWarpping() {
+  /*
+    图像修正: 待添加图像=>全景图像
+    计算待添加图像的网格顶点与全景图像mask的差, 并对这些剩下的网格顶点修正
+  */
+
+  Mat mask(imgs[1]->data.cols, imgs[1]->data.rows, CV_8UC1, Scalar::all(255));
+  vector<bool> pts_mask(matching_pts[0].size());
+  
+  for (int i = 0; i < matching_pts[0].size(); i ++) {
+    double x = matching_pts[0][i].x;
+    double y = matching_pts[0][i].y;
+    if (x < 0 || y < 0) {
+      pts_mask[i] = true;
+    } else {
+      uchar c = mask.at<uchar>(x, y);
+      if (c == 0) {
+        pts_mask[i] = true;
+      } else {
+        pts_mask[i] = false;
+      }
+    }
+  }
+
+  // 修正网格顶点
+  for (int i = 0; i < matching_pts[0].size(); i ++) {
+    if (pts_mask[i]) {
+      double origin_x = imgs[0]->vertices[i].x;
+      double origin_y = imgs[0]->vertices[i].y;
+      double x = matching_pts[0][i].x - origin_x;
+      double y = matching_pts[0][i].y - origin_y;
+      // 修正长度
+      x = x < 0 ? -sqrt(-x) : sqrt(x);
+      y = y < 0 ? -sqrt(-y) : sqrt(y);
+      matching_pts[0][i].x = origin_x + x;
+      matching_pts[0][i].y = origin_y + y;
+    }
+  }
+}
+
 Mat MultiImages::textureMapping() {
   // 获得每个形变的图片, 图片的起点都是(0, 0)
   vector<Mat> images_warped;
@@ -474,14 +514,6 @@ Mat MultiImages::textureMapping() {
 
   // 对所有图像的网格点归一化(去除负值)
   pano_size = normalizeVertices(matching_pts);
-  
-  // 单应矩阵融合
-  // vector<Point2f> tmp_pts;
-  // Homographies::combine(
-  //   matching_pts[0],
-  //   matching_pts[0 + img_num],
-  //   tmp_pts
-  // );
 
   // 记录每个图像最终的起点位置
   vector<Point2f> img_origins;
