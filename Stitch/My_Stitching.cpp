@@ -10,12 +10,13 @@ Mat My_Stitching::getMyResult() {
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   multi_images->getHomographyInfo();
-  multi_images->repairWarpping();
+  // multi_images->repairWarpping();
 
   // return Mat();
-  Mat result = multi_images->textureMapping();
-  drawMatchingPts();
-  // show_img("result", result);
+  Mat result = multi_images->textureMapping(0);
+  // drawFeatureMatch();
+  // drawMatchingPts();
+  show_img("result", result);
   return result;
 }
 
@@ -103,9 +104,6 @@ void My_Stitching::drawMatchingPts() {
     line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
 
     // debug
-    Point2f d = src_p - dst_p;
-    double distance = sqrt(d.x * d.x + d.y * d.y);
-    LOG("%d %lf", i, distance);
   }
 
   show_img("matching pts", result);
