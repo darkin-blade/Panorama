@@ -244,16 +244,18 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
+
   double base = 0;
   for (int i = 0; i <= 10; i ++) {
     col_r.emplace_back(base);
-    row_r.emplace_back(base);
-    base += (1 - base) / 2;
+    base += (1 - base) / 3;
   }
   col_r.emplace_back(1);
-  row_r.emplace_back(1);
-
+  for (int i = 0; i <= 5; i ++) {
+    row_r.emplace_back(i * 0.2);
+  }
   imgs[0]->initVertices(col_r, row_r);
+
   col_r.clear();
   row_r.clear();
   for (int i = 0; i <= 1; i ++) {
@@ -278,23 +280,26 @@ void MultiImages::getMeshInfo() {
 void MultiImages::getHomographyInfo() {
   int equations = feature_points[0][1].size();
   // 式子是特征点数目的两倍, 未知数为x和y
-  MatrixXd A = MatrixXd::Zero(equations * 2, 2);
+  MatrixXd A = MatrixXd::Zero(equations * 2, 3);
   VectorXd b = VectorXd::Zero(equations * 2);
   for (int i = 0; i < equations; i ++) {
-    // x + delX = x', 1delX + 0Dely = x' - x
-    // y + delY = y', 0delX + 1Dely = y' - y
-    A(i*2 + 0, 0) = 1;
-    b(i*2 + 0)    = feature_points[1][0][i].x - feature_points[0][1][i].x;
-    A(i*2 + 1, 1) = 1;
-    b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
+    // x * r + a + 0 = x'
+    // y * r + 0 + b = y'
+    // r: 以图像(0, 0)为中心放缩图像r倍
+    A(i*2 + 0, 0) = feature_points[0][1][i].x;
+    A(i*2 + 0, 1) = 1;
+    b(i*2 + 0)    = feature_points[1][0][i].x;
+    A(i*2 + 1, 0) = feature_points[0][1][i].y;
+    A(i*2 + 1, 2) = 1;
+    b(i*2 + 1)    = feature_points[1][0][i].y;
   }
   shift = A.colPivHouseholderQr().solve(b);
-  LOG("x=%lf, y=%lf", shift(0), shift(1));
+  LOG("r=%lf x=%lf, y=%lf", shift(0), shift(1), shift(2));
 
   // 进行平移
   assert(matching_pts.size() == 2 * img_num);
   for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
-    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] + Point2f(shift(0), shift(1)));
+    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] * shift(0) + Point2f(shift(1), shift(2)));
   }
   matching_pts[1 + img_num].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
@@ -478,14 +483,14 @@ void MultiImages::repairWarpping() {
   // 参考点
   double cols = imgs[0]->data.cols;
   double rows = imgs[0]->data.rows;
-  Point2f refer(cols - shift(0), rows - shift(1));
+  Point2f refer(cols / 2 - shift(1) / shift(0), rows / 2 - shift(2) / shift(0));
 
   // 修正网格顶点
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     if (pts_mask[i]) {
       // 计算权值
       Point2f d = imgs[0]->vertices[i] - refer;
-      double weight = (d.x * d.x + d.y * d.y) / (cols * rows);
+      double weight = fabs(d.x * shift(1) + d.y * shift(2)) / sqrt(cols * rows);// 计算偏差相对图像的比例
 
       double origin_x = matching_pts[0 + img_num][i].x;
       double origin_y = matching_pts[0 + img_num][i].y;
@@ -494,8 +499,9 @@ void MultiImages::repairWarpping() {
       // 修正长度
       // double delta_x = x < 0 ? -sqrt(-x) : sqrt(x);
       // double delta_y = y < 0 ? -sqrt(-y) : sqrt(y);
-      double delta_x = x / exp(weight);
-      double delta_y = y / exp(weight);
+      double delta_x = x / exp(sqrt(weight));
+      double delta_y = y / exp(sqrt(weight));
+      LOG("%d %lf", i, weight);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
     }
@@ -514,10 +520,18 @@ Mat MultiImages::textureMapping(int _mode) {
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
     Mat weight_mask;
-    warpImage2(
+    // warpImage2(
+    //   imgs[i]->vertices,
+    //   matching_pts[i + MODE_CHOICE],
+    //   imgs[i]->rectangle_indices,
+    //   imgs[i]->data,
+    //   warped_image,
+    //   weight_mask);
+    // images_warped.emplace_back(warped_image);
+    warpImage(
       imgs[i]->vertices,
-      matching_pts[i + MODE_CHOICE],// TODO
-      imgs[i]->rectangle_indices,
+      matching_pts[i + MODE_CHOICE],
+      imgs[i]->triangle_indices,
       imgs[i]->data,
       warped_image,
       weight_mask);

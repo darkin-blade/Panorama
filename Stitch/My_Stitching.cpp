@@ -98,8 +98,8 @@ void My_Stitching::drawMatchingPts() {
 
     Scalar color1(255, 0, 0, 255);
     circle(result, src_p, CIRCLE_SIZE, color1, -1);
-    Scalar color2(0, 0, 255, 255);
-    circle(result, dst_p, CIRCLE_SIZE, color2, -1);
+    // Scalar color2(0, 0, 255, 255);
+    // circle(result, dst_p, CIRCLE_SIZE, color2, -1);
     Scalar color3(0, 100, 0, 255);
     line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
 
