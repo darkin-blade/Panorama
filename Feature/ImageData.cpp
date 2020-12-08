@@ -39,31 +39,32 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
       vertices.emplace_back(data.cols * _col[j], data.rows * _row[i]);
     }
   }
+
   // 记录网格线性索引
   assert(triangle_indices.empty());
   assert(rectangle_indices.empty());
-  for (int i = 0; i < cols - 1; i ++) {
-    for (int j = 0; j < rows - 1; j ++) {
+  for (int i = 0; i < rows - 1; i ++) {
+    for (int j = 0; j < cols - 1; j ++) {
       // 将一个mesh分为两个三角形记录
       vector<int> indice_1;
       vector<int> indice_2;
       // 左上, 右上, 右下
-      indice_1.emplace_back(j * rows + i);
-      indice_1.emplace_back(j * rows + (i + 1));
-      indice_1.emplace_back((j + 1) * rows + (i + 1));
+      indice_1.emplace_back(i * cols + j);
+      indice_1.emplace_back(i * cols + (j + 1));
+      indice_1.emplace_back((i + 1) * cols + (j + 1));
       // 左上, 左下, 右下
-      indice_2.emplace_back(j * rows + i);
-      indice_2.emplace_back((j + 1) * rows + i);
-      indice_2.emplace_back((j + 1) * rows + (i + 1));
+      indice_2.emplace_back(i * cols + j);
+      indice_2.emplace_back((i + 1) * cols + j);
+      indice_2.emplace_back((i + 1) * cols + (j + 1));
       triangle_indices.emplace_back(indice_1);
       triangle_indices.emplace_back(indice_2);
       // 将一个mesh分为一个矩形记录
       vector<int> indice_3;
       // 左上, 右上, 右下, 左下
-      indice_3.emplace_back(j * rows + i);
-      indice_3.emplace_back(j * rows + (i + 1));
-      indice_3.emplace_back((j + 1) * rows + (i + 1));
-      indice_3.emplace_back((j + 1) * rows + i);
+      indice_3.emplace_back(i * cols + j);
+      indice_3.emplace_back(i * cols + (j + 1));
+      indice_3.emplace_back((i + 1) * cols + (j + 1));
+      indice_3.emplace_back((i + 1) * cols + j);
       rectangle_indices.emplace_back(indice_3);
     }
   }

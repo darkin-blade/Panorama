@@ -246,13 +246,13 @@ void MultiImages::getMeshInfo() {
   vector<double> col_r, row_r;
 
   double base = 0;
-  for (int i = 0; i <= 10; i ++) {
+  for (int i = 0; i <= 15; i ++) {
     col_r.emplace_back(base);
-    base += (1 - base) / 3;
+    base += (1 - base) / 4;
   }
   col_r.emplace_back(1);
-  for (int i = 0; i <= 5; i ++) {
-    row_r.emplace_back(i * 0.2);
+  for (int i = 0; i <= 10; i ++) {
+    row_r.emplace_back(i * 0.1);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -463,8 +463,11 @@ void MultiImages::repairWarpping() {
 
   Mat mask(imgs[1]->data.cols, imgs[1]->data.rows, CV_8UC1, Scalar::all(255));
   vector<bool> pts_mask(matching_pts[0].size());
-  vector<double> pts_distance(matching_pts[0].size());
+
+  vector<int>  pts_distance(matching_pts[0].size());
+  queue<int> q;
   
+  // 过滤重合的点
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     double x = matching_pts[0][i].x;
     double y = matching_pts[0][i].y;
@@ -476,6 +479,34 @@ void MultiImages::repairWarpping() {
         pts_mask[i] = true;
       } else {
         pts_mask[i] = false;
+        // 进入队列
+        pts_distance[i] = 1;
+        q.push(i);
+      }
+    }
+  }
+
+  // 对网格顶点进行bfs
+  int steps[4][2] = {{-1, 0}, {0, -1}, {1, 0}, {0, 1}};
+  while (!q.empty()) {
+    int u = q.front();
+    q.pop();
+
+    int x = u % imgs[0]->cols;
+    int y = (u - x) / imgs[0]->cols;
+    int depth = pts_distance[u];// 距离深度
+    LOG("%d %d %d", x, y, depth);
+    
+    for (int i = 0; i < 4; i ++) {
+      int next_x = x + steps[i][0]; 
+      int next_y = y + steps[i][1]; 
+      if (next_x >= 0 && next_y >= 0
+          && next_x < imgs[0]->cols && next_y < imgs[0]->rows) {
+        int index = next_x + next_y * imgs[0]->cols;
+        if (pts_distance[index] == 0) {
+          pts_distance[index] = depth + 1;
+          q.push(index);
+        }
       }
     }
   }
@@ -483,6 +514,7 @@ void MultiImages::repairWarpping() {
   // 参考点
   double cols = imgs[0]->data.cols;
   double rows = imgs[0]->data.rows;
+  double relate = (cols*cols + rows*rows);
   Point2f refer(cols / 2 - shift(1) / shift(0), rows / 2 - shift(2) / shift(0));
 
   // 修正网格顶点
@@ -490,7 +522,7 @@ void MultiImages::repairWarpping() {
     if (pts_mask[i]) {
       // 计算权值
       Point2f d = imgs[0]->vertices[i] - refer;
-      double weight = fabs(d.x * shift(1) + d.y * shift(2)) / sqrt(cols * rows);// 计算偏差相对图像的比例
+      double weight = fabs(d.x * shift(1) + d.y * shift(2)) / relate;// 计算偏差相对图像的比例
 
       double origin_x = matching_pts[0 + img_num][i].x;
       double origin_y = matching_pts[0 + img_num][i].y;
@@ -499,9 +531,10 @@ void MultiImages::repairWarpping() {
       // 修正长度
       // double delta_x = x < 0 ? -sqrt(-x) : sqrt(x);
       // double delta_y = y < 0 ? -sqrt(-y) : sqrt(y);
-      double delta_x = x / exp(sqrt(weight));
-      double delta_y = y / exp(sqrt(weight));
-      LOG("%d %lf", i, weight);
+      weight = exp(weight) * (10 * weight);
+      double delta_x = x / weight;
+      double delta_y = y / weight;
+      LOG("%d %lf (%lf)", i, weight, (x*x + y*y)/relate);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
     }
@@ -520,21 +553,21 @@ Mat MultiImages::textureMapping(int _mode) {
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
     Mat weight_mask;
-    // warpImage2(
-    //   imgs[i]->vertices,
-    //   matching_pts[i + MODE_CHOICE],
-    //   imgs[i]->rectangle_indices,
-    //   imgs[i]->data,
-    //   warped_image,
-    //   weight_mask);
-    // images_warped.emplace_back(warped_image);
-    warpImage(
+    warpImage2(
       imgs[i]->vertices,
       matching_pts[i + MODE_CHOICE],
-      imgs[i]->triangle_indices,
+      imgs[i]->rectangle_indices,
       imgs[i]->data,
       warped_image,
       weight_mask);
+    images_warped.emplace_back(warped_image);
+    // warpImage(
+    //   imgs[i]->vertices,
+    //   matching_pts[i + MODE_CHOICE],
+    //   imgs[i]->triangle_indices,
+    //   imgs[i]->data,
+    //   warped_image,
+    //   weight_mask);
     images_warped.emplace_back(warped_image);
     blend_weight_mask.emplace_back(weight_mask);
   }
