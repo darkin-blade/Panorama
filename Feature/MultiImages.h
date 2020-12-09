@@ -75,7 +75,7 @@ public:
   void rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p);
   void getFeatureInfo();
   void getMeshInfo();
-  void getHomographyInfo(int _mode, double _angle);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
+  void similarityTransform(int _mode, double _angle);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
   void repairWarpping();
 
   /* 图像形变 */

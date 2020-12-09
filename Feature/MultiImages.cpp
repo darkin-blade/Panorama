@@ -245,16 +245,17 @@ void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
 
-  // double base = 0;
-  // for (int i = 0; i <= 10; i ++) {
-  //   col_r.emplace_back(base);
-  //   base += (1 - base) / 3;
-  // }
-  // col_r.emplace_back(1);
-  for (int i = 0; i <= 2; i ++) {
-    col_r.emplace_back(i * 0.5);
-    row_r.emplace_back(i * 0.5);
+  double base = 0;
+  for (int i = 0; i <= 3; i ++) {
+    col_r.emplace_back(base);
+    row_r.emplace_back(base);
+    base += (1 - base) / 2;
   }
+  col_r.emplace_back(1);
+  row_r.emplace_back(1);
+  // for (int i = 0; i <= 5; i ++) {
+  //   row_r.emplace_back(i * 0.2);
+  // }
   imgs[0]->initVertices(col_r, row_r);
 
   col_r.clear();
@@ -278,7 +279,7 @@ void MultiImages::getMeshInfo() {
   matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
-void MultiImages::getHomographyInfo(int _mode, double _angle) {
+void MultiImages::similarityTransform(int _mode, double _angle) {
   // _angle必须是弧度
   int equations = feature_points[0][1].size();
   // 式子是特征点数目的两倍
@@ -608,9 +609,18 @@ void MultiImages::repairWarpping() {
     }
   }
 
+
   // 修正网格顶点
   Point2f center(imgs[0]->data.cols / 2, imgs[0]->data.rows / 2);
   double relate = center.x * center.x + center.y * center.y;
+
+  // 根据apap网格点形变程度修改基础权值
+  vector<Point2f> tmp_pts(matching_pts[0]);
+  Size2f warped_size = normalizeVertices(tmp_pts);// 正偏移不能被修正
+  double distance = warped_size.width * warped_size.width + warped_size.height * warped_size.height;
+  double base_weight = sqrt(distance / relate);
+  LOG("over warped %lf", distance / relate);
+
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     if (pts_mask[i]) {
       // 计算权值
@@ -622,12 +632,13 @@ void MultiImages::repairWarpping() {
       double x = matching_pts[0][i].x - origin_x;
       double y = matching_pts[0][i].y - origin_y;
       // 修正长度
-      weight = exp(weight);
+      weight = exp(weight) * base_weight * base_weight * base_weight;
       double delta_x = x / weight;
       double delta_y = y / weight;
       LOG("%d %lf", i, weight);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
+      LOG("%d %lf %lf", i, matching_pts[0][i].x, matching_pts[0][i].x);
     }
   }
 }
