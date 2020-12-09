@@ -246,9 +246,9 @@ void MultiImages::getMeshInfo() {
   vector<double> col_r, row_r;
 
   double base = 0;
-  for (int i = 0; i <= 15; i ++) {
+  for (int i = 0; i <= 10; i ++) {
     col_r.emplace_back(base);
-    base += (1 - base) / 4;
+    base += (1 - base) / 3;
   }
   col_r.emplace_back(1);
   for (int i = 0; i <= 10; i ++) {
@@ -277,31 +277,125 @@ void MultiImages::getMeshInfo() {
   matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
-void MultiImages::getHomographyInfo() {
+void MultiImages::getHomographyInfo(int _mode, double _angle) {
+  // _angle必须是弧度
   int equations = feature_points[0][1].size();
-  // 式子是特征点数目的两倍, 未知数为x和y
-  MatrixXd A = MatrixXd::Zero(equations * 2, 3);
-  VectorXd b = VectorXd::Zero(equations * 2);
-  for (int i = 0; i < equations; i ++) {
-    // x * r + a + 0 = x'
-    // y * r + 0 + b = y'
-    // r: 以图像(0, 0)为中心放缩图像r倍
-    A(i*2 + 0, 0) = feature_points[0][1][i].x;
-    A(i*2 + 0, 1) = 1;
-    b(i*2 + 0)    = feature_points[1][0][i].x;
-    A(i*2 + 1, 0) = feature_points[0][1][i].y;
-    A(i*2 + 1, 2) = 1;
-    b(i*2 + 1)    = feature_points[1][0][i].y;
-  }
-  shift = A.colPivHouseholderQr().solve(b);
-  LOG("r=%lf x=%lf, y=%lf", shift(0), shift(1), shift(2));
+  // 式子是特征点数目的两倍
 
-  // 进行平移
+  if (_mode == 0) {
+    // 只计算平移, 未知数为(x, y)
+
+    MatrixXd A = MatrixXd::Zero(equations * 2, 2);
+    VectorXd b = VectorXd::Zero(equations * 2);
+    for (int i = 0; i < equations; i ++) {
+      // x + 0 = x2 - x1
+      // 0 + y = y2 - y1
+      // r: 以图像(0, 0)为中心放缩图像r倍
+      A(i*2 + 0, 0) = 1;
+      b(i*2 + 0)    = feature_points[1][0][i].x - feature_points[0][1][i].x;
+      A(i*2 + 1, 1) = 1;
+      b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
+    }
+    VectorXd solution = A.colPivHouseholderQr().solve(b);
+    rotate  = _angle;
+    scale   = 1;
+    shift_x = solution(0);
+    shift_y = solution(1);
+
+  } else if (_mode == 1) {
+    // 计算平移和缩放, 未知数为(s, x, y)
+    // s: 以图像(0, 0)为中心放缩图像s倍
+  
+    MatrixXd A = MatrixXd::Zero(equations * 2, 3);
+    VectorXd b = VectorXd::Zero(equations * 2);
+    for (int i = 0; i < equations; i ++) {
+      // x1 * s + x + 0 = x2
+      // y1 * s + 0 + y = y2
+      A(i*2 + 0, 0) = feature_points[0][1][i].x;
+      A(i*2 + 0, 1) = 1;
+      b(i*2 + 0)    = feature_points[1][0][i].x;
+      A(i*2 + 1, 0) = feature_points[0][1][i].y;
+      A(i*2 + 1, 2) = 1;
+      b(i*2 + 1)    = feature_points[1][0][i].y;
+    }
+    VectorXd solution = A.colPivHouseholderQr().solve(b);
+    rotate  = _angle;
+    scale   = solution(0);
+    shift_x = solution(1);
+    shift_y = solution(2);
+
+  } else {
+    // 计算平移和旋转, 并使用CV方式计算旋转, 未知数为(r, s, x, y)
+    // r: 绕图像(0, 0)逆时针旋转r弧度
+    // s: 以图像(0, 0)为中心放缩图像s倍
+    /*
+      旋转公式: (正常方向下逆时针)
+      x' = x cos - y sin
+      y' = x sin + y cos
+      原方程:
+      s(x1 cos - y1 sin) + x = x2
+      s(x1 sin + y1 cos) + y = y2
+      转换为:
+      a x1 - b y1 + x = x2
+      b x1 + a y1 + y = y2
+      其中:
+      a = s cos
+      b = s sin
+    */
+
+    MatrixXd A = MatrixXd::Zero(equations * 2, 4);
+    VectorXd b = VectorXd::Zero(equations * 2);
+    for (int i = 0; i < equations; i ++) {
+      // x1 p - y1 q + x + 0 = x2
+      // y1 p + x1 q + 0 + y = y2
+      A(i*2 + 0, 0) = feature_points[0][1][i].x;
+      A(i*2 + 0, 1) = -feature_points[0][1][i].y;
+      A(i*2 + 0, 2) = 1;
+      b(i*2 + 0)    = feature_points[1][0][i].x;
+      A(i*2 + 1, 0) = feature_points[0][1][i].y;
+      A(i*2 + 1, 1) = feature_points[0][1][i].x;
+      A(i*2 + 1, 3) = 1;
+      b(i*2 + 1)    = feature_points[1][0][i].y;
+    }
+    VectorXd solution = A.colPivHouseholderQr().solve(b);
+    double p = solution(0);
+    double q = solution(1);
+    scale   = sqrt(p*p + q*q);
+    rotate  = acos(p / scale);
+    if (q < 0) {
+      rotate = 2 * M_PI - rotate;
+    }
+    shift_x = solution(1);
+    shift_y = solution(2);
+  }
+
+  // 进行相似变换
+  LOG("r=%lf, s=%lf, x=%lf, y=%lf", rotate, scale, shift_x, shift_y);
   assert(matching_pts.size() == 2 * img_num);
   for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
-    matching_pts[0 + img_num].emplace_back(imgs[0]->vertices[i] * shift(0) + Point2f(shift(1), shift(2)));
+    double x = imgs[0]->vertices[i].x;
+    double y = imgs[0]->vertices[i].y;
+    double new_x = (x * cos(rotate) - y * sin(rotate)) * scale + shift_x;
+    double new_y = (x * sin(rotate) + y * cos(rotate)) * scale + shift_y;
+    matching_pts[0 + img_num].emplace_back(new_x, new_y);
   }
   matching_pts[1 + img_num].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
+
+  // 计算参考点
+  double dst_x = imgs[0]->data.cols / 2;
+  double dst_y = imgs[0]->data.rows / 2;
+  double src_x = (dst_x * cos(rotate) - dst_y * sin(rotate)) + shift_x;
+  double src_y = (dst_x * sin(rotate) + dst_y * cos(rotate)) + shift_y;
+  double delta_x = dst_x - src_x;
+  double delta_y = dst_y - src_y;
+  // 反向旋转(顺时针旋转rotate弧度
+  double vec_x = delta_x * cos(-rotate) - delta_y * sin(-rotate);
+  double vec_y = delta_x * sin(-rotate) + delta_y * cos(-rotate);
+  // 修正缩放比(缩小scale比例)
+  vec_x /= scale;
+  vec_y /= scale;
+  shift_vec = Point2f(vec_x, vec_y);
+  LOG("vector(%lf, %lf)", vec_x, vec_y);
 }
 
 /***
@@ -495,7 +589,7 @@ void MultiImages::repairWarpping() {
     int x = u % imgs[0]->cols;
     int y = (u - x) / imgs[0]->cols;
     int depth = pts_distance[u];// 距离深度
-    LOG("%d %d %d", x, y, depth);
+    // LOG("%d %d %d", x, y, depth);
     
     for (int i = 0; i < 4; i ++) {
       int next_x = x + steps[i][0]; 
@@ -511,18 +605,13 @@ void MultiImages::repairWarpping() {
     }
   }
 
-  // 参考点
-  double cols = imgs[0]->data.cols;
-  double rows = imgs[0]->data.rows;
-  double relate = (cols*cols + rows*rows);
-  Point2f refer(cols / 2 - shift(1) / shift(0), rows / 2 - shift(2) / shift(0));
-
   // 修正网格顶点
+  double relate = imgs[0]->data.cols * imgs[0]->data.cols + imgs[0]->data.rows * imgs[0]->data.rows;
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     if (pts_mask[i]) {
       // 计算权值
-      Point2f d = imgs[0]->vertices[i] - refer;
-      double weight = fabs(d.x * shift(1) + d.y * shift(2)) / relate;// 计算偏差相对图像的比例
+      Point2f d = imgs[0]->vertices[i] - shift_vec;
+      double weight = fabs(d.x * shift_vec.x + d.y * shift_vec.y) / relate;// 计算偏差相对图像的比例
 
       double origin_x = matching_pts[0 + img_num][i].x;
       double origin_y = matching_pts[0 + img_num][i].y;
@@ -534,7 +623,7 @@ void MultiImages::repairWarpping() {
       weight = exp(weight) * (10 * weight);
       double delta_x = x / weight;
       double delta_y = y / weight;
-      LOG("%d %lf (%lf)", i, weight, (x*x + y*y)/relate);
+      LOG("%d %lf", i, weight);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
     }
@@ -553,21 +642,20 @@ Mat MultiImages::textureMapping(int _mode) {
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
     Mat weight_mask;
-    warpImage2(
-      imgs[i]->vertices,
-      matching_pts[i + MODE_CHOICE],
-      imgs[i]->rectangle_indices,
-      imgs[i]->data,
-      warped_image,
-      weight_mask);
-    images_warped.emplace_back(warped_image);
-    // warpImage(
+    // warpImage2(
     //   imgs[i]->vertices,
     //   matching_pts[i + MODE_CHOICE],
-    //   imgs[i]->triangle_indices,
+    //   imgs[i]->rectangle_indices,
     //   imgs[i]->data,
     //   warped_image,
     //   weight_mask);
+    warpImage(
+      imgs[i]->vertices,
+      matching_pts[i + MODE_CHOICE],
+      imgs[i]->triangle_indices,
+      imgs[i]->data,
+      warped_image,
+      weight_mask);
     images_warped.emplace_back(warped_image);
     blend_weight_mask.emplace_back(weight_mask);
   }

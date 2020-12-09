@@ -50,8 +50,13 @@ public:
   vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
 
+  /* 相似变换 */
+  double    scale;
+  double    rotate;// 顺时针(因为坐标系是反的)
+  double    shift_x, shift_y;
+  Point2f   shift_vec;// 在图片的原始尺寸和方向状态的坐标系, 图片中心从src到dst的平移向量
+
   /* 图像融合 */
-  VectorXd                    shift;// [缩放比, x, y]
   Size2f                      pano_size;
   vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
 
@@ -70,7 +75,7 @@ public:
   void rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p);
   void getFeatureInfo();
   void getMeshInfo();
-  void getHomographyInfo();
+  void getHomographyInfo(int _mode, double _angle);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
   void repairWarpping();
 
   /* 图像形变 */
