@@ -245,14 +245,15 @@ void MultiImages::getMeshInfo() {
   // 初始化图像网格
   vector<double> col_r, row_r;
 
-  double base = 0;
-  for (int i = 0; i <= 10; i ++) {
-    col_r.emplace_back(base);
-    base += (1 - base) / 3;
-  }
-  col_r.emplace_back(1);
-  for (int i = 0; i <= 10; i ++) {
-    row_r.emplace_back(i * 0.1);
+  // double base = 0;
+  // for (int i = 0; i <= 10; i ++) {
+  //   col_r.emplace_back(base);
+  //   base += (1 - base) / 3;
+  // }
+  // col_r.emplace_back(1);
+  for (int i = 0; i <= 2; i ++) {
+    col_r.emplace_back(i * 0.5);
+    row_r.emplace_back(i * 0.5);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -343,6 +344,7 @@ void MultiImages::getHomographyInfo(int _mode, double _angle) {
       b = s sin
     */
 
+    assert(0);// 该种方法不好用
     MatrixXd A = MatrixXd::Zero(equations * 2, 4);
     VectorXd b = VectorXd::Zero(equations * 2);
     for (int i = 0; i < equations; i ++) {
@@ -414,6 +416,7 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
 
   Size2f target_size = normalizeVertices(_dst_p);// 归一化形变后的网格点
   Rect2f rect        = getVerticesRects(_dst_p);// 获取图片的最终矩形
+  LOG("size (%lf, %lf)", target_size.width, target_size.height);
 
   /* 计算每个三角形的仿射变换 */
   const Point2f shift(0.5, 0.5);

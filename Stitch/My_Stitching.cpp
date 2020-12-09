@@ -9,7 +9,7 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
-  multi_images->getHomographyInfo(2, 0);
+  multi_images->getHomographyInfo(1, -0.03);
   multi_images->repairWarpping();
 
   // return Mat();
