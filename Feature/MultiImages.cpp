@@ -606,11 +606,12 @@ void MultiImages::repairWarpping() {
   }
 
   // 修正网格顶点
-  double relate = imgs[0]->data.cols * imgs[0]->data.cols + imgs[0]->data.rows * imgs[0]->data.rows;
+  Point2f center(imgs[0]->data.cols / 2, imgs[0]->data.rows / 2);
+  double relate = center.x * center.x + center.y * center.y;
   for (int i = 0; i < matching_pts[0].size(); i ++) {
     if (pts_mask[i]) {
       // 计算权值
-      Point2f d = imgs[0]->vertices[i] - shift_vec;
+      Point2f d = imgs[0]->vertices[i] - (shift_vec + center);
       double weight = fabs(d.x * shift_vec.x + d.y * shift_vec.y) / relate;// 计算偏差相对图像的比例
 
       double origin_x = matching_pts[0 + img_num][i].x;
@@ -618,9 +619,7 @@ void MultiImages::repairWarpping() {
       double x = matching_pts[0][i].x - origin_x;
       double y = matching_pts[0][i].y - origin_y;
       // 修正长度
-      // double delta_x = x < 0 ? -sqrt(-x) : sqrt(x);
-      // double delta_y = y < 0 ? -sqrt(-y) : sqrt(y);
-      weight = exp(weight) * (10 * weight);
+      weight = exp(weight);
       double delta_x = x / weight;
       double delta_y = y / weight;
       LOG("%d %lf", i, weight);
