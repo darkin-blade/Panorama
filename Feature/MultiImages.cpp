@@ -620,6 +620,17 @@ void MultiImages::repairWarpping() {
 
   // 按行修正网格顶点
   for (int i = 0; i < imgs[0]->rows; i ++) {
+
+    {
+      Point2f a = matching_pts[0][i * imgs[0]->cols + 0];
+      Point2f b = matching_pts[0][i * imgs[0]->cols + imgs[0]->cols - 3 + 1];
+      Point2f c = matching_pts[0][i * imgs[0]->cols + imgs[0]->cols - 3 + 2];
+      Point2f ab = b - a;
+      Point2f bc = c - b;
+      double relative = fabs(ab.x*bc.x + ab.y*bc.y)/(sqrt(ab.x*ab.x + ab.y*ab.y)*sqrt(bc.x*bc.x + bc.y*bc.y));
+      LOG("%d %lf", i, relative);
+    }
+
     for (int j = 2; j < imgs[0]->cols; j ++) {
       int col = imgs[0]->cols - 1 - j;
       int index = i * imgs[0]->cols + col;
@@ -631,10 +642,11 @@ void MultiImages::repairWarpping() {
 
       // 修正朝向
       double relative = fabs(ab.x*bc.x + ab.y*bc.y)/(sqrt(ab.x*ab.x + ab.y*ab.y)*sqrt(bc.x*bc.x + bc.y*bc.y));
-      // LOG("%d %lf", index, rate);
-      if (relative < 0.98) {
+      // LOG("%d %lf", index, relative);
+      if (relative < 0.99) {
         matching_pts[0][index].x = b.x - bc.x;
         matching_pts[0][index].y = b.y - bc.y;
+        // matching_pts[0][index] = matching_pts[0 + img_num][index];
       }
 
       // 修正间距
@@ -644,7 +656,7 @@ void MultiImages::repairWarpping() {
       Point2f _b = matching_pts[0 + img_num][index + 1];
       Point2f _ab = _b - _a;
       relative = fabs(sqrt(ab.x*ab.x + ab.y*ab.y) - sqrt(_ab.x*_ab.x + _ab.y*_ab.y)) / sqrt(tangent);
-      LOG("%d %lf", index, relative);
+      // LOG("%d %lf", index, relative);
       if (relative > 0.06) {
         double rate = sqrt((ab.x*ab.x + ab.y*ab.y)/(_ab.x*_ab.x + _ab.y*_ab.y));
         matching_pts[0][index].x = b.x - ab.x / rate; 
