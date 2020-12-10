@@ -251,8 +251,8 @@ void MultiImages::getMeshInfo() {
     base += (1 - base) / 3;
   }
   col_r.emplace_back(1);
-  for (int i = 0; i <= 5; i ++) {
-    row_r.emplace_back(i * 0.2);
+  for (int i = 0; i <= 10; i ++) {
+    row_r.emplace_back(i * 0.1);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -615,37 +615,71 @@ void MultiImages::repairWarpping() {
   }
 
 
-  // 修正网格顶点
   Point2f center(imgs[0]->data.cols / 2, imgs[0]->data.rows / 2);
-  double relate = center.x * center.x + center.y * center.y;
+  double tangent = center.x * center.x + center.y * center.y;
 
-  // 根据apap网格点形变程度修改基础权值
-  vector<Point2f> tmp_pts(matching_pts[0]);
-  Size2f warped_size = normalizeVertices(tmp_pts);// 正偏移不能被修正
-  double distance = warped_size.width * warped_size.width + warped_size.height * warped_size.height;
-  double base_weight = sqrt(distance / relate);
-  LOG("over warped %lf", distance / relate);
+  // 按行修正网格顶点
+  for (int i = 0; i < imgs[0]->rows; i ++) {
+    for (int j = 2; j < imgs[0]->cols; j ++) {
+      int col = imgs[0]->cols - 1 - j;
+      int index = i * imgs[0]->cols + col;
+      Point2f a = matching_pts[0][index];
+      Point2f b = matching_pts[0][index + 1];
+      Point2f c = matching_pts[0][index + 2];
+      Point2f ab = b - a;
+      Point2f bc = c - b;
 
-  for (int i = 0; i < matching_pts[0].size(); i ++) {
-    if (pts_mask[i]) {
-      // 计算权值
-      Point2f d = imgs[0]->vertices[i] - (shift_vec + center);
-      double weight = fabs(d.x * shift_vec.x + d.y * shift_vec.y) / relate;// 计算偏差相对图像的比例
+      // 修正朝向
+      double relative = fabs(ab.x*bc.x + ab.y*bc.y)/(sqrt(ab.x*ab.x + ab.y*ab.y)*sqrt(bc.x*bc.x + bc.y*bc.y));
+      // LOG("%d %lf", index, rate);
+      if (relative < 0.98) {
+        matching_pts[0][index].x = b.x - bc.x;
+        matching_pts[0][index].y = b.y - bc.y;
+      }
 
-      double origin_x = matching_pts[0 + img_num][i].x;
-      double origin_y = matching_pts[0 + img_num][i].y;
-      double x = matching_pts[0][i].x - origin_x;
-      double y = matching_pts[0][i].y - origin_y;
-      // 修正长度
-      weight = exp(weight) * base_weight * base_weight * base_weight;
-      // weight = 2;
-      double delta_x = x / weight;
-      double delta_y = y / weight;
-      LOG("%d %lf", i, weight);
-      matching_pts[0][i].x = origin_x + delta_x;
-      matching_pts[0][i].y = origin_y + delta_y;
+      // 修正间距
+      a = matching_pts[0][index];
+      ab = b - a;
+      Point2f _a = matching_pts[0 + img_num][index];
+      Point2f _b = matching_pts[0 + img_num][index + 1];
+      Point2f _ab = _b - _a;
+      relative = fabs(sqrt(ab.x*ab.x + ab.y*ab.y) - sqrt(_ab.x*_ab.x + _ab.y*_ab.y)) / sqrt(tangent);
+      LOG("%d %lf", index, relative);
+      if (relative > 0.06) {
+        double rate = sqrt((ab.x*ab.x + ab.y*ab.y)/(_ab.x*_ab.x + _ab.y*_ab.y));
+        matching_pts[0][index].x = b.x - ab.x / rate; 
+        matching_pts[0][index].y = b.y - ab.y / rate; 
+      }
     }
   }
+
+  // // 根据apap网格点形变程度修改基础权值
+  // vector<Point2f> tmp_pts(matching_pts[0]);
+  // Size2f warped_size = normalizeVertices(tmp_pts);// 正偏移不能被修正
+  // double distance = warped_size.width * warped_size.width + warped_size.height * warped_size.height;
+  // double base_weight = sqrt(distance / tangent);
+  // LOG("over warped %lf", distance / tangent);
+
+  // for (int i = 0; i < matching_pts[0].size(); i ++) {
+  //   if (pts_mask[i]) {
+  //     // 计算权值
+  //     Point2f d = imgs[0]->vertices[i] - (shift_vec + center);
+  //     double weight = fabs(d.x * shift_vec.x + d.y * shift_vec.y) / tangent;// 计算偏差相对图像的比例
+
+  //     double origin_x = matching_pts[0 + img_num][i].x;
+  //     double origin_y = matching_pts[0 + img_num][i].y;
+  //     double x = matching_pts[0][i].x - origin_x;
+  //     double y = matching_pts[0][i].y - origin_y;
+  //     // 修正长度
+  //     weight = exp(weight) * base_weight * base_weight * base_weight;
+  //     // weight = 2;
+  //     double delta_x = x / weight;
+  //     double delta_y = y / weight;
+  //     LOG("%d %lf", i, weight);
+  //     matching_pts[0][i].x = origin_x + delta_x;
+  //     matching_pts[0][i].y = origin_y + delta_y;
+  //   }
+  // }
 }
 
 Mat MultiImages::textureMapping(int _mode) {
