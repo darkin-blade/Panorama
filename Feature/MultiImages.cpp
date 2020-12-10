@@ -246,16 +246,14 @@ void MultiImages::getMeshInfo() {
   vector<double> col_r, row_r;
 
   double base = 0;
-  for (int i = 0; i <= 3; i ++) {
+  for (int i = 0; i <= 9; i ++) {
     col_r.emplace_back(base);
-    row_r.emplace_back(base);
-    base += (1 - base) / 2;
+    base += (1 - base) / 3;
   }
   col_r.emplace_back(1);
-  row_r.emplace_back(1);
-  // for (int i = 0; i <= 5; i ++) {
-  //   row_r.emplace_back(i * 0.2);
-  // }
+  for (int i = 0; i <= 5; i ++) {
+    row_r.emplace_back(i * 0.2);
+  }
   imgs[0]->initVertices(col_r, row_r);
 
   col_r.clear();
@@ -633,12 +631,12 @@ void MultiImages::repairWarpping() {
       double y = matching_pts[0][i].y - origin_y;
       // 修正长度
       weight = exp(weight) * base_weight * base_weight * base_weight;
+      // weight = 2;
       double delta_x = x / weight;
       double delta_y = y / weight;
       LOG("%d %lf", i, weight);
       matching_pts[0][i].x = origin_x + delta_x;
       matching_pts[0][i].y = origin_y + delta_y;
-      LOG("%d %lf %lf", i, matching_pts[0][i].x, matching_pts[0][i].x);
     }
   }
 }
