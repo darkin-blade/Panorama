@@ -9,12 +9,12 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
-  multi_images->similarityTransform(1, 3.14 / 2);
+  multi_images->similarityTransform(1, -.04);
   multi_images->repairWarpping();
 
   // return Mat();
-  Mat result = multi_images->textureMapping(1);
-  drawFeatureMatch();
+  Mat result = multi_images->textureMapping(0);
+  // drawFeatureMatch();
   drawMatchingPts();
   show_img("result", result);
   return result;
