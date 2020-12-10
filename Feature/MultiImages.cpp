@@ -288,13 +288,16 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     MatrixXd A = MatrixXd::Zero(equations * 2, 2);
     VectorXd b = VectorXd::Zero(equations * 2);
     for (int i = 0; i < equations; i ++) {
-      // x + 0 = x2 - x1
-      // 0 + y = y2 - y1
-      // r: 以图像(0, 0)为中心放缩图像r倍
+      // x + 0 = x2 - (x1 cos - y1 sin)
+      // 0 + y = y2 - (x1 sin + y1 cos)
+      double x1 = feature_points[0][1][i].x;
+      double y1 = feature_points[0][1][i].y;
+      double x2 = feature_points[1][0][i].x;
+      double y2 = feature_points[1][0][i].y;
       A(i*2 + 0, 0) = 1;
-      b(i*2 + 0)    = feature_points[1][0][i].x - feature_points[0][1][i].x;
+      b(i*2 + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
       A(i*2 + 1, 1) = 1;
-      b(i*2 + 1)    = feature_points[1][0][i].y - feature_points[0][1][i].y;
+      b(i*2 + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
     }
     VectorXd solution = A.colPivHouseholderQr().solve(b);
     rotate  = _angle;
@@ -309,14 +312,18 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     MatrixXd A = MatrixXd::Zero(equations * 2, 3);
     VectorXd b = VectorXd::Zero(equations * 2);
     for (int i = 0; i < equations; i ++) {
-      // x1 * s + x + 0 = x2
-      // y1 * s + 0 + y = y2
-      A(i*2 + 0, 0) = feature_points[0][1][i].x;
+      // (x1 cos - y1 sin) * s + x + 0 = x2
+      // (x1 sin + y1 cos) * s + 0 + y = y2
+      double x1 = feature_points[0][1][i].x;
+      double y1 = feature_points[0][1][i].y;
+      double x2 = feature_points[1][0][i].x;
+      double y2 = feature_points[1][0][i].y;
+      A(i*2 + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
       A(i*2 + 0, 1) = 1;
-      b(i*2 + 0)    = feature_points[1][0][i].x;
-      A(i*2 + 1, 0) = feature_points[0][1][i].y;
+      b(i*2 + 0)    = x2;
+      A(i*2 + 1, 0) = x1 * sin(rotate) + y1 * cos(rotate);
       A(i*2 + 1, 2) = 1;
-      b(i*2 + 1)    = feature_points[1][0][i].y;
+      b(i*2 + 1)    = y2;
     }
     VectorXd solution = A.colPivHouseholderQr().solve(b);
     rotate  = _angle;
