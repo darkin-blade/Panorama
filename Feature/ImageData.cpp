@@ -3,8 +3,6 @@
 void ImageData::readImg(const char *img_path) {
   data = imread(img_path);
   rgba_data = imread(img_path, IMREAD_UNCHANGED);
-  grey_data = Mat();// 灰色图
-  cvtColor(data, grey_data, CV_BGR2GRAY);
 
   LOG("origin channels %d", data.channels());
   float original_img_size = data.rows * data.cols;
@@ -14,6 +12,8 @@ void ImageData::readImg(const char *img_path) {
     resize(data, data, Size(), scale, scale);
     resize(rgba_data, rgba_data, Size(), scale, scale);
   }
+
+  cvtColor(data, grey_data, CV_BGR2GRAY);// 灰色图
   
   assert(rgba_data.channels() >= 3);
   if (rgba_data.channels() == 3) {

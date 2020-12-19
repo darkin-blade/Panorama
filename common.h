@@ -71,6 +71,7 @@ using namespace Eigen;
 using namespace cv;
 using namespace cv::detail;
 using namespace cv::xfeatures2d;
+using namespace cv::ximgproc;
 
 /************************************** 自定义 ********************************************/
 

@@ -14,7 +14,7 @@ Mat My_Stitching::getMyResult() {
 
   // return Mat();
   Mat result = multi_images->textureMapping(0);
-  drawFeatureMatch();
+  // drawFeatureMatch();
   drawMatchingPts();
   show_img("result", result);
   return result;
