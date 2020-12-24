@@ -85,7 +85,16 @@ public:
   void similarityTransform(int _mode, double _angle);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
   void repairWarpping();
 
-  /* 图像形变 */
+  /**
+    图像形变
+    _src_p: 图像原始顶点
+    _dst_p: 形变之后的顶点
+    _indices: 顶点的索引
+    _src: 原图片
+    _dst: 输出的图片
+    _weight_mask: 权值mask(用于线性融合)
+    _img_mask: 图片mask(用于接缝线)
+    */
   void warpImage(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
@@ -95,12 +104,28 @@ public:
       vector<vector<int> > _indices, // 三角形的线性索引
       Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask);
 
+  /* 
+    特征点形变
+    _src_vertices: 原始顶点
+    _dst_vertices: 形变之后的顶点
+    _indices: 顶点的索引
+    _src_features: 原始特征点
+    _dst_features: 形变之后的特征点
+    */
+  void warpPoints(
+      vector<Point2f> _src_vertices, vector<Point2f> _dst_vertices,
+      vector<vector<int> > _indices,
+      vector<Point2f> _src_features, vector<Point2f> & _dst_features);
+
   /* 图像融合 */
   void textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
 
   /* 寻找接缝线 */
-  void moveFeatures();
+  void getMask();// 计算接缝线的mask
   void getSeam();
+
+  /* DEBUG */
+  void drawPoints(Mat _img, vector<Point2f> _points);
 };
 
 #endif
