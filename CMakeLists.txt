@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+project(panorama)
+
 set(ubuntu true)
 
 # 编译选项

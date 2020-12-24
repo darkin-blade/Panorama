@@ -9,15 +9,18 @@ Mat My_Stitching::getMyResult() {
   assert(img_num == 2);
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
-  multi_images->similarityTransform(1, 0.03);
-  multi_images->repairWarpping();
+  // multi_images->similarityTransform(1, 0.03);
+  // multi_images->repairWarpping();
 
-  // return Mat();
-  Mat result = multi_images->textureMapping(0);
+
+  // multi_images->textureMapping(0);
   // drawFeatureMatch();
-  drawMatchingPts();
-  show_img("result", result);
-  return result;
+  // drawMatchingPts();
+
+  multi_images->getSeam();
+  show_img("result", multi_images->pano_result);
+
+  return multi_images->pano_result;
 }
 
 void My_Stitching::drawFeatureMatch() {

@@ -84,6 +84,7 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
           feature_pairs_result[i].feature_index[1]);
     }
   }
+  LOG("%d %d initial pairs %ld", m1, m2, initial_indices.size());
   return initial_indices;
 }
 
@@ -416,7 +417,7 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
 
 void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst, Mat & _mask) {
+      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask) {
 
   assert(_src_p.size() == _dst_p.size());
   bool ignore_weight_mask = false;
@@ -424,6 +425,7 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   Size2f target_size = normalizeVertices(_dst_p);// 归一化形变后的网格点
   Rect2f rect        = getVerticesRects(_dst_p);// 获取图片的最终矩形
   LOG("size (%lf, %lf)", target_size.width, target_size.height);
+  LOG("rect (%lf, %lf)", rect.width, rect.height);
 
   /* 计算每个三角形的仿射变换 */
   const Point2f shift(0.5, 0.5);
@@ -465,7 +467,8 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   Mat weight_mask;
   // 线性融合
   weight_mask = getMatOfLinearBlendWeight(_src);// TODO
-  _mask = Mat::zeros(_dst.size(), CV_32FC1);
+  _weight_mask = Mat::zeros(_dst.size(), CV_32FC1);
+  _img_mask = Mat::zeros(_dst.size(), CV_8UC1);
 
   for (int y = 0; y < _dst.rows; y ++) {
     for (int x = 0; x < _dst.cols; x ++) {
@@ -475,7 +478,8 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
         if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
           Vec3b c = getSubpix<uchar, 3>(_src, p_f);
           _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          _mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _weight_mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _img_mask.at<uchar>(y, x) = 255;
         }
       }
     }
@@ -484,7 +488,7 @@ void MultiImages::warpImage(vector<Point2f> _src_p, vector<Point2f> _dst_p,
 
 void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 四边形的线性索引
-      Mat _src, Mat & _dst, Mat & _mask) {
+      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask) {
 
   assert(_src_p.size() == _dst_p.size());
   bool ignore_weight_mask = false;
@@ -535,8 +539,8 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
   Mat weight_mask;
   // 线性融合
   weight_mask = getMatOfLinearBlendWeight(_src);// TODO
-  _mask = Mat::zeros(_dst.size(), CV_32FC1);
-
+  _weight_mask = Mat::zeros(_dst.size(), CV_32FC1);
+  _img_mask = Mat::zeros(_dst.size(), CV_8UC1);
 
   for (int y = 0; y < _dst.rows; y ++) {
     for (int x = 0; x < _dst.cols; x ++) {
@@ -546,7 +550,8 @@ void MultiImages::warpImage2(vector<Point2f> _src_p, vector<Point2f> _dst_p,
         if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
           Vec3b c = getSubpix<uchar, 3>(_src, p_f);
           _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          _mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _weight_mask.at<float>(y, x) = getSubpix<float>(weight_mask, p_f);// 线性权值
+          _img_mask.at<uchar>(y, x) = 255;
         }
       }
     }
@@ -711,7 +716,7 @@ void MultiImages::repairWarpping() {
   }
 }
 
-Mat MultiImages::textureMapping(int _mode) {
+void MultiImages::textureMapping(int _mode) {
   int MODE_CHOICE = 0;
   if (_mode == 1) {
     MODE_CHOICE = img_num;
@@ -723,20 +728,15 @@ Mat MultiImages::textureMapping(int _mode) {
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
     Mat weight_mask;
-    // warpImage2(
-    //   imgs[i]->vertices,
-    //   matching_pts[i + MODE_CHOICE],
-    //   imgs[i]->rectangle_indices,
-    //   imgs[i]->data,
-    //   warped_image,
-    //   weight_mask);
+    Mat img_mask;
     warpImage(
       imgs[i]->vertices,
       matching_pts[i + MODE_CHOICE],
       imgs[i]->triangle_indices,
       imgs[i]->data,
       warped_image,
-      weight_mask);
+      weight_mask,
+      img_mask);
     images_warped.emplace_back(warped_image);
     blend_weight_mask.emplace_back(weight_mask);
   }
@@ -752,10 +752,88 @@ Mat MultiImages::textureMapping(int _mode) {
   }
 
   bool ignore_weight_mask = false;
-  return Blending(
+  pano_result = Blending(
     images_warped,
     img_origins,
     pano_size,
     blend_weight_mask,
     ignore_weight_mask);
+}
+
+/***
+ * 寻找接缝线
+ */
+
+void MultiImages::moveFeatures() {
+  // 将每幅图片的特征点移动到全景图中的最终位置中
+}
+
+void MultiImages::getSeam() {
+  // 获得每个形变的图片, 图片的起点都是(0, 0)
+  vector<Mat> images_warped;
+  vector<Mat> masks_warped;
+  for (int i = 0; i < img_num; i ++) {
+    Mat warped_image;
+    Mat weight_mask;
+    Mat img_mask;
+    warpImage(
+      imgs[i]->vertices,
+      matching_pts[i],
+      imgs[i]->triangle_indices,
+      imgs[i]->data,
+      warped_image,
+      weight_mask,
+      img_mask);
+    images_warped.emplace_back(warped_image);
+    masks_warped.emplace_back(img_mask);
+  }
+
+  // 对所有图像的网格点归一化(去除负值)
+  pano_size = normalizeVertices(matching_pts);
+
+  // 将每个图片/mask平移到最终位置
+  for (int i = 0; i < img_num; i ++) {
+    Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
+    Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
+    // 计算目标矩阵
+    Rect2f rect = getVerticesRects(matching_pts[i]);
+    Mat dst_image = Mat(tmp_image, rect);
+    Mat dst_mask = Mat(tmp_mask, rect);
+    images_warped[i].copyTo(dst_image);
+    masks_warped[i].copyTo(dst_mask);
+    pano_images.emplace_back(tmp_image);
+    pano_masks.emplace_back(tmp_mask);
+  }
+
+  Ptr<SeamFinder> seam_finder;
+  // seam_finder = makePtr<detail::VoronoiSeamFinder>();
+  // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
+  seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+
+  // 图像类型转换
+  vector<UMat> pano_images_f(img_num);
+  vector<UMat> pano_masks_gpu(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    pano_images[i].convertTo(pano_images_f[i], CV_32F);
+    cvtColor(pano_images_f[i], pano_images_f[i], CV_RGBA2RGB);
+    pano_masks[i].copyTo(pano_masks_gpu[i]);
+  }
+
+  // 记录每个图像最终的起点位置
+  vector<Point2i> img_origins;
+  for (int i = 0; i < img_num; i ++) {
+    img_origins.emplace_back(0, 0);
+  }
+  seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
+
+  // 同步Mat和UMat
+  for (int i = 0; i < img_num; i ++) {
+    pano_masks_gpu[i].copyTo(pano_masks[i]);
+  }
+  
+  pano_result = Mat::zeros(pano_size, CV_8UC4);
+  for (int i = 0; i < img_num; i ++) {
+    Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
+    pano_images[i].copyTo(dst_image, pano_masks[i]);
+  }
 }

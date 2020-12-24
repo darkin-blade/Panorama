@@ -60,6 +60,13 @@ public:
   Size2f                      pano_size;
   vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
 
+  /* 接缝线寻找 */
+  vector<Mat>      pano_images;
+  vector<Mat>      pano_masks;
+
+  /* 最终结果 */
+  Mat    pano_result;
+
   /* 图片读取 */
   void readImg(const char *img_path);
 
@@ -82,14 +89,18 @@ public:
   void warpImage(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst, Mat & _mask);
+      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask);
   void warpImage2(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst, Mat & _mask);
+      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask);
 
   /* 图像融合 */
-  Mat textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
+  void textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
+
+  /* 寻找接缝线 */
+  void moveFeatures();
+  void getSeam();
 };
 
 #endif
