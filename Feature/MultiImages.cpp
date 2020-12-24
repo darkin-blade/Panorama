@@ -831,9 +831,52 @@ void MultiImages::getSeam() {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
   }
   
-  pano_result = Mat::zeros(pano_size, CV_8UC4);
+  // pano_result = Mat::zeros(pano_size, CV_8UC4);
+  // for (int i = 0; i < img_num; i ++) {
+  //   Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
+  //   pano_images[i].copyTo(dst_image, pano_masks[i]);
+  // }
+
+  // 为结果生成区域
+  vector<Size> sizes;
   for (int i = 0; i < img_num; i ++) {
-    Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
-    pano_images[i].copyTo(dst_image, pano_masks[i]);
+    sizes.emplace_back(pano_size);
   }
+  Size dst_sz = resultRoi(img_origins, sizes).size();
+  float blend_width = sqrt(static_cast<float>(dst_sz.area())) * 5 / 100.f;
+  Ptr<Blender> blender;
+  if (true) {
+    // 多频带融合
+    blender = Blender::createDefault(Blender::MULTI_BAND, false);// try_cuda = false
+    MultiBandBlender *mb = dynamic_cast<MultiBandBlender*>(blender.get());
+    mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
+  } else {
+    // 羽化融合
+    blender = Blender::createDefault(Blender::FEATHER);
+    FeatherBlender* fb = dynamic_cast<FeatherBlender*>(blender.get());
+    fb->setSharpness(1.f/blend_width);
+  }
+  blender->prepare(img_origins, sizes);
+
+  // 纹理映射
+  for (int i = 0; i < img_num; i ++) {
+    // 膨胀运算
+    Mat dilated_mask, seam_mask, mask_warped;
+    pano_images[i].copyTo(mask_warped);
+    dilate(pano_masks[i], dilated_mask, Mat());
+    // 统一Mat的大小
+    resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
+    mask_warped = seam_mask & dilated_mask;
+    // 转换图像格式
+    Mat pano_images_s;
+    cvtColor(pano_images[i], pano_images_s, COLOR_BGRA2BGR);
+    pano_images_s.convertTo(pano_images_s, CV_16S);
+    blender->feed(pano_images_s, mask_warped, img_origins[i]);
+  }
+  Mat blend_result, blend_mask;
+  blender->blend(blend_result, blend_mask);
+  blend_result.convertTo(blend_result, CV_8UC3);
+  cvtColor(blend_result, blend_result, COLOR_RGB2RGBA);
+
+  pano_result = blend_result;
 }
