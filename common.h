@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <queue>
 #include <set>
 #include <string>
@@ -55,6 +56,8 @@
 #include <opencv2/stitching/detail/seam_finders.hpp>
 #include <opencv2/stitching/detail/warpers.hpp>
 #include <opencv2/stitching/warpers.hpp>
+/* seam finder */
+#include "opencv2/imgproc/detail/gcgraph.hpp"
 
 #define LOG(format, ...) \
   print_message("[%s, %d] " format, __func__, __LINE__, ## __VA_ARGS__)

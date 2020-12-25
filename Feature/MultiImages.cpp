@@ -923,10 +923,11 @@ void MultiImages::getSeam() {
   // 根据特征点对预处理mask
   // getMask();
 
-  Ptr<SeamFinder> seam_finder;
+  // Ptr<SeamFinder> seam_finder;
   // seam_finder = makePtr<detail::VoronoiSeamFinder>();
   // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
-  seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+  // seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR);// 图割法
+  Ptr<MySeamFinder> seam_finder = new MySeamFinder();
 
   // 图像类型转换
   vector<UMat> pano_images_f(img_num);

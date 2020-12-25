@@ -18,7 +18,7 @@ Mat My_Stitching::getMyResult() {
 
   multi_images->getSeam();
   
-  drawMatchingPts();
+  // drawMatchingPts();
   show_img("result", multi_images->pano_result);
 
   return multi_images->pano_result;

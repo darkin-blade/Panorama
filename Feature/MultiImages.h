@@ -5,6 +5,7 @@
 
 #include "../Feature/FeatureController.h"
 #include "../Feature/ImageData.h"
+#include "../GraphCut/SeamFinder.h"
 #include "../Stitch/Homographies.h"
 #include "../Util/Blending.h"
 #include "../Util/Statistics.h"

@@ -9,10 +9,12 @@ set(CMAKE_CXX_FLAGS "-g")
 
 # source files
 aux_source_directory(./Feature feature_src)
+aux_source_directory(./GraphCut graphcut_src)
 aux_source_directory(./Stitch stitch_src)
 aux_source_directory(./Util util_src)
 set(stitcher_source
     ${feature_src}
+    ${graphcut_src}
     ${stitch_src}
     ${util_src}
     common.h
