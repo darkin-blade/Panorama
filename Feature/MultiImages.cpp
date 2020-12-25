@@ -247,9 +247,9 @@ void MultiImages::getMeshInfo() {
   vector<double> col_r, row_r;
 
   // double base = 0;
-  // for (int i = 0; i <= 9; i ++) {
+  // for (int i = 0; i <= 7; i ++) {
   //   col_r.emplace_back(base);
-  //   base += (1 - base) / 3;
+  //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
   for (int i = 0; i <= 10; i ++) {
@@ -849,17 +849,37 @@ void MultiImages::getMask() {
   vector<Mat> masks(2);
   masks[0] = pano_masks[0] ^ common_mask;
   masks[1] = pano_masks[1] ^ common_mask;
-  show_img("0", masks[0]);
 
-  // 2 计算特征点对之间的距离
+  // 2 连接每个特征点最近的一个特征点
   int points_num = pano_feature_points[0].size();
   for (int i = 0; i < points_num; i ++) {
-    Point2f d = pano_feature_points[0][i] - pano_feature_points[1][i];
-    double distance = sqrt(d.x * d.x + d.y * d.y);
-    LOG("%d %lf", i, distance);
+    int nearst = i;
+    double min_dis = 9999999;
+    for (int j = 0; j < i; j ++) {
+      Point2f d = pano_feature_points[0][i] - pano_feature_points[0][j];
+      double dis = d.x * d.x + d.y * d.y;
+      if (dis < min_dis) {
+        nearst = j;
+        min_dis = dis;
+      }
+    }
+    circle(masks[0], pano_feature_points[0][i], 50, Scalar(255), -1);
+    circle(masks[1], pano_feature_points[1][i], 50, Scalar(255), -1);
+    line(masks[0], pano_feature_points[0][i], pano_feature_points[0][nearst], Scalar(255), 10, LINE_AA);
+    line(masks[1], pano_feature_points[1][i], pano_feature_points[1][nearst], Scalar(255), 10, LINE_AA);
+    
+    circle(common_mask, pano_feature_points[0][i], 50, Scalar(0), -1);
+    circle(common_mask, pano_feature_points[1][i], 50, Scalar(0), -1);
   }
 
-  // 3 计算mask的可行区域
+  // 3 用泛洪填充进行修复
+
+  masks[0] = masks[0] & pano_masks[0];
+  masks[1] = masks[1] & pano_masks[1];
+  show_img("0", masks[0]);
+  show_img("1", masks[1]);
+  pano_masks[0] = masks[0];
+  pano_masks[1] = masks[1];
 }
 
 void MultiImages::getSeam() {
@@ -901,7 +921,7 @@ void MultiImages::getSeam() {
   }
 
   // 根据特征点对预处理mask
-  getMask();
+  // getMask();
 
   Ptr<SeamFinder> seam_finder;
   // seam_finder = makePtr<detail::VoronoiSeamFinder>();
@@ -927,6 +947,7 @@ void MultiImages::getSeam() {
   // 同步Mat和UMat
   for (int i = 0; i < img_num; i ++) {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
+    show_img(pano_masks[i], "%d", i);
   }
   
   pano_result = Mat::zeros(pano_size, CV_8UC4);

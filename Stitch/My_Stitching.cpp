@@ -15,9 +15,10 @@ Mat My_Stitching::getMyResult() {
 
   // multi_images->textureMapping(0);
   // drawFeatureMatch();
-  // drawMatchingPts();
 
   multi_images->getSeam();
+  
+  drawMatchingPts();
   show_img("result", multi_images->pano_result);
 
   return multi_images->pano_result;
@@ -96,15 +97,15 @@ void My_Stitching::drawMatchingPts() {
   // 描绘所有匹配点
   for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
     Point2f src_p, dst_p;
-    src_p = multi_images->matching_pts[m1 + multi_images->img_num][i];
+    // src_p = multi_images->matching_pts[m1 + multi_images->img_num][i];
     dst_p = multi_images->matching_pts[m1][i];
 
-    Scalar color1(255, 0, 0, 255);
-    circle(result, src_p, CIRCLE_SIZE, color1, -1);
+    // Scalar color1(255, 0, 0, 255);
+    // circle(result, src_p, CIRCLE_SIZE, color1, -1);
     Scalar color2(0, 0, 255, 255);
     circle(result, dst_p, CIRCLE_SIZE, color2, -1);
-    Scalar color3(0, 100, 0, 255);
-    line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
+    // Scalar color3(0, 100, 0, 255);
+    // line(result, src_p, dst_p, color3, LINE_SIZE, LINE_AA);
 
     // debug
   }

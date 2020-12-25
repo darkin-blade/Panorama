@@ -104,8 +104,8 @@ const double APAP_SIGMA = 8.5;// 8.5
 const double FEATURE_RATIO_TEST_THRESHOLD = 1.5;// atof("15e-1");
 
 /*** homography based ***/
-const double GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 5.;
-const double  LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 3.;
+const double GLOBAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 5.;// 5.0
+const double  LOCAL_HOMOGRAPHY_MAX_INLIERS_DIST   = 3.;// 3.0
 const    int  LOCAL_HOMOGRAPHY_MIN_FEATURES_COUNT = 40;
 
 /* type */
