@@ -1,47 +1,24 @@
 #include "SeamFinder.h"
 
-class MySeamFinder::Impl : public PairwiseSeamFinder
+/***
+  *
+  * MySeamFinderBase
+  *
+  **/
+void MySeamFinderBase::run()
 {
-public:
-  Impl(int cost_type, float terminal_cost, float bad_region_penalty)
-      : cost_type_(cost_type), terminal_cost_(terminal_cost), bad_region_penalty_(bad_region_penalty) {}
-
-  ~Impl() {}
-
-  void find(const std::vector<UMat> &src, const std::vector<Point> &corners, std::vector<UMat> &masks);
-  void findInPair(size_t first, size_t second, Rect roi);
-
-  void setGraphWeightsColor(
-      const Mat &img1, const Mat &img2,
-      const Mat &mask1, const Mat &mask2, GCGraph<float> &graph);
-  void setGraphWeightsColorGrad(
-      const Mat &img1, const Mat &img2, const Mat &dx1, const Mat &dx2,
-      const Mat &dy1, const Mat &dy2, const Mat &mask1, const Mat &mask2,
-      GCGraph<float> &graph);
-
-  std::vector<Mat> dx_, dy_;
-  int cost_type_;
-  float terminal_cost_;
-  float bad_region_penalty_;
-};
-
-MySeamFinder::MySeamFinder(
-    int cost_type, 
-    float terminal_cost, 
-    float bad_region_penalty) 
-{
-  impl_ = new Impl(cost_type, terminal_cost, bad_region_penalty);
+  for (size_t i = 0; i < sizes_.size() - 1; ++i)
+  {
+    for (size_t j = i + 1; j < sizes_.size(); ++j)
+    {
+      Rect roi;
+      if (overlapRoi(corners_[i], corners_[j], sizes_[i], sizes_[j], roi))
+        findInPair(i, j, roi);
+    }
+  }
 }
 
-void MySeamFinder::find(
-    const std::vector<UMat> &src, 
-    const std::vector<Point> &corners, 
-    std::vector<UMat> &masks) 
-{
-  impl_->find(src, corners, masks);
-}
-
-void MySeamFinder::Impl::find(
+void MySeamFinderBase::find(
     const std::vector<UMat> &src, 
     const std::vector<Point> &corners,
     std::vector<UMat> &masks)
@@ -70,10 +47,43 @@ void MySeamFinder::Impl::find(
       }
     }
   }
-  PairwiseSeamFinder::find(src, corners, masks);
+
+  /** PairwiseSeamFinder **/
+  if (src.size() == 0)
+      return;
+
+  images_ = src;
+  sizes_.resize(src.size());
+  for (size_t i = 0; i < src.size(); ++i)
+      sizes_[i] = src[i].size();
+  corners_ = corners;
+  masks_ = masks;
+  run();
 }
 
-void MySeamFinder::Impl::setGraphWeightsColor(
+/***
+  *
+  * MySeamFinder
+  *
+  **/
+
+MySeamFinder::MySeamFinder(
+    int cost_type, 
+    float terminal_cost, 
+    float bad_region_penalty) 
+{
+  impl_ = new MySeamFinderBase(cost_type, terminal_cost, bad_region_penalty);
+}
+
+void MySeamFinder::find(
+    const std::vector<UMat> &src, 
+    const std::vector<Point> &corners, 
+    std::vector<UMat> &masks) 
+{
+  impl_->find(src, corners, masks);
+}
+
+void MySeamFinderBase::setGraphWeightsColor(
     const Mat &img1, const Mat &img2,
     const Mat &mask1, const Mat &mask2, GCGraph<float> &graph)
 {
@@ -121,7 +131,7 @@ void MySeamFinder::Impl::setGraphWeightsColor(
   }
 }
 
-void MySeamFinder::Impl::setGraphWeightsColorGrad(
+void MySeamFinderBase::setGraphWeightsColorGrad(
     const Mat &img1, const Mat &img2, const Mat &dx1, const Mat &dx2,
     const Mat &dy1, const Mat &dy2, const Mat &mask1, const Mat &mask2,
     GCGraph<float> &graph)
@@ -174,7 +184,7 @@ void MySeamFinder::Impl::setGraphWeightsColorGrad(
   }
 }
 
-void MySeamFinder::Impl::findInPair(size_t first, size_t second, Rect roi)
+void MySeamFinderBase::findInPair(size_t first, size_t second, Rect roi)
 {
   Mat img1 = images_[first].getMat(ACCESS_READ), img2 = images_[second].getMat(ACCESS_READ);
   Mat dx1 = dx_[first], dx2 = dx_[second];
