@@ -23,7 +23,7 @@ void MySeamFinderBase::find(
     const std::vector<Point> &corners,
     std::vector<UMat> &masks)
 {
-  // Compute gradients
+  // 计算图像梯度
   dx_.resize(src.size());
   dy_.resize(src.size());
   Mat dx, dy;
