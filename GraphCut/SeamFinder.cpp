@@ -24,9 +24,28 @@ void MySeamFinder::find(
       return;
 
   // 计算图像梯度
+  dx_.resize(src.size());
+  dy_.resize(src.size());
+  Mat dx, dy;
   for (size_t i = 0; i < src.size(); ++i)
   {
     CV_Assert(src[i].channels() == 3);
+    Sobel(src[i], dx, CV_32F, 1, 0);
+    Sobel(src[i], dy, CV_32F, 0, 1);
+    dx_[i].create(src[i].size(), CV_32F);
+    dy_[i].create(src[i].size(), CV_32F);
+    for (int y = 0; y < src[i].rows; ++y)
+    {
+      const Point3f* dx_row = dx.ptr<Point3f>(y);
+      const Point3f* dy_row = dy.ptr<Point3f>(y);
+      float* dx_row_ = dx_[i].ptr<float>(y);
+      float* dy_row_ = dy_[i].ptr<float>(y);
+      for (int x = 0; x < src[i].cols; ++x)
+      {
+        dx_row_[x] = normL2(dx_row[x]);
+        dy_row_[x] = normL2(dy_row[x]);
+      }
+    }
   }
 
   images_ = src;
@@ -50,6 +69,8 @@ void MySeamFinder::find(
 void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
 {
   Mat img1 = images_[first].getMat(ACCESS_READ), img2 = images_[second].getMat(ACCESS_READ);
+  Mat dx1 = dx_[first], dx2 = dx_[second];
+  Mat dy1 = dy_[first], dy2 = dy_[second];
   Mat mask1 = masks_[first].getMat(ACCESS_RW), mask2 = masks_[second].getMat(ACCESS_RW);
   Point tl1 = corners_[first], tl2 = corners_[second];
 
@@ -58,6 +79,10 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
   Mat subimg2(roi.height + 2 * gap, roi.width + 2 * gap, CV_32FC3);
   Mat submask1(roi.height + 2 * gap, roi.width + 2 * gap, CV_8U);
   Mat submask2(roi.height + 2 * gap, roi.width + 2 * gap, CV_8U);
+  Mat subdx1(roi.height + 2 * gap, roi.width + 2 * gap, CV_32F);
+  Mat subdy1(roi.height + 2 * gap, roi.width + 2 * gap, CV_32F);
+  Mat subdx2(roi.height + 2 * gap, roi.width + 2 * gap, CV_32F);
+  Mat subdy2(roi.height + 2 * gap, roi.width + 2 * gap, CV_32F);
 
   // Cut subimages and submasks with some gap
   for (int y = -gap; y < roi.height + gap; ++y)
@@ -70,11 +95,15 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
       {
         subimg1.at<Point3f>(y + gap, x + gap) = img1.at<Point3f>(y1, x1);
         submask1.at<uchar>(y + gap, x + gap) = mask1.at<uchar>(y1, x1);
+        subdx1.at<float>(y + gap, x + gap) = dx1.at<float>(y1, x1);
+        subdy1.at<float>(y + gap, x + gap) = dy1.at<float>(y1, x1);
       }
       else
       {
         subimg1.at<Point3f>(y + gap, x + gap) = Point3f(0, 0, 0);
         submask1.at<uchar>(y + gap, x + gap) = 0;
+        subdx1.at<float>(y + gap, x + gap) = 0.f;
+        subdy1.at<float>(y + gap, x + gap) = 0.f;
       }
 
       int y2 = roi.y - tl2.y + y;
@@ -83,11 +112,15 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
       {
         subimg2.at<Point3f>(y + gap, x + gap) = img2.at<Point3f>(y2, x2);
         submask2.at<uchar>(y + gap, x + gap) = mask2.at<uchar>(y2, x2);
+        subdx2.at<float>(y + gap, x + gap) = dx2.at<float>(y2, x2);
+        subdy2.at<float>(y + gap, x + gap) = dy2.at<float>(y2, x2);
       }
       else
       {
         subimg2.at<Point3f>(y + gap, x + gap) = Point3f(0, 0, 0);
         submask2.at<uchar>(y + gap, x + gap) = 0;
+        subdx2.at<float>(y + gap, x + gap) = 0.f;
+        subdy2.at<float>(y + gap, x + gap) = 0.f;
       }
     }
   }
@@ -97,10 +130,9 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
     (roi.width - 1 + 2 * gap) * (roi.height + 2 * gap);
   GCGraph<float> graph(vertex_count, edge_count);
 
-  setGraphWeightsColor(subimg1, subimg2, submask1, submask2, graph);
+  setGraphWeightsColor(subimg1, subimg2, subdx1, subdx2, subdy1, subdy2, submask1, submask2, graph);
 
-  double max_weight = graph.maxFlow();
-  LOG("max weight %lf", max_weight);
+  graph.maxFlow();
 
   for (int y = 0; y < roi.height; ++y)
   {
@@ -121,8 +153,9 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
 }
 
 void MySeamFinder::setGraphWeightsColor(
-    const Mat &img1, const Mat &img2,
-    const Mat &mask1, const Mat &mask2, GCGraph<float> &graph)
+    const Mat &img1, const Mat &img2, const Mat &dx1, const Mat &dx2,
+    const Mat &dy1, const Mat &dy2, const Mat &mask1, const Mat &mask2,
+    GCGraph<float> &graph)
 {
   const Size img_size = img1.size();
 

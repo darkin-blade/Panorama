@@ -22,9 +22,11 @@ public:
   void findInPair(size_t first, size_t second, Rect roi);
   // 建图
   void setGraphWeightsColor(
-      const Mat &img1, const Mat &img2,
-      const Mat &mask1, const Mat &mask2, GCGraph<float> &graph);
+      const Mat &img1, const Mat &img2, const Mat &dx1, const Mat &dx2,
+      const Mat &dy1, const Mat &dy2, const Mat &mask1, const Mat &mask2,
+      GCGraph<float> &graph);
 
+  std::vector<Mat> dx_, dy_;
   std::vector<UMat> images_;
   std::vector<Size> sizes_;
   std::vector<Point> corners_;
