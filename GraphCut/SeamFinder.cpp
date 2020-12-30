@@ -99,7 +99,8 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
 
   setGraphWeightsColor(subimg1, subimg2, submask1, submask2, graph);
 
-  graph.maxFlow();
+  double max_weight = graph.maxFlow();
+  LOG("max weight %lf", max_weight);
 
   for (int y = 0; y < roi.height; ++y)
   {
@@ -131,8 +132,9 @@ void MySeamFinder::setGraphWeightsColor(
     for (int x = 0; x < img_size.width; ++x)
     {
       int v = graph.addVtx();
-      graph.addTermWeights(v, mask1.at<uchar>(y, x) ? terminal_cost_ : 0.f,
-          mask2.at<uchar>(y, x) ? terminal_cost_ : 0.f);
+      graph.addTermWeights(v, 
+        mask1.at<uchar>(y, x) ? terminal_cost_ : 0.f,
+        mask2.at<uchar>(y, x) ? terminal_cost_ : 0.f);
     }
   }
 
@@ -147,6 +149,8 @@ void MySeamFinder::setGraphWeightsColor(
       {
         float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) +
           normL2(img1.at<Point3f>(y, x + 1), img2.at<Point3f>(y, x + 1)) +
+          normL2(img1.at<Point3f>(y, x), img1.at<Point3f>(y, x + 1)) + 
+          normL2(img2.at<Point3f>(y, x), img2.at<Point3f>(y, x + 1)) + 
           weight_eps;
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y, x + 1) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y, x + 1))
@@ -157,6 +161,8 @@ void MySeamFinder::setGraphWeightsColor(
       {
         float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) +
           normL2(img1.at<Point3f>(y + 1, x), img2.at<Point3f>(y + 1, x)) +
+          normL2(img1.at<Point3f>(y, x), img1.at<Point3f>(y, x + 1)) + 
+          normL2(img2.at<Point3f>(y, x), img2.at<Point3f>(y, x + 1)) + 
           weight_eps;
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y + 1, x) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y + 1, x))
