@@ -46,6 +46,8 @@ void MySeamFinder::find(
         dy_row_[x] = normL2(dy_row[x]);
       }
     }
+    show_img(dx, "%d x", i);
+    show_img(dx_[i], "%d x_", i);
   }
 
   images_ = src;
@@ -126,8 +128,7 @@ void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
   }
 
   const int vertex_count = (roi.height + 2 * gap) * (roi.width + 2 * gap);
-  const int edge_count = (roi.height - 1 + 2 * gap) * (roi.width + 2 * gap) +
-    (roi.width - 1 + 2 * gap) * (roi.height + 2 * gap);
+  const int edge_count = (roi.height - 1 + 2 * gap) * (roi.width + 2 * gap) + (roi.width - 1 + 2 * gap) * (roi.height + 2 * gap);
   GCGraph<float> graph(vertex_count, edge_count);
 
   setGraphWeightsColor(subimg1, subimg2, subdx1, subdx2, subdy1, subdy2, submask1, submask2, graph);
@@ -166,8 +167,8 @@ void MySeamFinder::setGraphWeightsColor(
     {
       int v = graph.addVtx();
       graph.addTermWeights(v, 
-        mask1.at<uchar>(y, x) ? terminal_cost_ : 0.f,
-        mask2.at<uchar>(y, x) ? terminal_cost_ : 0.f);
+          mask1.at<uchar>(y, x) ? terminal_cost_ : 0.f,
+          mask2.at<uchar>(y, x) ? terminal_cost_ : 0.f);
     }
   }
 
@@ -180,11 +181,12 @@ void MySeamFinder::setGraphWeightsColor(
       int v = y * img_size.width + x;
       if (x < img_size.width - 1)
       {
-        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) +
-          normL2(img1.at<Point3f>(y, x + 1), img2.at<Point3f>(y, x + 1)) +
-          normL2(img1.at<Point3f>(y, x), img1.at<Point3f>(y, x + 1)) + 
-          normL2(img2.at<Point3f>(y, x), img2.at<Point3f>(y, x + 1)) + 
-          weight_eps;
+        float grad = dx1.at<float>(y, x - 1) + dx1.at<float>(y, x)
+          + dx2.at<float>(y, x - 1) + dx2.at<float>(y, x)
+          + weight_eps;
+        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) 
+          + normL2(img1.at<Point3f>(y, x + 1), img2.at<Point3f>(y, x + 1));
+          // + grad;
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y, x + 1) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y, x + 1))
           weight += bad_region_penalty_;
@@ -192,11 +194,12 @@ void MySeamFinder::setGraphWeightsColor(
       }
       if (y < img_size.height - 1)
       {
-        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) +
-          normL2(img1.at<Point3f>(y + 1, x), img2.at<Point3f>(y + 1, x)) +
-          normL2(img1.at<Point3f>(y, x), img1.at<Point3f>(y, x + 1)) + 
-          normL2(img2.at<Point3f>(y, x), img2.at<Point3f>(y, x + 1)) + 
-          weight_eps;
+        float grad = dx1.at<float>(y, x) + dx1.at<float>(y, x + 1) 
+          + dx2.at<float>(y, x) + dx2.at<float>(y, x + 1) 
+          + weight_eps;
+        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) 
+          + normL2(img1.at<Point3f>(y + 1, x), img2.at<Point3f>(y + 1, x));
+          // + grad;
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y + 1, x) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y + 1, x))
           weight += bad_region_penalty_;
