@@ -32,6 +32,7 @@ void MySeamFinder::find(
     CV_Assert(src[i].channels() == 3);
     Sobel(src[i], dx, CV_32F, 1, 0);
     Sobel(src[i], dy, CV_32F, 0, 1);
+
     dx_[i].create(src[i].size(), CV_32F);
     dy_[i].create(src[i].size(), CV_32F);
     for (int y = 0; y < src[i].rows; ++y)
@@ -46,8 +47,6 @@ void MySeamFinder::find(
         dy_row_[x] = normL2(dy_row[x]);
       }
     }
-    show_img(dx, "%d x", i);
-    show_img(dx_[i], "%d x_", i);
   }
 
   images_ = src;
@@ -174,32 +173,35 @@ void MySeamFinder::setGraphWeightsColor(
 
   // Set regular edge weights
   const float weight_eps = 1.f;
+  const float alpha = 2.f;
   for (int y = 0; y < img_size.height; ++y)
   {
     for (int x = 0; x < img_size.width; ++x)
     {
       int v = y * img_size.width + x;
       if (x < img_size.width - 1)
-      {
-        float grad = dx1.at<float>(y, x - 1) + dx1.at<float>(y, x)
-          + dx2.at<float>(y, x - 1) + dx2.at<float>(y, x)
-          + weight_eps;
-        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) 
-          + normL2(img1.at<Point3f>(y, x + 1), img2.at<Point3f>(y, x + 1));
-          // + grad;
+      {// 向右
+        Point2i p(x, y), q(x + 1, y);
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p)) 
+          + alpha * fabs(dx1.at<float>(p) - dx2.at<float>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q)) 
+          + alpha * fabs(dx1.at<float>(q) - dx2.at<float>(q));
+        float weight = weight_Dp + weight_Dq;
+          
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y, x + 1) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y, x + 1))
           weight += bad_region_penalty_;
         graph.addEdges(v, v + 1, weight, weight);
       }
       if (y < img_size.height - 1)
-      {
-        float grad = dx1.at<float>(y, x) + dx1.at<float>(y, x + 1) 
-          + dx2.at<float>(y, x) + dx2.at<float>(y, x + 1) 
-          + weight_eps;
-        float weight = normL2(img1.at<Point3f>(y, x), img2.at<Point3f>(y, x)) 
-          + normL2(img1.at<Point3f>(y + 1, x), img2.at<Point3f>(y + 1, x));
-          // + grad;
+      {// 向下
+        Point2i p(x, y), q(x, y + 1);
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p)) 
+          + alpha * fabs(dy1.at<float>(p) - dy2.at<float>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q)) 
+          + alpha * fabs(dy1.at<float>(q) - dy2.at<float>(q));
+        float weight = weight_Dp + weight_Dq;
+
         if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y + 1, x) ||
             !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y + 1, x))
           weight += bad_region_penalty_;
