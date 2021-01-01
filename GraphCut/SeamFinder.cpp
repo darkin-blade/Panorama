@@ -33,20 +33,25 @@ void MySeamFinder::find(
     Sobel(src[i], dx, CV_32F, 1, 0);
     Sobel(src[i], dy, CV_32F, 0, 1);
 
-    dx_[i].create(src[i].size(), CV_32F);
-    dy_[i].create(src[i].size(), CV_32F);
-    for (int y = 0; y < src[i].rows; ++y)
-    {
-      const Point3f* dx_row = dx.ptr<Point3f>(y);
-      const Point3f* dy_row = dy.ptr<Point3f>(y);
-      float* dx_row_ = dx_[i].ptr<float>(y);
-      float* dy_row_ = dy_[i].ptr<float>(y);
-      for (int x = 0; x < src[i].cols; ++x)
-      {
-        dx_row_[x] = normL2(dx_row[x]);
-        dy_row_[x] = normL2(dy_row[x]);
-      }
-    }
+    // dx += dy;
+    convertScaleAbs(dx, dx_[i]);
+    convertScaleAbs(dy, dy_[i]);
+    // dx.copyTo(dx_[i]);
+    // dx.copyTo(dy_[i]);
+    // dx_[i].create(src[i].size(), CV_32F);
+    // dy_[i].create(src[i].size(), CV_32F);
+    // for (int y = 0; y < src[i].rows; ++y)
+    // {
+    //   const Point3f* dx_row = dx.ptr<Point3f>(y);
+    //   const Point3f* dy_row = dy.ptr<Point3f>(y);
+    //   float* dx_row_ = dx_[i].ptr<float>(y);
+    //   float* dy_row_ = dy_[i].ptr<float>(y);
+    //   for (int x = 0; x < src[i].cols; ++x)
+    //   {
+    //     dx_row_[x] = normL2(dx_row[x]);
+    //     dy_row_[x] = normL2(dy_row[x]);
+    //   }
+    // }
   }
 
   images_ = src;
@@ -165,15 +170,25 @@ void MySeamFinder::setGraphWeightsColor(
     for (int x = 0; x < img_size.width; ++x)
     {
       int v = graph.addVtx();
-      graph.addTermWeights(v, 
-          mask1.at<uchar>(y, x) ? terminal_cost_ : 0.f,
-          mask2.at<uchar>(y, x) ? terminal_cost_ : 0.f);
+      float weight1, weight2;
+      Point2i p(x, y);
+      if (mask1.at<uchar>(p)) {
+        weight1 = terminal_cost_ - 0.02 * (dx1.at<uchar>(p) + dy1.at<uchar>(p));
+      } else {
+        weight1 = 0;
+      }
+      if (mask2.at<uchar>(p)) {
+        weight2 = terminal_cost_ - 0.02 * (dx2.at<uchar>(p) + dy2.at<uchar>(p));
+      } else {
+        weight2 = 0;
+      }
+      graph.addTermWeights(v, weight1, weight2);
     }
   }
 
   // Set regular edge weights
   const float weight_eps = 1.f;
-  const float alpha = 2.f;
+  const float alpha = 0.f;
   for (int y = 0; y < img_size.height; ++y)
   {
     for (int x = 0; x < img_size.width; ++x)
@@ -182,28 +197,30 @@ void MySeamFinder::setGraphWeightsColor(
       if (x < img_size.width - 1)
       {// 向右
         Point2i p(x, y), q(x + 1, y);
-        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p)) 
-          + alpha * fabs(dx1.at<float>(p) - dx2.at<float>(p));
-        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q)) 
-          + alpha * fabs(dx1.at<float>(q) - dx2.at<float>(q));
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p));
+          // + alpha * (dx1.at<uchar>(p) - dx2.at<uchar>(p)) * (dx1.at<uchar>(p) - dx2.at<uchar>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q));
+          // + alpha * (dx1.at<uchar>(q) - dx2.at<uchar>(q)) * (dx1.at<uchar>(q) - dx2.at<uchar>(q));
         float weight = weight_Dp + weight_Dq;
-          
-        if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y, x + 1) ||
-            !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y, x + 1))
+        assert(weight_Dp >= 0 && weight_Dq >= 0);
+
+        if (!mask1.at<uchar>(p) || !mask1.at<uchar>(q) ||
+            !mask2.at<uchar>(p) || !mask2.at<uchar>(q))
           weight += bad_region_penalty_;
         graph.addEdges(v, v + 1, weight, weight);
       }
       if (y < img_size.height - 1)
       {// 向下
         Point2i p(x, y), q(x, y + 1);
-        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p)) 
-          + alpha * fabs(dy1.at<float>(p) - dy2.at<float>(p));
-        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q)) 
-          + alpha * fabs(dy1.at<float>(q) - dy2.at<float>(q));
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p));
+          // + alpha * (dy1.at<uchar>(p) - dy2.at<uchar>(p)) * (dy1.at<uchar>(p) - dy2.at<uchar>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q));
+          // + alpha * (dy1.at<uchar>(q) - dy2.at<uchar>(q)) * (dy1.at<uchar>(q) - dy2.at<uchar>(q));
         float weight = weight_Dp + weight_Dq;
+        assert(weight_Dp >= 0 && weight_Dq >= 0);
 
-        if (!mask1.at<uchar>(y, x) || !mask1.at<uchar>(y + 1, x) ||
-            !mask2.at<uchar>(y, x) || !mask2.at<uchar>(y + 1, x))
+        if (!mask1.at<uchar>(p) || !mask1.at<uchar>(q) ||
+            !mask2.at<uchar>(p) || !mask2.at<uchar>(q))
           weight += bad_region_penalty_;
         graph.addEdges(v, v + img_size.width, weight, weight);
       }
