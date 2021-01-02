@@ -120,6 +120,7 @@ public:
 
   /* 图像融合 */
   void textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
+  void myBlending();
 
   /* 寻找接缝线 */
   void getMask();// 计算接缝线的mask

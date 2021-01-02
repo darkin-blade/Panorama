@@ -823,6 +823,14 @@ void MultiImages::textureMapping(int _mode) {
     ignore_weight_mask);
 }
 
+void MultiImages::myBlending() {
+  pano_result = Mat::zeros(pano_size, CV_8UC4);
+  for (int i = 0; i < img_num; i ++) {
+    Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
+    pano_images[i].copyTo(dst_image, pano_masks[i]);
+  }
+}
+
 /***
  *
  * 寻找接缝线
@@ -873,7 +881,6 @@ void MultiImages::getMask() {
   }
 
   // 3 用泛洪填充进行修复
-
   masks[0] = masks[0] & pano_masks[0];
   masks[1] = masks[1] & pano_masks[1];
   show_img("0", masks[0]);
@@ -948,14 +955,10 @@ void MultiImages::getSeam() {
   // 同步Mat和UMat
   for (int i = 0; i < img_num; i ++) {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
-    show_img(pano_masks[i], "%d", i);
+    show_img(pano_images[i], "image %d", i);
   }
-  
-  pano_result = Mat::zeros(pano_size, CV_8UC4);
-  for (int i = 0; i < img_num; i ++) {
-    Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
-    pano_images[i].copyTo(dst_image, pano_masks[i]);
-  }
+
+  myBlending();
 }
 
 /***
