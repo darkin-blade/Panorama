@@ -197,11 +197,11 @@ void MySeamFinder::setGraphWeightsColor(
       if (x < img_size.width - 1)
       {// 向右
         Point2i p(x, y), q(x + 1, y);
-        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p))
-          + alpha * (dx1.at<uchar>(p) - dx2.at<uchar>(p)) * (dx1.at<uchar>(p) - dx2.at<uchar>(p));
-        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q))
-          + alpha * (dx1.at<uchar>(q) - dx2.at<uchar>(q)) * (dx1.at<uchar>(q) - dx2.at<uchar>(q));
-        float weight = weight_Dp + weight_Dq;
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p));
+          // + alpha * (dx1.at<uchar>(p) - dx2.at<uchar>(p)) * (dx1.at<uchar>(p) - dx2.at<uchar>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q));
+          // + alpha * (dx1.at<uchar>(q) - dx2.at<uchar>(q)) * (dx1.at<uchar>(q) - dx2.at<uchar>(q));
+        float weight = weight_Dp + weight_Dq + weight_eps;
         assert(weight_Dp >= 0 && weight_Dq >= 0);
 
         if (!mask1.at<uchar>(p) || !mask1.at<uchar>(q) ||
@@ -212,11 +212,11 @@ void MySeamFinder::setGraphWeightsColor(
       if (y < img_size.height - 1)
       {// 向下
         Point2i p(x, y), q(x, y + 1);
-        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p))
-          + alpha * (dy1.at<uchar>(p) - dy2.at<uchar>(p)) * (dy1.at<uchar>(p) - dy2.at<uchar>(p));
-        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q))
-          + alpha * (dy1.at<uchar>(q) - dy2.at<uchar>(q)) * (dy1.at<uchar>(q) - dy2.at<uchar>(q));
-        float weight = weight_Dp + weight_Dq;
+        float weight_Dp = normL2(img1.at<Point3f>(p), img2.at<Point3f>(p));
+          // + alpha * (dy1.at<uchar>(p) - dy2.at<uchar>(p)) * (dy1.at<uchar>(p) - dy2.at<uchar>(p));
+        float weight_Dq = normL2(img1.at<Point3f>(q), img2.at<Point3f>(q));
+          // + alpha * (dy1.at<uchar>(q) - dy2.at<uchar>(q)) * (dy1.at<uchar>(q) - dy2.at<uchar>(q));
+        float weight = weight_Dp + weight_Dq + weight_eps;
         assert(weight_Dp >= 0 && weight_Dq >= 0);
 
         if (!mask1.at<uchar>(p) || !mask1.at<uchar>(q) ||

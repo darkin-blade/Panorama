@@ -252,9 +252,9 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  for (int i = 0; i <= 10; i ++) {
-    col_r.emplace_back(i * 0.1);
-    row_r.emplace_back(i * 0.1);
+  for (int i = 0; i <= 8; i ++) {
+    col_r.emplace_back(i * 0.125);
+    row_r.emplace_back(i * 0.125);
   }
   imgs[0]->initVertices(col_r, row_r);
 
