@@ -856,6 +856,9 @@ void MultiImages::myBlending() {
   vector<Point2f> img_origins;
   vector<Mat> new_images(2);
   for (int i = 0; i < img_num; i ++) {
+    Mat tmp_weight;
+    convertScaleAbs(blend_weight_mask[i], tmp_weight);
+    show_img(tmp_weight, "weight %d", i);
     img_origins.emplace_back(0, 0);
     pano_images[i].copyTo(new_images[i], pano_masks[i]);
     // show_img(pano_masks[i], "mask %d", i);
