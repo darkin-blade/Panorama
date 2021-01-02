@@ -60,6 +60,7 @@ public:
   /* 图像融合 */
   Size2f                      pano_size;
   vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
+  vector<Mat>                 blend_weight_mask;
 
   /* 接缝线寻找 */
   vector<Mat>      pano_images;

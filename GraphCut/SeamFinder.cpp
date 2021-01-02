@@ -165,6 +165,8 @@ void MySeamFinder::setGraphWeightsColor(
   const Size img_size = img1.size();
 
   // Set terminal weights
+  const float beta = 0.0f;
+  LOG("beta is %f", beta);
   for (int y = 0; y < img_size.height; ++y)
   {
     for (int x = 0; x < img_size.width; ++x)
@@ -173,12 +175,12 @@ void MySeamFinder::setGraphWeightsColor(
       float weight1, weight2;
       Point2i p(x, y);
       if (mask1.at<uchar>(p)) {
-        weight1 = terminal_cost_ - 0.02 * (dx1.at<uchar>(p) + dy1.at<uchar>(p));
+        weight1 = terminal_cost_ - beta * (dx1.at<uchar>(p) + dy1.at<uchar>(p));
       } else {
         weight1 = 0;
       }
       if (mask2.at<uchar>(p)) {
-        weight2 = terminal_cost_ - 0.02 * (dx2.at<uchar>(p) + dy2.at<uchar>(p));
+        weight2 = terminal_cost_ - beta * (dx2.at<uchar>(p) + dy2.at<uchar>(p));
       } else {
         weight2 = 0;
       }

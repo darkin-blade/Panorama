@@ -252,9 +252,9 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  for (int i = 0; i <= 8; i ++) {
-    col_r.emplace_back(i * 0.125);
-    row_r.emplace_back(i * 0.125);
+  for (int i = 0; i <= 20; i ++) {
+    col_r.emplace_back(i * 0.05);
+    row_r.emplace_back(i * 0.05);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -787,7 +787,7 @@ void MultiImages::textureMapping(int _mode) {
 
   // 获得每个形变的图片, 图片的起点都是(0, 0)
   vector<Mat> images_warped;
-  vector<Mat> blend_weight_mask;
+  blend_weight_mask.clear();
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
     Mat weight_mask;
@@ -824,11 +824,53 @@ void MultiImages::textureMapping(int _mode) {
 }
 
 void MultiImages::myBlending() {
-  pano_result = Mat::zeros(pano_size, CV_8UC4);
-  for (int i = 0; i < img_num; i ++) {
-    Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
-    pano_images[i].copyTo(dst_image, pano_masks[i]);
+  // pano_result = Mat::zeros(pano_size, CV_8UC4);
+  // for (int i = 0; i < img_num; i ++) {
+  //   Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
+  //   pano_images[i].copyTo(dst_image, pano_masks[i]);
+  // }
+
+  // 遍历像素, 填补色彩相近的位置给mask
+  int pano_rows = pano_masks[0].rows;
+  int pano_cols = pano_masks[0].cols;
+
+  for (int i = 0; i < pano_rows; i ++) {
+    for (int j = 0; j < pano_cols; j ++) {
+      float src_weight = blend_weight_mask[0].at<float>(i, j);
+      float dst_weight = blend_weight_mask[1].at<float>(i, j);
+      if (src_weight > 0 && dst_weight > 0) {
+        // 交集
+        Vec4b src_pix = pano_images[0].at<Vec4b>(i, j);
+        Vec4b dst_pix = pano_images[1].at<Vec4b>(i, j);
+        Point3i src_color(src_pix[0], src_pix[1], src_pix[2]);
+        Point3i dst_color(dst_pix[0], dst_pix[1], dst_pix[2]);
+        double color_dis = sqrt(normL2(src_color, dst_color));
+        if (color_dis < 50) {
+          pano_masks[0].at<uchar>(i, j) = 255;
+          pano_masks[1].at<uchar>(i, j) = 255;
+        }
+      }
+    }
   }
+
+  vector<Point2f> img_origins;
+  vector<Mat> new_images(2);
+  for (int i = 0; i < img_num; i ++) {
+    img_origins.emplace_back(0, 0);
+    pano_images[i].copyTo(new_images[i], pano_masks[i]);
+    // show_img(pano_masks[i], "mask %d", i);
+    // show_img(pano_images[i], "image %d", i);
+    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
+  }
+  
+  bool ignore_weight_mask = true;
+  pano_result = Blending(
+    // pano_images,
+    new_images,
+    img_origins,
+    pano_size,
+    blend_weight_mask,
+    ignore_weight_mask);
 }
 
 /***
@@ -879,20 +921,13 @@ void MultiImages::getMask() {
     circle(common_mask, pano_feature_points[0][i], 50, Scalar(0), -1);
     circle(common_mask, pano_feature_points[1][i], 50, Scalar(0), -1);
   }
-
-  // 3 用泛洪填充进行修复
-  masks[0] = masks[0] & pano_masks[0];
-  masks[1] = masks[1] & pano_masks[1];
-  show_img("0", masks[0]);
-  show_img("1", masks[1]);
-  pano_masks[0] = masks[0];
-  pano_masks[1] = masks[1];
 }
 
 void MultiImages::getSeam() {
   // 获得每个形变的图片, 图片的起点都是(0, 0)
   vector<Mat> images_warped;
   vector<Mat> masks_warped;
+  blend_weight_mask.clear();
 
   for (int i = 0; i < img_num; i ++) {
     Mat warped_image;
@@ -908,6 +943,7 @@ void MultiImages::getSeam() {
       img_mask);
     images_warped.emplace_back(warped_image);
     masks_warped.emplace_back(img_mask);
+    blend_weight_mask.emplace_back(weight_mask);
   }
 
   // 对所有图像的网格点归一化(去除负值)
@@ -917,14 +953,20 @@ void MultiImages::getSeam() {
   for (int i = 0; i < img_num; i ++) {
     Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
     Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
+    Mat tmp_weight = Mat::zeros(pano_size, CV_32FC1);
     // 计算目标矩阵
     Rect2f rect = getVerticesRects(matching_pts[i]);
     Mat dst_image = Mat(tmp_image, rect);
     Mat dst_mask = Mat(tmp_mask, rect);
+    Mat dst_weight = Mat(tmp_weight, rect);
+
     images_warped[i].copyTo(dst_image);
     masks_warped[i].copyTo(dst_mask);
+    blend_weight_mask[i].copyTo(dst_weight);
+
     pano_images.emplace_back(tmp_image);
     pano_masks.emplace_back(tmp_mask);
+    tmp_weight.copyTo(blend_weight_mask[i]);
   }
 
   // 根据特征点对预处理mask
@@ -955,7 +997,6 @@ void MultiImages::getSeam() {
   // 同步Mat和UMat
   for (int i = 0; i < img_num; i ++) {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
-    show_img(pano_images[i], "image %d", i);
   }
 
   myBlending();
