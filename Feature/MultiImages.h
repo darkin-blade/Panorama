@@ -101,11 +101,11 @@ public:
   void warpImage(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask);
+      Mat _src, Mat & _dst, Mat & _img_mask);
   void warpImage2(
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
-      Mat _src, Mat & _dst, Mat & _weight_mask, Mat & _img_mask);
+      Mat _src, Mat & _dst, Mat & _img_mask);
 
   /* 
     特征点形变

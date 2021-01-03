@@ -1,30 +1,11 @@
 #include "Blending.h"
 
-Mat getMatOfLinearBlendWeight(const Mat & image) {
-  Mat result(image.size(), CV_32FC1, Scalar::all(0));
-  for (int y = 0; y < result.rows; y ++) {
-    int w_y = min(y + 1, result.rows - y);
-    for (int x = 0; x < result.cols; x ++) {
-      result.at<float>(y, x) = min(x + 1, result.cols - x) * w_y;
-    }
-  }
-  return result;
-}
-
-vector<Mat> getMatsLinearBlendWeight(const vector<Mat> & images) {
-  vector<Mat> result;
-  result.reserve(images.size());
-  for (int i = 0; i < images.size(); i ++) {
-    result.emplace_back(getMatOfLinearBlendWeight(images[i]));
-  }
-  return result;
-}
-
 Mat Blending(const vector<Mat> & images,
     const vector<Point2f> & origins,
     const Size2f target_size,
     const vector<Mat> & weight_mask,
-    const bool ignore_weight_mask) {
+    const bool ignore_weight_mask) 
+{
 
   Mat result = Mat::zeros(round(target_size.height), round(target_size.width), CV_8UC4);
 
@@ -63,4 +44,59 @@ Mat Blending(const vector<Mat> & images,
     }
   }
   return result;
+}
+
+void getGradualMat(
+  const Mat & dst_mat,    // dst - src 为待填充区域
+  Mat & src_mat)          // 初始区域
+{
+
+  assert(src_mat.size() == dst_mat.size());
+
+  int rows = dst_mat.rows;
+  int cols = dst_mat.cols;
+  int steps[8][2] = {
+    {-1 ,-1}, {-1, 0}, {-1, 1}, 
+    {0, -1}, {0, 1},
+    {1, -1}, {1, 0}, {1, 1}
+  };
+  Mat visit = Mat::zeros(rows, cols, CV_8UC1);
+
+  // BFS
+  queue<pair<int, int> > q;
+  for (int i = 0; i < rows; i ++) {
+    for (int j = 0; j < rows; j ++) {
+      if (src_mat.at<uchar>(i, j)) {
+        q.push(make_pair(i, j));
+        visit.at<uchar>(i, j) = 255;
+      }
+    }
+  }
+
+  show_img("visit", visit);
+
+  int min_depth;
+  while (!q.empty()) {
+    pair<int, int> u = q.front();
+    q.pop();
+    int r = u.first;
+    int c = u.second;
+    int depth = src_mat.at<uchar>(r, c);
+    for (int i = 0; i < 8; i ++) {
+      int next_r = r + steps[i][0];
+      int next_c = c + steps[i][1];
+      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+        // 未出界
+        if (dst_mat.at<uchar>(next_r, next_c) && !visit.at<uchar>(next_r, next_c)) {
+          // 未访问, 未出界
+          q.push(make_pair(next_r, next_c));
+          src_mat.at<uchar>(next_r, next_c) = max(0, depth - 1);
+          min_depth = min(depth - 1, min_depth);
+          visit.at<uchar>(next_r, next_c) = 255;
+        }
+      }
+    }
+  }
+
+  LOG("min depth %d", min_depth);
 }
