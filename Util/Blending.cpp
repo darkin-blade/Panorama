@@ -125,16 +125,14 @@ void getGradualMat(
   Mat visit;
   queue<pair<int, int> > q;
 
-  int inner = 20;
-  int outer = 3;
+  int inner = 1;
+  int outer = 10;
 
   // BFS 1
-  visit = Mat::zeros(rows, cols, CV_8UC1);
   for (int i = 0; i < rows; i ++) {
     for (int j = 0; j < cols; j ++) {
       if (mask_1.at<uchar>(i, j)) {
         q.push(make_pair(i, j));
-        visit.at<uchar>(i, j) = 255;
       }
     }
   }
@@ -170,6 +168,52 @@ void getGradualMat(
             // 权值覆盖
             q.push(make_pair(next_r, next_c));
             mask_1.at<uchar>(next_r, next_c) = next_depth;
+          }
+        }
+      }
+    }
+  }
+
+  // BFS 2
+  for (int i = 0; i < rows; i ++) {
+    for (int j = 0; j < cols; j ++) {
+      if (mask_2.at<uchar>(i, j)) {
+        q.push(make_pair(i, j));
+      }
+    }
+  }
+
+  while (!q.empty()) {
+    pair<int, int> u = q.front();
+    q.pop();
+    int r = u.first;
+    int c = u.second;
+    int depth = mask_2.at<uchar>(r, c);
+    if (depth == 0) {
+      continue;
+    }
+    for (int i = 0; i < 8; i ++) {
+      int next_r = r + steps[i][0];
+      int next_c = c + steps[i][1];
+      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+        // 未出界
+        if (dst_1.at<uchar>(next_r, next_c)) {
+          // 图像扩展部分
+          if (gradient_2.at<uchar>(next_r, next_c) < 2
+           && gradient_1.at<uchar>(next_r, next_c) < 2) {
+            int next_depth = max(depth - outer, 0);
+            if (mask_2.at<uchar>(next_r, next_c) < next_depth) {
+              q.push(make_pair(next_r, next_c));
+              mask_2.at<uchar>(next_r, next_c) = next_depth;
+            }
+          }
+        } else if (dst_2.at<uchar>(next_r, next_c)) {
+          // 图像原有部分
+          int next_depth = max(depth - inner, 0);
+          if (mask_2.at<uchar>(next_r, next_c) < next_depth) {
+            // 权值覆盖
+            q.push(make_pair(next_r, next_c));
+            mask_2.at<uchar>(next_r, next_c) = next_depth;
           }
         }
       }

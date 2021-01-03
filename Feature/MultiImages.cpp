@@ -835,7 +835,7 @@ void MultiImages::myBlending() {
         Point3i src_color(src_pix[0], src_pix[1], src_pix[2]);
         Point3i dst_color(dst_pix[0], dst_pix[1], dst_pix[2]);
         double color_dis = sqrt(normL2(src_color, dst_color));
-        if (color_dis < 100) {
+        if (color_dis < 50) {
           dst_masks[0].at<uchar>(i, j) = 255;
           dst_masks[1].at<uchar>(i, j) = 255;
         }
