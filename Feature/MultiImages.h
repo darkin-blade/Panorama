@@ -65,6 +65,7 @@ public:
   /* 接缝线寻找 */
   vector<Mat>      pano_images;
   vector<Mat>      pano_masks;
+  vector<Mat>      origin_masks;// 寻找接缝线前的mask
 
   /* 最终结果 */
   Mat    pano_result;
