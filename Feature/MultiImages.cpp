@@ -835,7 +835,7 @@ void MultiImages::myBlending() {
         Point3i src_color(src_pix[0], src_pix[1], src_pix[2]);
         Point3i dst_color(dst_pix[0], dst_pix[1], dst_pix[2]);
         double color_dis = sqrt(normL2(src_color, dst_color));
-        if (color_dis < 150) {
+        if (color_dis < 100) {
           dst_masks[0].at<uchar>(i, j) = 255;
           dst_masks[1].at<uchar>(i, j) = 255;
         }
@@ -844,25 +844,18 @@ void MultiImages::myBlending() {
   }
 
   for (int i = 0; i < 2; i ++) {
-    // show_img(dst_masks[i], "dst %d", i);
     getGradualMat(dst_masks[i], pano_masks[i]);
-    show_img(pano_masks[i], "src %d", i);
   }
 
   vector<Point2f> img_origins;
-  vector<Mat> new_images(2);
   blend_weight_mask.clear();
   blend_weight_mask.resize(2);
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
 
-    Mat tmp_weight;
-    // convertScaleAbs(blend_weight_mask[i], tmp_weight);
-    // show_img(tmp_weight, "weight %d", i);
-    // pano_images[i].copyTo(new_images[i], pano_masks[i]);
-    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
-    // show_img(pano_masks[i], "mask %d", i);
+    show_img(pano_masks[i], "mask %d", i);
     // show_img(pano_images[i], "image %d", i);
+    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   
   bool ignore_weight_mask = false;

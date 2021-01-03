@@ -65,7 +65,7 @@ void getGradualMat(
   // BFS
   queue<pair<int, int> > q;
   for (int i = 0; i < rows; i ++) {
-    for (int j = 0; j < rows; j ++) {
+    for (int j = 0; j < cols; j ++) {
       if (src_mat.at<uchar>(i, j)) {
         q.push(make_pair(i, j));
         visit.at<uchar>(i, j) = 255;
@@ -73,15 +73,14 @@ void getGradualMat(
     }
   }
 
-  show_img("visit", visit);
-
-  int min_depth;
+  int min_depth = 255;
   while (!q.empty()) {
     pair<int, int> u = q.front();
     q.pop();
     int r = u.first;
     int c = u.second;
     int depth = src_mat.at<uchar>(r, c);
+    int next_depth = depth - 20;
     for (int i = 0; i < 8; i ++) {
       int next_r = r + steps[i][0];
       int next_c = c + steps[i][1];
@@ -90,13 +89,11 @@ void getGradualMat(
         if (dst_mat.at<uchar>(next_r, next_c) && !visit.at<uchar>(next_r, next_c)) {
           // 未访问, 未出界
           q.push(make_pair(next_r, next_c));
-          src_mat.at<uchar>(next_r, next_c) = max(0, depth - 1);
-          min_depth = min(depth - 1, min_depth);
+          src_mat.at<uchar>(next_r, next_c) = max(0, next_depth);
+          min_depth = min(next_depth, min_depth);
           visit.at<uchar>(next_r, next_c) = 255;
         }
       }
     }
   }
-
-  LOG("min depth %d", min_depth);
 }
