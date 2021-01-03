@@ -46,19 +46,20 @@ Mat Blending(const vector<Mat> & images,
   return result;
 }
 
-void getGradualMat(
-  const Mat & dst_mat,    // dst - src 为待填充区域
-  Mat & src_mat)          // 初始区域
+void getExpandMat(
+  Mat & src_image,
+  const Mat & src_mask,
+  const Mat & dst_mask
+)
 {
+  assert(src_image.channels() == 4);
+  assert(dst_mask.size() == src_mask.size());
 
-  assert(src_mat.size() == dst_mat.size());
-
-  int rows = dst_mat.rows;
-  int cols = dst_mat.cols;
-  int steps[8][2] = {
-    {-1 ,-1}, {-1, 0}, {-1, 1}, 
-    {0, -1}, {0, 1},
-    {1, -1}, {1, 0}, {1, 1}
+  Mat expand = (Scalar(255) - src_mask) & dst_mask;
+  int rows = dst_mask.rows;
+  int cols = dst_mask.cols;
+  int steps[4][2] = {
+    {-1, 0}, {0, -1}, {1, 0}, {0, 1}
   };
   Mat visit = Mat::zeros(rows, cols, CV_8UC1);
 
@@ -66,34 +67,116 @@ void getGradualMat(
   queue<pair<int, int> > q;
   for (int i = 0; i < rows; i ++) {
     for (int j = 0; j < cols; j ++) {
-      if (src_mat.at<uchar>(i, j)) {
+      if (src_mask.at<uchar>(i, j)) {
+        q.push(make_pair(i, j));
+      }
+    }
+  }
+
+  while (!q.empty()) {
+    pair<int, int> u = q.front();
+    q.pop();
+    int r = u.first;
+    int c = u.second;
+    Vec4b pix = src_image.at<Vec4b>(r, c);
+    for (int i = 0; i < 4; i ++) {
+      int next_r = r + steps[i][0];
+      int next_c = c + steps[i][1];
+      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+        // 未出界
+        if (expand.at<uchar>(next_r, next_c) && !visit.at<uchar>(next_r, next_c)) {
+          q.push(make_pair(next_r, next_c));
+          src_image.at<Vec4b>(next_r, next_c) = pix;
+          visit.at<uchar>(next_r, next_c) = 255;
+        }
+      }
+    }
+  }
+}
+
+void getGradualMat(
+  const Mat & image_1,
+  const Mat & image_2,
+  const Mat & dst_1,
+  const Mat & dst_2,
+  Mat & mask_1,    
+  Mat & mask_2)
+{
+  assert(mask_1.size() == mask_2.size());
+
+  // 计算像素梯度
+  Mat dx, dy, gradient_1, gradient_2;
+  Sobel(image_1, dx, CV_8U, 1, 0);
+  Sobel(image_1, dy, CV_8U, 0, 1);
+  gradient_1 = dx + dy;
+  cvtColor(gradient_1, gradient_1, COLOR_RGBA2GRAY);
+  Sobel(image_2, dx, CV_8U, 1, 0);
+  Sobel(image_2, dy, CV_8U, 0, 1);
+  gradient_2 = dx + dy;
+  cvtColor(gradient_2, gradient_2, COLOR_RGBA2GRAY);
+
+  int rows = mask_1.rows;
+  int cols = mask_1.cols;
+  int steps[8][2] = {
+    {-1 ,-1}, {-1, 0}, {-1, 1}, 
+    {0, -1}, {0, 1},
+    {1, -1}, {1, 0}, {1, 1}
+  };
+  Mat visit;
+  queue<pair<int, int> > q;
+
+  int inner = 20;
+  int outer = 3;
+
+  // BFS 1
+  visit = Mat::zeros(rows, cols, CV_8UC1);
+  for (int i = 0; i < rows; i ++) {
+    for (int j = 0; j < cols; j ++) {
+      if (mask_1.at<uchar>(i, j)) {
         q.push(make_pair(i, j));
         visit.at<uchar>(i, j) = 255;
       }
     }
   }
 
-  int min_depth = 255;
   while (!q.empty()) {
     pair<int, int> u = q.front();
     q.pop();
     int r = u.first;
     int c = u.second;
-    int depth = src_mat.at<uchar>(r, c);
-    int next_depth = depth - 20;
+    int depth = mask_1.at<uchar>(r, c);
+    if (depth == 0) {
+      continue;
+    }
     for (int i = 0; i < 8; i ++) {
       int next_r = r + steps[i][0];
       int next_c = c + steps[i][1];
       if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
         // 未出界
-        if (dst_mat.at<uchar>(next_r, next_c) && !visit.at<uchar>(next_r, next_c)) {
-          // 未访问, 未出界
-          q.push(make_pair(next_r, next_c));
-          src_mat.at<uchar>(next_r, next_c) = max(0, next_depth);
-          min_depth = min(next_depth, min_depth);
-          visit.at<uchar>(next_r, next_c) = 255;
+        if (dst_2.at<uchar>(next_r, next_c)) {
+          // 图像扩展部分
+          if (gradient_1.at<uchar>(next_r, next_c) < 5
+           && gradient_2.at<uchar>(next_r, next_c) < 5) {
+            int next_depth = max(depth - outer, 0);
+            if (mask_1.at<uchar>(next_r, next_c) < next_depth) {
+              q.push(make_pair(next_r, next_c));
+              mask_1.at<uchar>(next_r, next_c) = next_depth;
+            }
+          }
+        } else if (dst_1.at<uchar>(next_r, next_c)) {
+          // 图像原有部分
+          int next_depth = max(depth - inner, 0);
+          if (mask_1.at<uchar>(next_r, next_c) < next_depth) {
+            // 权值覆盖
+            q.push(make_pair(next_r, next_c));
+            mask_1.at<uchar>(next_r, next_c) = next_depth;
+          }
         }
       }
     }
   }
+
+  show_img("g 2", gradient_2);
+  show_img("1", mask_1);
+  show_img("2", mask_2);
 }

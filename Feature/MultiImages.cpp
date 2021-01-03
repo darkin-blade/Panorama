@@ -843,9 +843,12 @@ void MultiImages::myBlending() {
     }
   }
 
-  for (int i = 0; i < 2; i ++) {
-    getGradualMat(dst_masks[i], pano_masks[i]);
-  }
+  getExpandMat(pano_images[0], origin_masks[0], origin_masks[1]);
+  getExpandMat(pano_images[1], origin_masks[1], origin_masks[0]);
+  getGradualMat(
+    pano_images[0], pano_images[1],
+    dst_masks[0], dst_masks[1],
+    pano_masks[0], pano_masks[1]);
 
   vector<Point2f> img_origins;
   blend_weight_mask.clear();
@@ -853,7 +856,7 @@ void MultiImages::myBlending() {
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
 
-    show_img(pano_masks[i], "mask %d", i);
+    // show_img(pano_masks[i], "mask %d", i);
     // show_img(pano_images[i], "image %d", i);
     pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
