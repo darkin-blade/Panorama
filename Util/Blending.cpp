@@ -73,6 +73,7 @@ void getExpandMat(
     }
   }
 
+  // 使用单一颜色填充带扩展区域
   while (!q.empty()) {
     pair<int, int> u = q.front();
     q.pop();
@@ -92,6 +93,12 @@ void getExpandMat(
       }
     }
   }
+
+  // 羽化扩充区域
+  // Mat blured;
+  // src_image.copyTo(blured);
+  // blur(blured, blured, Size(9, 9));
+  // blured.copyTo(src_image, dst_mask);
 }
 
 void getGradualMat(
@@ -165,9 +172,6 @@ void getGradualMat(
             Vec4b pix_1 = i1.at<Vec4b>(next_r, next_c);
             Vec4b pix_2 = i2.at<Vec4b>(next_r, next_c);
             int color_dis = (abs(pix_1[0] - pix_2[0]) + abs(pix_1[1] - pix_2[1]) + abs(pix_1[2] - pix_2[2])) / 3;
-            if (color_dis > 20) {
-              color_dis = depth;
-            }
 
             int next_depth = depth - color_dis;
             if (next_depth <= 0) {
@@ -182,7 +186,4 @@ void getGradualMat(
       }
     }
   }
-
-  // show_img("1", image_1);
-  // show_img("2", image_2);
 }
