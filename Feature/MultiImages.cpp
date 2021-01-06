@@ -252,9 +252,9 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  for (int i = 0; i <= 5; i ++) {
-    col_r.emplace_back(i * 0.2);
-    row_r.emplace_back(i * 0.2);
+  for (int i = 0; i <= 20; i ++) {
+    col_r.emplace_back(i * 0.05);
+    row_r.emplace_back(i * 0.05);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -820,8 +820,8 @@ void MultiImages::myBlending() {
   int pano_cols = pano_masks[0].cols;
 
   // 图像扩充
-  getExpandMat(pano_images[0], origin_masks[0], origin_masks[1]);
-  getExpandMat(pano_images[1], origin_masks[1], origin_masks[0]);
+  getExpandMat(pano_images[0], pano_masks[0], pano_masks[1]);
+  getExpandMat(pano_images[1], pano_masks[1], pano_masks[0]);
   // 线性融合mask计算
   getGradualMat(
     pano_images[0], pano_images[1], 
