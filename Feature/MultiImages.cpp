@@ -252,9 +252,9 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  for (int i = 0; i <= 20; i ++) {
-    col_r.emplace_back(i * 0.05);
-    row_r.emplace_back(i * 0.05);
+  for (int i = 0; i <= 5; i ++) {
+    col_r.emplace_back(i * 0.2);
+    row_r.emplace_back(i * 0.2);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -816,38 +816,16 @@ void MultiImages::myBlending() {
   //   pano_images[i].copyTo(dst_image, pano_masks[i]);
   // }
 
-  vector<Mat> dst_masks(2);
-  for (int i = 0; i < 2; i ++) {
-    pano_masks[i].copyTo(dst_masks[i]);
-  }
+  int pano_rows = pano_masks[0].rows;
+  int pano_cols = pano_masks[0].cols;
 
-  // 遍历像素, 填补色彩相近的位置给mask
-  int pano_rows = dst_masks[0].rows;
-  int pano_cols = dst_masks[0].cols;
-
-  Mat intersect = origin_masks[0] & origin_masks[1];
-  for (int i = 0; i < pano_rows; i ++) {
-    for (int j = 0; j < pano_cols; j ++) {
-      if (intersect.at<uchar>(i, j)) {
-        // 交集
-        Vec4b src_pix = pano_images[0].at<Vec4b>(i, j);
-        Vec4b dst_pix = pano_images[1].at<Vec4b>(i, j);
-        Point3i src_color(src_pix[0], src_pix[1], src_pix[2]);
-        Point3i dst_color(dst_pix[0], dst_pix[1], dst_pix[2]);
-        double color_dis = sqrt(normL2(src_color, dst_color));
-        if (color_dis < 50) {
-          dst_masks[0].at<uchar>(i, j) = 255;
-          dst_masks[1].at<uchar>(i, j) = 255;
-        }
-      }
-    }
-  }
-
+  // 图像扩充
   getExpandMat(pano_images[0], origin_masks[0], origin_masks[1]);
   getExpandMat(pano_images[1], origin_masks[1], origin_masks[0]);
+  // 线性融合mask计算
   getGradualMat(
-    pano_images[0], pano_images[1],
-    dst_masks[0], dst_masks[1],
+    pano_images[0], pano_images[1], 
+    origin_masks[0], origin_masks[1], 
     pano_masks[0], pano_masks[1]);
 
   vector<Point2f> img_origins;
@@ -855,9 +833,8 @@ void MultiImages::myBlending() {
   blend_weight_mask.resize(2);
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
-
-    // show_img(pano_masks[i], "mask %d", i);
-    // show_img(pano_images[i], "image %d", i);
+    show_img(pano_masks[i], "mask %d", i);
+    show_img(pano_images[i], "image %d", i);
     pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   

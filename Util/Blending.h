@@ -20,8 +20,8 @@ void getExpandMat(
 void getGradualMat(
   const Mat & image_1,
   const Mat & image_2,
-  const Mat & dst_1,
-  const Mat & dst_2,
+  const Mat & origin_1,
+  const Mat & origin_2,
   Mat & mask_1,    
   Mat & mask_2);
 

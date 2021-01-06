@@ -97,130 +97,92 @@ void getExpandMat(
 void getGradualMat(
   const Mat & image_1,
   const Mat & image_2,
-  const Mat & dst_1,
-  const Mat & dst_2,
+  const Mat & origin_1,
+  const Mat & origin_2,
   Mat & mask_1,    
   Mat & mask_2)
 {
   assert(mask_1.size() == mask_2.size());
 
   // 计算像素梯度
-  Mat dx, dy, gradient_1, gradient_2;
-  Sobel(image_1, dx, CV_8U, 1, 0);
-  Sobel(image_1, dy, CV_8U, 0, 1);
-  gradient_1 = dx + dy;
-  cvtColor(gradient_1, gradient_1, COLOR_RGBA2GRAY);
-  Sobel(image_2, dx, CV_8U, 1, 0);
-  Sobel(image_2, dy, CV_8U, 0, 1);
-  gradient_2 = dx + dy;
-  cvtColor(gradient_2, gradient_2, COLOR_RGBA2GRAY);
+  // Mat dx, dy, gradient_1, gradient_2;
+  // Sobel(image_1, dx, CV_8U, 1, 0);
+  // Sobel(image_1, dy, CV_8U, 0, 1);
+  // gradient_1 = dx + dy;
+  // cvtColor(gradient_1, gradient_1, COLOR_RGBA2GRAY);
+  // Sobel(image_2, dx, CV_8U, 1, 0);
+  // Sobel(image_2, dy, CV_8U, 0, 1);
+  // gradient_2 = dx + dy;
+  // cvtColor(gradient_2, gradient_2, COLOR_RGBA2GRAY);
 
   int rows = mask_1.rows;
   int cols = mask_1.cols;
   int steps[8][2] = {
-    {-1 ,-1}, {-1, 0}, {-1, 1}, 
-    {0, -1}, {0, 1},
-    {1, -1}, {1, 0}, {1, 1}
+    {-1, 0}, {1, 0}, {0, -1}, {0, 1},
+    {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
   };
   Mat visit;
   queue<pair<int, int> > q;
 
-  int inner = 1;
-  int outer = 10;
+  for (int k = 0; k < 2; k ++) {
+    Mat m1, m2;// mask
+    Mat o1, o2;// origin
+    Mat i1, i2;// image
+    if (k == 0) {
+      m1 = mask_1, m2 = mask_2;
+      o1 = origin_1, o2 = origin_2;
+      i1 = image_1, i2 = image_2;
+    } else {
+      m1 = mask_2, m2 = mask_1;
+      o1 = origin_2, o2 = origin_1;
+      i1 = image_2, i2 = image_1;
+    }
 
-  // BFS 1
-  for (int i = 0; i < rows; i ++) {
-    for (int j = 0; j < cols; j ++) {
-      if (mask_1.at<uchar>(i, j)) {
-        q.push(make_pair(i, j));
+    visit = Mat::zeros(rows, cols, CV_8UC1);
+    for (int i = 0; i < rows; i ++) {
+      for (int j = 0; j < cols; j ++) {
+        if (m1.at<uchar>(i, j)) {
+          q.push(make_pair(i, j));
+          visit.at<uchar>(i, j) = 255;
+        }
       }
     }
-  }
 
-  while (!q.empty()) {
-    pair<int, int> u = q.front();
-    q.pop();
-    int r = u.first;
-    int c = u.second;
-    int depth = mask_1.at<uchar>(r, c);
-    if (depth == 0) {
-      continue;
-    }
-    for (int i = 0; i < 8; i ++) {
-      int next_r = r + steps[i][0];
-      int next_c = c + steps[i][1];
-      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
-        // 未出界
-        if (dst_2.at<uchar>(next_r, next_c)) {
-          // 图像扩展部分
-          if (gradient_1.at<uchar>(next_r, next_c) < 5
-           && gradient_2.at<uchar>(next_r, next_c) < 5) {
-            int next_depth = max(depth - outer, 0);
-            if (mask_1.at<uchar>(next_r, next_c) < next_depth) {
-              q.push(make_pair(next_r, next_c));
-              mask_1.at<uchar>(next_r, next_c) = next_depth;
+    while (!q.empty()) {
+      pair<int, int> u = q.front();
+      q.pop();
+      int r = u.first;
+      int c = u.second;
+      int depth = m1.at<uchar>(r, c);
+      for (int i = 0; i < 4; i ++) {
+        int next_r = r + steps[i][0];
+        int next_c = c + steps[i][1];
+        if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+          // 未出界
+          if (o1.at<uchar>(next_r, next_c)
+          || o2.at<uchar>(next_r, next_c)) {// 图像原有/扩展部分
+            // 比对色差
+            Vec4b pix_1 = i1.at<Vec4b>(next_r, next_c);
+            Vec4b pix_2 = i2.at<Vec4b>(next_r, next_c);
+            int color_dis = (abs(pix_1[0] - pix_2[0]) + abs(pix_1[1] - pix_2[1]) + abs(pix_1[2] - pix_2[2])) / 3;
+            if (color_dis > 20) {
+              color_dis = depth;
             }
-          }
-        } else if (dst_1.at<uchar>(next_r, next_c)) {
-          // 图像原有部分
-          int next_depth = max(depth - inner, 0);
-          if (mask_1.at<uchar>(next_r, next_c) < next_depth) {
-            // 权值覆盖
-            q.push(make_pair(next_r, next_c));
-            mask_1.at<uchar>(next_r, next_c) = next_depth;
+
+            int next_depth = depth - color_dis;
+            if (next_depth <= 0) {
+              continue;
+            } else if (!visit.at<uchar>(next_r, next_c) && m1.at<uchar>(next_r, next_c) < next_depth) {
+              q.push(make_pair(next_r, next_c));
+              m1.at<uchar>(next_r, next_c) = next_depth;
+              visit.at<uchar>(next_r, next_c) = 255;
+            }
           }
         }
       }
     }
   }
 
-  // BFS 2
-  for (int i = 0; i < rows; i ++) {
-    for (int j = 0; j < cols; j ++) {
-      if (mask_2.at<uchar>(i, j)) {
-        q.push(make_pair(i, j));
-      }
-    }
-  }
-
-  while (!q.empty()) {
-    pair<int, int> u = q.front();
-    q.pop();
-    int r = u.first;
-    int c = u.second;
-    int depth = mask_2.at<uchar>(r, c);
-    if (depth == 0) {
-      continue;
-    }
-    for (int i = 0; i < 8; i ++) {
-      int next_r = r + steps[i][0];
-      int next_c = c + steps[i][1];
-      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
-        // 未出界
-        if (dst_1.at<uchar>(next_r, next_c)) {
-          // 图像扩展部分
-          if (gradient_2.at<uchar>(next_r, next_c) < 2
-           && gradient_1.at<uchar>(next_r, next_c) < 2) {
-            int next_depth = max(depth - outer, 0);
-            if (mask_2.at<uchar>(next_r, next_c) < next_depth) {
-              q.push(make_pair(next_r, next_c));
-              mask_2.at<uchar>(next_r, next_c) = next_depth;
-            }
-          }
-        } else if (dst_2.at<uchar>(next_r, next_c)) {
-          // 图像原有部分
-          int next_depth = max(depth - inner, 0);
-          if (mask_2.at<uchar>(next_r, next_c) < next_depth) {
-            // 权值覆盖
-            q.push(make_pair(next_r, next_c));
-            mask_2.at<uchar>(next_r, next_c) = next_depth;
-          }
-        }
-      }
-    }
-  }
-
-  show_img("g 2", gradient_2);
-  show_img("1", mask_1);
-  show_img("2", mask_2);
+  // show_img("1", image_1);
+  // show_img("2", image_2);
 }
