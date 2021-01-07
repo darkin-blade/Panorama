@@ -1,15 +1,23 @@
 #include "Similarity.h"
 
-double SSIM(
+Scalar SSIM(
   const Mat & src_image,
   const Mat & dst_image,
   const Mat & mask)
 {
   assert(src_image.size() == dst_image.size());
   assert(src_image.channels() == dst_image.channels());
-  Mat i1, i2;
-  src_image.copyTo(i1, mask);
-  dst_image.copyTo(i2, mask);
+
+  Mat tmp1, tmp2, i1, i2;
+  src_image.copyTo(tmp1, mask);
+  dst_image.copyTo(tmp2, mask);
+  cvtColor(tmp1, tmp1, COLOR_RGBA2GRAY);
+  cvtColor(tmp2, tmp2, COLOR_RGBA2GRAY);
+  blur(tmp1, tmp1, Size(3, 3));
+  blur(tmp2, tmp2, Size(3, 3));
+  int edgeThresh = 50;
+  Canny(tmp1, i1, edgeThresh, edgeThresh * 3, 3);
+  Canny(tmp2, i2, edgeThresh, edgeThresh * 3, 3);
 
   // http://www.opencv.org.cn/opencvdoc/2.3.2/html/doc/tutorials/gpu/gpu-basics-similarity/gpu-basics-similarity.html
   const double C1 = 6.5025, C2 = 58.5225;

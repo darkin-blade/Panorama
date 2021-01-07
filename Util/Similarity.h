@@ -3,7 +3,7 @@
 
 #include "../common.h"
 
-double SSIM(
+Scalar SSIM(
   const Mat & src_image,
   const Mat & dst_image,
   const Mat & mask);

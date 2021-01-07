@@ -252,9 +252,10 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  for (int i = 0; i <= 5; i ++) {
-    col_r.emplace_back(i * 0.2);
-    row_r.emplace_back(i * 0.2);
+  int mesh_size = 5;
+  for (int i = 0; i <= mesh_size; i ++) {
+    col_r.emplace_back((double)i / mesh_size);
+    row_r.emplace_back((double)i / mesh_size);
   }
   imgs[0]->initVertices(col_r, row_r);
 
@@ -452,6 +453,12 @@ void MultiImages::myWarping() {
     pano_masks.emplace_back(tmp_mask);
     tmp_mask.copyTo(origin_masks[i]);
   }
+
+  // 比对形变后图像的相似度
+  Mat intersect = pano_masks[0] & pano_masks[1];
+  Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
+  LOG("score:");
+  cout << ssim << endl;
 }
 
 /***
@@ -529,67 +536,6 @@ void MultiImages::warpImage2(
     vector<Point2f> _src_p, vector<Point2f> _dst_p,
     vector<vector<int> > _indices, // 四边形的线性索引
     Mat _src, Mat & _dst, Mat & _img_mask) {
-
-  assert(_src_p.size() == _dst_p.size());
-
-  Size2f dst_size = normalizeVertices(_dst_p);// 归一化形变后的网格点
-  Rect2f dst_rect = getVerticesRects(_dst_p);// 获取图片的最终矩形
-
-  /* 计算每个四边形的透视变换 */
-  const Point2f shift(0.5, 0.5);
-  Mat polygon_index_mask(dst_rect.height + shift.y, dst_rect.width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 记录每个像素点对应四边形的索引矩阵, 并填充初始值
-  vector<Mat> perspective_transform;
-  perspective_transform.reserve(_indices.size());// 四边形数目
-  
-  for (int i = 0; i < _indices.size(); i ++) {
-    const Point2i contour[] = {
-      _dst_p[_indices[i][0]],
-      _dst_p[_indices[i][1]],
-      _dst_p[_indices[i][2]],
-      _dst_p[_indices[i][3]],
-    };
-    // 往索引矩阵中填充索引值
-    fillConvexPoly(
-      polygon_index_mask, // 索引矩阵
-      contour,            // 四边形区域
-      4,                  // 四个角
-      i,
-      LINE_AA,
-      PRECISION);
-    // 计算四边形的透视变换
-    Point2f src[] = {
-      _dst_p[_indices[i][0]],
-      _dst_p[_indices[i][1]],
-      _dst_p[_indices[i][2]],
-      _dst_p[_indices[i][3]],
-    };
-    Point2f dst[] = {
-      _src_p[_indices[i][0]],
-      _src_p[_indices[i][1]],
-      _src_p[_indices[i][2]],
-      _src_p[_indices[i][3]],
-    };
-    // 按顺序保存(逆向的)透视变换
-    perspective_transform.emplace_back(getPerspectiveTransform(src, dst));
-  }
-
-  /* 计算目标图像 */
-  _dst = Mat::zeros(dst_rect.height + shift.y, dst_rect.width + shift.x, CV_8UC4);
-  _img_mask = Mat::zeros(_dst.size(), CV_8UC1);
-
-  for (int y = 0; y < _dst.rows; y ++) {
-    for (int x = 0; x < _dst.cols; x ++) {
-      int polygon_index = polygon_index_mask.at<int>(y, x);
-      if (polygon_index != NO_GRID) {
-        Point2f p_f = applyTransform3x3<float>(x, y, perspective_transform[polygon_index]);// 根据(逆向的)透视变换, 计算目标图像上每个像素对应的原图像坐标
-        if (p_f.x >= 0 && p_f.y >= 0 && p_f.x <= _src.cols && p_f.y <= _src.rows) {// 计算出来的坐标没有出界
-          Vec3b c = getSubpix<uchar, 3>(_src, p_f);
-          _dst.at<Vec4b>(y, x) = Vec4b(c[0], c[1], c[2], 255);// TODO 透明度通道
-          _img_mask.at<uchar>(y, x) = 255;
-        }
-      }
-    }
-  }
 }
 
 /***
@@ -837,8 +783,8 @@ void MultiImages::myBlending() {
   blend_weight_mask.resize(2);
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
-    show_img(pano_masks[i], "mask %d", i);
-    show_img(pano_images[i], "image %d", i);
+    // show_img(pano_masks[i], "mask %d", i);
+    // show_img(pano_images[i], "image %d", i);
     pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   
