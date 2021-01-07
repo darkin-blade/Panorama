@@ -408,6 +408,52 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
   LOG("vector(%lf, %lf)", vec_x, vec_y);
 }
 
+void MultiImages::myWarping() {
+  // 获得每个形变的图片, 图片的起点都是(0, 0)
+  vector<Mat> images_warped;
+  vector<Mat> masks_warped;
+
+  for (int i = 0; i < img_num; i ++) {
+    Mat warped_image;
+    Mat img_mask;
+    warpImage(
+      imgs[i]->vertices,
+      matching_pts[i],
+      imgs[i]->triangle_indices,
+      imgs[i]->data,
+      warped_image,
+      img_mask);
+    images_warped.emplace_back(warped_image);
+    masks_warped.emplace_back(img_mask);
+  }
+
+  // 对所有图像的网格点归一化(去除负值)
+  pano_size = normalizeVertices(matching_pts);
+
+  // 将每个图片/mask平移到最终位置
+  pano_images.clear();
+  pano_masks.clear();
+  origin_masks.clear();
+  origin_masks.resize(2);
+  for (int i = 0; i < img_num; i ++) {
+    Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
+    Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
+    Mat tmp_weight = Mat::zeros(pano_size, CV_32FC1);
+    // 计算目标矩阵
+    Rect2f rect = getVerticesRects(matching_pts[i]);
+    Mat dst_image = Mat(tmp_image, rect);
+    Mat dst_mask = Mat(tmp_mask, rect);
+    Mat dst_weight = Mat(tmp_weight, rect);
+
+    images_warped[i].copyTo(dst_image);
+    masks_warped[i].copyTo(dst_mask);
+
+    pano_images.emplace_back(tmp_image);
+    pano_masks.emplace_back(tmp_mask);
+    tmp_mask.copyTo(origin_masks[i]);
+  }
+}
+
 /***
   *
   * 图像形变:
@@ -767,48 +813,6 @@ void MultiImages::repairWarpping() {
   }
 }
 
-void MultiImages::textureMapping(int _mode) {
-  assert(0);
-  int MODE_CHOICE = 0;
-  if (_mode == 1) {
-    MODE_CHOICE = img_num;
-  }
-
-  // 获得每个形变的图片, 图片的起点都是(0, 0)
-  vector<Mat> images_warped;
-  for (int i = 0; i < img_num; i ++) {
-    Mat warped_image;
-    Mat weight_mask;
-    Mat img_mask;
-    warpImage(
-      imgs[i]->vertices,
-      matching_pts[i + MODE_CHOICE],
-      imgs[i]->triangle_indices,
-      imgs[i]->data,
-      warped_image,
-      img_mask);
-    images_warped.emplace_back(warped_image);
-  }
-
-  // 对所有图像的网格点归一化(去除负值)
-  pano_size = normalizeVertices(matching_pts);
-
-  // 记录每个图像最终的起点位置
-  vector<Point2f> img_origins;
-  for (int i = 0; i < img_num; i ++) {
-    Rect2f rect = getVerticesRects(matching_pts[i + MODE_CHOICE]);
-    img_origins.emplace_back(rect.x, rect.y);
-  }
-
-  bool ignore_weight_mask = true;// TODO
-  pano_result = Blending(
-    images_warped,
-    img_origins,
-    pano_size,
-    blend_weight_mask,
-    ignore_weight_mask);
-}
-
 void MultiImages::myBlending() {
   // pano_result = Mat::zeros(pano_size, CV_8UC4);
   // for (int i = 0; i < img_num; i ++) {
@@ -898,50 +902,6 @@ void MultiImages::getMask() {
 }
 
 void MultiImages::getSeam() {
-  // 获得每个形变的图片, 图片的起点都是(0, 0)
-  vector<Mat> images_warped;
-  vector<Mat> masks_warped;
-
-  for (int i = 0; i < img_num; i ++) {
-    Mat warped_image;
-    Mat img_mask;
-    warpImage(
-      imgs[i]->vertices,
-      matching_pts[i],
-      imgs[i]->triangle_indices,
-      imgs[i]->data,
-      warped_image,
-      img_mask);
-    images_warped.emplace_back(warped_image);
-    masks_warped.emplace_back(img_mask);
-  }
-
-  // 对所有图像的网格点归一化(去除负值)
-  pano_size = normalizeVertices(matching_pts);
-
-  // 将每个图片/mask平移到最终位置
-  pano_images.clear();
-  pano_masks.clear();
-  origin_masks.clear();
-  origin_masks.resize(2);
-  for (int i = 0; i < img_num; i ++) {
-    Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
-    Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
-    Mat tmp_weight = Mat::zeros(pano_size, CV_32FC1);
-    // 计算目标矩阵
-    Rect2f rect = getVerticesRects(matching_pts[i]);
-    Mat dst_image = Mat(tmp_image, rect);
-    Mat dst_mask = Mat(tmp_mask, rect);
-    Mat dst_weight = Mat(tmp_weight, rect);
-
-    images_warped[i].copyTo(dst_image);
-    masks_warped[i].copyTo(dst_mask);
-
-    pano_images.emplace_back(tmp_image);
-    pano_masks.emplace_back(tmp_mask);
-    tmp_mask.copyTo(origin_masks[i]);
-  }
-  
   // Ptr<SeamFinder> seam_finder;
   // seam_finder = makePtr<detail::VoronoiSeamFinder>();
   // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法

@@ -16,6 +16,7 @@ Mat My_Stitching::getMyResult() {
   // multi_images->textureMapping(0);
   // drawFeatureMatch();
 
+  multi_images->myWarping();
   multi_images->getSeam();
   
   // drawMatchingPts();

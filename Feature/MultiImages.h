@@ -107,6 +107,7 @@ public:
       vector<Point2f> _src_p, vector<Point2f> _dst_p,
       vector<vector<int> > _indices, // 三角形的线性索引
       Mat _src, Mat & _dst, Mat & _img_mask);
+  void myWarping();
 
   /* 
     特征点形变
@@ -122,7 +123,6 @@ public:
       vector<Point2f> _src_features, vector<Point2f> & _dst_features);
 
   /* 图像融合 */
-  void textureMapping(int _mode);// 0 for mdlt, 1: 纯粹的平移
   void myBlending();
 
   /* 寻找接缝线 */
