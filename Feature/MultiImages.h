@@ -8,6 +8,7 @@
 #include "../GraphCut/SeamFinder.h"
 #include "../Stitch/Homographies.h"
 #include "../Util/Blending.h"
+#include "../Util/Similarity.h"
 #include "../Util/Statistics.h"
 #include "../Util/Transform.h"
 
