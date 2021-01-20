@@ -454,11 +454,34 @@ void MultiImages::myWarping() {
     tmp_mask.copyTo(origin_masks[i]);
   }
 
-  // 比对形变后图像的相似度
-  Mat intersect = pano_masks[0] & pano_masks[1];
-  Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
-  LOG("score:");
-  cout << ssim << endl;
+  // 重叠区域模板匹配
+  // 遍历所有正方形区域
+  const vector<vector<int> > & indices = imgs[0]->rectangle_indices;
+  int rect_num = indices.size();
+  for (int i = 0; i < rect_num; i ++) {
+    // 计算顶点区域的mask
+    Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
+    const Point2i contour[] = {
+      matching_pts[0][indices[i][0]],
+      matching_pts[0][indices[i][1]],
+      matching_pts[0][indices[i][2]],
+      matching_pts[0][indices[i][3]],
+    };
+    // 往索引矩阵中填充索引值
+    fillConvexPoly(
+      mesh_mask, // 索引矩阵
+      contour,   // 四边形区域
+      4,         // 4个角
+      Scalar(255),
+      LINE_AA,
+      PRECISION);
+    // 计算与参考图片是否有交集
+    Mat intersect = mesh_mask & pano_masks[1];
+    if (countNonZero(intersect) > 0) {
+      // 计算重叠区域相似度
+      Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
+    }
+  }
 }
 
 /***
@@ -760,6 +783,7 @@ void MultiImages::repairWarpping() {
 }
 
 void MultiImages::myBlending() {
+  // 直接法
   // pano_result = Mat::zeros(pano_size, CV_8UC4);
   // for (int i = 0; i < img_num; i ++) {
   //   Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
@@ -768,6 +792,9 @@ void MultiImages::myBlending() {
 
   int pano_rows = pano_masks[0].rows;
   int pano_cols = pano_masks[0].cols;
+  for (int i = 0; i < img_num; i ++) {
+    // show_img(pano_masks[i], "mask %d", i);
+  }
 
   // 图像扩充
   getExpandMat(pano_images[0], pano_masks[0], pano_masks[1]);
@@ -783,8 +810,7 @@ void MultiImages::myBlending() {
   blend_weight_mask.resize(2);
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
-    // show_img(pano_masks[i], "mask %d", i);
-    // show_img(pano_images[i], "image %d", i);
+    show_img(pano_images[i], "image %d", i);
     pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   
