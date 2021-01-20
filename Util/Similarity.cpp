@@ -11,13 +11,14 @@ Scalar SSIM(
   Mat tmp1, tmp2, i1, i2;
   src_image.copyTo(tmp1, mask);
   dst_image.copyTo(tmp2, mask);
-  // show_img("1", tmp1);
-  // show_img("2", tmp2);
+  show_img("1", tmp1);
+  show_img("2", tmp2);
 
   cvtColor(tmp1, tmp1, COLOR_RGBA2GRAY);
   cvtColor(tmp2, tmp2, COLOR_RGBA2GRAY);
   blur(tmp1, tmp1, Size(3, 3));
   blur(tmp2, tmp2, Size(3, 3));
+
   int edgeThresh = 100;
   Canny(tmp1, i1, edgeThresh, edgeThresh * 3, 3);
   Canny(tmp2, i2, edgeThresh, edgeThresh * 3, 3);
