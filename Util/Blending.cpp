@@ -50,11 +50,13 @@ void getExpandMat(
   Mat & src_image,
   const Mat & dst_image,
   const Mat & src_mask,
-  const Mat & dst_mask
+  const Mat & dst_mask,
+  vector<Point2f> & seam_pts// 记录接缝线位置
 )
 {
   assert(src_image.channels() == 4);
   assert(dst_mask.size() == src_mask.size());
+  assert(seam_pts.empty());
 
   Mat expand = (Scalar(255) - src_mask) & dst_mask;
   int rows = dst_mask.rows;
@@ -81,6 +83,7 @@ void getExpandMat(
     int r = u.first;
     int c = u.second;
     Vec4b src_pix = src_image.at<Vec4b>(r, c);
+
     for (int i = 0; i < 4; i ++) {
       int next_r = r + steps[i][0];
       int next_c = c + steps[i][1];
@@ -88,9 +91,15 @@ void getExpandMat(
       if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
         // 未出界
         if (expand.at<uchar>(next_r, next_c)) {
-          uchar diff = abs(src_pix[0] - dst_pix[0]) + abs(src_pix[1] - dst_pix[1]) + abs(src_pix[2] - dst_pix[2]);
-          if (diff < 5000 && !visit.at<uchar>(next_r, next_c)) {
-            // 未访问的需要扩展的区域
+          // 记录接缝线位置
+          if (!expand.at<uchar>(r, c)) {
+            seam_pts.emplace_back(c, r);
+          }
+
+          // 需要扩展的区域
+          int diff = abs(src_pix[0] - dst_pix[0]) + abs(src_pix[1] - dst_pix[1]) + abs(src_pix[2] - dst_pix[2]);
+          if (diff < 100 && !visit.at<uchar>(next_r, next_c)) {
+            // 色差未超出阈值
             src_image.at<Vec4b>(next_r, next_c) = src_pix;
             q.push(make_pair(next_r, next_c));
             visit.at<uchar>(next_r, next_c) = 255;

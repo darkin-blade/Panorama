@@ -15,7 +15,8 @@ void getExpandMat(
   Mat & src_image,
   const Mat & dst_image,
   const Mat & src_mask,
-  const Mat & dst_mask);
+  const Mat & dst_mask,
+  vector<Point2f> & seam_pts);
 
 // 计算线型融合的mask
 void getGradualMat(

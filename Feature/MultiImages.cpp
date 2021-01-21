@@ -791,13 +791,12 @@ void MultiImages::myBlending() {
 
   int pano_rows = pano_masks[0].rows;
   int pano_cols = pano_masks[0].cols;
-  for (int i = 0; i < img_num; i ++) {
-    // show_img(pano_masks[i], "mask %d", i);
-  }
+  vector<vector<Point2f> > seam_pts(2);
 
   // 图像扩充
-  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1]);
-  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0]);
+  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1], seam_pts[0]);
+  drawPoints(pano_images[0], seam_pts[0]);
+  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0], seam_pts[1]);
   // 线性融合mask计算
   getGradualMat(
     pano_images[0], pano_images[1], 
