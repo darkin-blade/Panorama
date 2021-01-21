@@ -48,6 +48,7 @@ Mat Blending(const vector<Mat> & images,
 
 void getExpandMat(
   Mat & src_image,
+  const Mat & dst_image,
   const Mat & src_mask,
   const Mat & dst_mask
 )
@@ -79,16 +80,21 @@ void getExpandMat(
     q.pop();
     int r = u.first;
     int c = u.second;
-    Vec4b pix = src_image.at<Vec4b>(r, c);
+    Vec4b src_pix = src_image.at<Vec4b>(r, c);
     for (int i = 0; i < 4; i ++) {
       int next_r = r + steps[i][0];
       int next_c = c + steps[i][1];
+      Vec4b dst_pix = dst_image.at<Vec4b>(next_r, next_c);
       if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
         // 未出界
-        if (expand.at<uchar>(next_r, next_c) && !visit.at<uchar>(next_r, next_c)) {
-          q.push(make_pair(next_r, next_c));
-          src_image.at<Vec4b>(next_r, next_c) = pix;
-          visit.at<uchar>(next_r, next_c) = 255;
+        if (expand.at<uchar>(next_r, next_c)) {
+          uchar diff = abs(src_pix[0] - dst_pix[0]) + abs(src_pix[1] - dst_pix[1]) + abs(src_pix[2] - dst_pix[2]);
+          if (diff < 5000 && !visit.at<uchar>(next_r, next_c)) {
+            // 未访问的需要扩展的区域
+            src_image.at<Vec4b>(next_r, next_c) = src_pix;
+            q.push(make_pair(next_r, next_c));
+            visit.at<uchar>(next_r, next_c) = 255;
+          }
         }
       }
     }

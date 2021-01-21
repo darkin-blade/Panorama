@@ -13,6 +13,7 @@ Mat Blending(
 // 暴力图像扩展
 void getExpandMat(
   Mat & src_image,
+  const Mat & dst_image,
   const Mat & src_mask,
   const Mat & dst_mask);
 

@@ -252,7 +252,7 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  int mesh_size = 5;
+  int mesh_size = 10;
   for (int i = 0; i <= mesh_size; i ++) {
     col_r.emplace_back((double)i / mesh_size);
     row_r.emplace_back((double)i / mesh_size);
@@ -460,27 +460,26 @@ void MultiImages::myWarping() {
   int rect_num = indices.size();
   for (int i = 0; i < rect_num; i ++) {
     // 计算顶点区域的mask
-    Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
-    const Point2i contour[] = {
-      matching_pts[0][indices[i][0]],
-      matching_pts[0][indices[i][1]],
-      matching_pts[0][indices[i][2]],
-      matching_pts[0][indices[i][3]],
-    };
-    // 往索引矩阵中填充索引值
-    fillConvexPoly(
-      mesh_mask, // 索引矩阵
-      contour,   // 四边形区域
-      4,         // 4个角
-      Scalar(255),
-      LINE_AA,
-      PRECISION);
-    // 计算与参考图片是否有交集
-    Mat intersect = mesh_mask & pano_masks[1];
-    if (countNonZero(intersect) > 0) {
-      // 计算重叠区域相似度
-      Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
-    }
+    // Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
+    // const Point2i contour[] = {
+    //   matching_pts[0][indices[i][0]],
+    //   matching_pts[0][indices[i][1]],
+    //   matching_pts[0][indices[i][2]],
+    //   matching_pts[0][indices[i][3]],
+    // };
+    // // 往索引矩阵中填充索引值
+    // fillConvexPoly(
+    //   mesh_mask, // 索引矩阵
+    //   contour,   // 四边形区域
+    //   4,         // 4个角
+    //   Scalar(255),
+    //   LINE_AA,
+    //   PRECISION);
+    // Mat patch, match_result;
+    // pano_images[0].copyTo(patch, pano_masks[0]);
+    // cvtColor(patch, patch, COLOR_RGBA2RGB);
+    // matchTemplate(patch, imgs[0]->data, match_result, TM_CCOEFF_NORMED);
+    // // Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
   }
 }
 
@@ -797,8 +796,8 @@ void MultiImages::myBlending() {
   }
 
   // 图像扩充
-  getExpandMat(pano_images[0], pano_masks[0], pano_masks[1]);
-  getExpandMat(pano_images[1], pano_masks[1], pano_masks[0]);
+  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1]);
+  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0]);
   // 线性融合mask计算
   getGradualMat(
     pano_images[0], pano_images[1], 
