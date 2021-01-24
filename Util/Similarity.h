@@ -6,6 +6,7 @@
 Scalar SSIM(
   const Mat & src_image,
   const Mat & dst_image,
-  const Mat & mask);
+  const Mat & mask,
+  const int mode);
 
 #endif

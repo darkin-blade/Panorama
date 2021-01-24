@@ -829,6 +829,8 @@ void MultiImages::getSeam() {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
   }
 
+  myBlending();// 先进行图像融合
+
   // 计算接缝线位置
   vector<Point2f> seam_pts;
   getSeamPts(pano_masks[0], pano_masks[1], seam_pts);
@@ -836,7 +838,8 @@ void MultiImages::getSeam() {
   // 计算接缝线质量
   int seam_size = seam_pts.size();
   LOG("seam pts num %d", seam_size);
-  int step_num = 200;
+  double total_error = 0;
+  int step_num = 50;
   int step_len = seam_size / (step_num + 1);
   vector<Point2f> tmp_pts;
   for (int i = 0; i < step_num; i ++) {
@@ -859,9 +862,11 @@ void MultiImages::getSeam() {
       LINE_AA,
       PRECISION);
 
-    myBlending();// 先进行图像融合
-    Scalar ssim = SSIM(pano_result, pano_images[1], mesh_mask);
+    Scalar ssim = SSIM(pano_result, pano_images[1], mesh_mask, 1);
+    double seam_error = 3 - ssim[0] - ssim[1] - ssim[2];
+    total_error += seam_error;
   }
+  LOG("total error %lf", total_error);
 }
 
 /***

@@ -3,25 +3,38 @@
 Scalar SSIM(
   const Mat & src_image,
   const Mat & dst_image,
-  const Mat & mask)
+  const Mat & mask,
+  const int mode)
 {
   assert(src_image.size() == dst_image.size());
   assert(src_image.channels() == dst_image.channels());
 
-  Mat tmp1, tmp2, i1, i2;
-  src_image.copyTo(tmp1, mask);
-  dst_image.copyTo(tmp2, mask);
-  show_img("1", tmp1);
-  show_img("2", tmp2);
+  Mat  i1, i2;
+  // show_img("1", tmp1);
+  // show_img("2", tmp2);
 
-  cvtColor(tmp1, tmp1, COLOR_RGBA2GRAY);
-  cvtColor(tmp2, tmp2, COLOR_RGBA2GRAY);
-  blur(tmp1, tmp1, Size(3, 3));
-  blur(tmp2, tmp2, Size(3, 3));
+  if (mode == 1) {
+    // 原图
+    src_image.copyTo(i1, mask);
+    dst_image.copyTo(i2, mask);
+  } else if (mode == 2) {
+    // Canny
+    Mat tmp1, tmp2;
+    src_image.copyTo(tmp1, mask);
+    dst_image.copyTo(tmp2, mask);
 
-  int edgeThresh = 100;
-  Canny(tmp1, i1, edgeThresh, edgeThresh * 3, 3);
-  Canny(tmp2, i2, edgeThresh, edgeThresh * 3, 3);
+    cvtColor(tmp1, tmp1, COLOR_RGBA2GRAY);
+    cvtColor(tmp2, tmp2, COLOR_RGBA2GRAY);
+    blur(tmp1, tmp1, Size(3, 3));
+    blur(tmp2, tmp2, Size(3, 3));
+
+    int edgeThresh = 100;
+    Canny(tmp1, i1, edgeThresh, edgeThresh * 3, 3);
+    Canny(tmp2, i2, edgeThresh, edgeThresh * 3, 3);
+  } else {
+    assert(0);
+  }
+
 
   // http://www.opencv.org.cn/opencvdoc/2.3.2/html/doc/tutorials/gpu/gpu-basics-similarity/gpu-basics-similarity.html
   const double C1 = 6.5025, C2 = 58.5225;
