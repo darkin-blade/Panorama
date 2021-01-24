@@ -42,15 +42,14 @@ public:
 
   /* 原始数据 */
   int                      img_num;
-  vector<ImageData *>      imgs;
   vector<double>           img_rotations;// 拍摄时的旋转角度
   vector<pair<int, int> >  img_pairs;// 图片的配对信息
+  vector<ImageData *>      imgs;
 
   /* 特征匹配 */
-  // [m1][m2]<i, j>,第m1张图片的第i个特征点对应第m2张图片的第j个特征点(实际上[m1][m2]与[m2][m1]重复(相反))
-  vector<vector<vector<pair<int, int> > > > initial_pairs;// debug, RANSAC之前的特征点配对信息
-  vector<vector<vector<pair<int, int> > > > feature_pairs;// RANSAC之后的特征点配对信息
-  vector<vector<vector<Point2f> > >         feature_points;// [m1][m2]: m1与m2成功匹配(RANSAC)的特征点;
+  vector<pair<int, int> > initial_pairs;// debug, RANSAC之前的特征点配对信息
+  vector<pair<int, int> > feature_pairs;// RANSAC之后的特征点配对信息
+  vector<Point2f>         feature_points_1, feature_points_2;// RANSAC的特征点;
 
   /* 相似变换 */
   double    scale;
@@ -58,10 +57,12 @@ public:
   double    shift_x, shift_y;
   Point2f   shift_vec;// 在图片的原始尺寸和方向状态的坐标系, 图片中心从src到dst的平移向量
 
+  /* 网格变换 */
+  vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
+
   /* 图像融合 */
-  Size2f                      pano_size;
-  vector<vector<Point2f> >    matching_pts;// 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
-  vector<Mat>                 blend_weight_mask;
+  Size2f                  pano_size;
+  vector<Mat>             blend_weight_mask;
 
   /* 接缝线寻找 */
   vector<Mat>      pano_images;
@@ -76,7 +77,7 @@ public:
 
   /* 特征匹配 */
   void getFeaturePairs();
-  vector<pair<int, int> > getInitialFeaturePairs(const int m1, const int m2);
+  vector<pair<int, int> > getInitialFeaturePairs();
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(
       const vector<Point2f> & _X,
       const vector<Point2f> & _Y,

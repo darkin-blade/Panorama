@@ -6,7 +6,7 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 
 Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
-  
+
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   // multi_images->similarityTransform(1, 0.03);
@@ -43,10 +43,10 @@ void My_Stitching::drawFeatureMatch() {
 
     if (0) {
       // 匹配RANSAC之前的所有特征点
-      for (int i = 0; i < multi_images->initial_pairs[m1][m2].size(); i ++) {
+      for (int i = 0; i < multi_images->initial_pairs.size(); i ++) {
         // 计算索引
-        int src = multi_images->initial_pairs[m1][m2][i].first;
-        int dst = multi_images->initial_pairs[m1][m2][i].second;
+        int src = multi_images->initial_pairs[i].first;
+        int dst = multi_images->initial_pairs[i].second;
 
         // 获取特征点
         Point2f src_p, dst_p;
@@ -61,11 +61,11 @@ void My_Stitching::drawFeatureMatch() {
       }
     } else if (1) {
       // 匹配RANSAC之后的所有特征点
-      for (int i = 0; i < multi_images->feature_points[m1][m2].size(); i ++) {
+      for (int i = 0; i < multi_images->feature_points_1.size(); i ++) {
         // 获取特征点
         Point2f src_p, dst_p;
-        src_p = multi_images->feature_points[m1][m2][i];
-        dst_p = multi_images->feature_points[m2][m1][i] + Point2f(img1.cols, 0);
+        src_p = multi_images->feature_points_1[i];
+        dst_p = multi_images->feature_points_2[i] + Point2f(img1.cols, 0);
 
         // 描绘
         Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);

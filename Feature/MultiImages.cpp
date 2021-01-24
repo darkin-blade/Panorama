@@ -21,14 +21,14 @@ void MultiImages::readImg(const char *img_path) {
   *
   **/
 
-vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const int m2) {  
+vector<pair<int, int> > MultiImages::getInitialFeaturePairs() {  
   const int nearest_size = 2;
   const bool ratio_test = true;
 
-  int size_1 = imgs[m1]->feature_points.size();
-  int size_2 = imgs[m2]->feature_points.size();
+  int size_1 = imgs[0]->feature_points.size();
+  int size_2 = imgs[1]->feature_points.size();
   const int feature_size[2] = { size_1, size_2 };
-  const int pair_match[2] = { m1, m2 };
+  const int pair_match[2] = { 0, 1 };
 
   const int another_feature_size = feature_size[1];
   const int nearest_k = min(nearest_size, another_feature_size);// 只可能为0, 1, 2
@@ -80,11 +80,10 @@ vector<pair<int, int> > MultiImages::getInitialFeaturePairs(const int m1, const 
   initial_indices.reserve(feature_pairs_result.size());
   for (int i = 0; i < feature_pairs_result.size(); i ++) {
     if (feature_pairs_result[i].distance < OUTLIER_THRESHOLD) {// 如果没有超出范围
-      initial_indices.emplace_back(feature_pairs_result[i].feature_index[0],
-          feature_pairs_result[i].feature_index[1]);
+      initial_indices.emplace_back(feature_pairs_result[i].feature_index[0], feature_pairs_result[i].feature_index[1]);
     }
   }
-  LOG("%d %d initial pairs %ld", m1, m2, initial_indices.size());
+  LOG("initial pairs %ld", initial_indices.size());
   return initial_indices;
 }
 
@@ -153,17 +152,13 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
 void MultiImages::getFeaturePairs() {
   // 获取feature points下标的配对信息
   // 初始化vector大小
-  initial_pairs.resize(img_num);
-  feature_pairs.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    initial_pairs[i].resize(img_num);
-    feature_pairs[i].resize(img_num);
-  }
+  initial_pairs.clear();
+  feature_pairs.clear();
 
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
-    vector<pair<int, int> > initial_indices = getInitialFeaturePairs(m1, m2);
+    vector<pair<int, int> > initial_indices = getInitialFeaturePairs();
 
     // 将所有成功配对的特征点进行筛选
     const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
@@ -176,17 +171,10 @@ void MultiImages::getFeaturePairs() {
       X.emplace_back(m1_fpts[it.first ]);
       Y.emplace_back(m2_fpts[it.second]);
     }
-    initial_pairs[m1][m2] = initial_indices;
-    feature_pairs[m1][m2] = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
+    initial_pairs = initial_indices;
+    feature_pairs = getFeaturePairsBySequentialRANSAC(X, Y, initial_indices);
 
-    LOG("%d %d has feature pairs %ld", m1, m2, feature_pairs[m1][m2].size());
-
-    // TODO 记录反向的pairs
-    for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
-      feature_pairs[m2][m1].emplace_back(make_pair(feature_pairs[m1][m2][k].second, feature_pairs[m1][m2][k].first));
-    }
-
-    assert(feature_pairs[m1][m2].empty() == false);
+    LOG("feature pairs %ld", feature_pairs.size());
   }
 }
 
@@ -223,27 +211,20 @@ void MultiImages::getFeatureInfo() {
   getFeaturePairs();
 
   // 筛选所有图片的成功匹配的特征点
-  feature_points.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    feature_points[i].resize(img_num);
-  }
   for (int i = 0; i < img_pairs.size(); i ++) {
-    int m1 = img_pairs[i].first;
-    int m2 = img_pairs[i].second;
-    assert(m2 > m1);
-
-    const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
-    const vector<Point2f> & m2_fpts = imgs[m2]->feature_points;
-    for (int k = 0; k < feature_pairs[m1][m2].size(); k ++) {
-      const pair<int, int> it = feature_pairs[m1][m2][k];
-      feature_points[m1][m2].emplace_back(m1_fpts[it.first ]);
-      feature_points[m2][m1].emplace_back(m2_fpts[it.second]);
+    const vector<Point2f> & m1_fpts = imgs[0]->feature_points;
+    const vector<Point2f> & m2_fpts = imgs[1]->feature_points;
+    for (int k = 0; k < feature_pairs.size(); k ++) {
+      const pair<int, int> it = feature_pairs[k];
+      feature_points_1.emplace_back(m1_fpts[it.first ]);
+      feature_points_2.emplace_back(m2_fpts[it.second]);
     }
   }
 }
 
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
+  matching_pts.clear();
   vector<double> col_r, row_r;
 
   // double base = 0;
@@ -268,11 +249,10 @@ void MultiImages::getMeshInfo() {
   imgs[1]->initVertices(col_r, row_r);
   
   // 计算网格形变
-  assert(matching_pts.empty());
   matching_pts.resize(img_num * 2);
   Homographies::compute(
-    feature_points[0][1],
-    feature_points[1][0],
+    feature_points_1,
+    feature_points_2,
     imgs[0]->vertices,
     matching_pts[0],
     imgs[0]->homographies
@@ -282,7 +262,7 @@ void MultiImages::getMeshInfo() {
 
 void MultiImages::similarityTransform(int _mode, double _angle) {
   // _angle必须是弧度
-  int equations = feature_points[0][1].size();
+  int equations = feature_points_1.size();
   // 式子是特征点数目的两倍
 
   if (_mode == 0) {
@@ -293,10 +273,10 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     for (int i = 0; i < equations; i ++) {
       // x + 0 = x2 - (x1 cos - y1 sin)
       // 0 + y = y2 - (x1 sin + y1 cos)
-      double x1 = feature_points[0][1][i].x;
-      double y1 = feature_points[0][1][i].y;
-      double x2 = feature_points[1][0][i].x;
-      double y2 = feature_points[1][0][i].y;
+      double x1 = feature_points_1[i].x;
+      double y1 = feature_points_1[i].y;
+      double x2 = feature_points_2[i].x;
+      double y2 = feature_points_2[i].y;
       A(i*2 + 0, 0) = 1;
       b(i*2 + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
       A(i*2 + 1, 1) = 1;
@@ -317,10 +297,10 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     for (int i = 0; i < equations; i ++) {
       // (x1 cos - y1 sin) * s + x + 0 = x2
       // (x1 sin + y1 cos) * s + 0 + y = y2
-      double x1 = feature_points[0][1][i].x;
-      double y1 = feature_points[0][1][i].y;
-      double x2 = feature_points[1][0][i].x;
-      double y2 = feature_points[1][0][i].y;
+      double x1 = feature_points_1[i].x;
+      double y1 = feature_points_1[i].y;
+      double x2 = feature_points_2[i].x;
+      double y2 = feature_points_2[i].y;
       A(i*2 + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
       A(i*2 + 0, 1) = 1;
       b(i*2 + 0)    = x2;
@@ -359,14 +339,14 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     for (int i = 0; i < equations; i ++) {
       // x1 p - y1 q + x + 0 = x2
       // y1 p + x1 q + 0 + y = y2
-      A(i*2 + 0, 0) = feature_points[0][1][i].x;
-      A(i*2 + 0, 1) = -feature_points[0][1][i].y;
+      A(i*2 + 0, 0) = feature_points_1[i].x;
+      A(i*2 + 0, 1) = -feature_points_1[i].y;
       A(i*2 + 0, 2) = 1;
-      b(i*2 + 0)    = feature_points[1][0][i].x;
-      A(i*2 + 1, 0) = feature_points[0][1][i].y;
-      A(i*2 + 1, 1) = feature_points[0][1][i].x;
+      b(i*2 + 0)    = feature_points_2[i].x;
+      A(i*2 + 1, 0) = feature_points_1[i].y;
+      A(i*2 + 1, 1) = feature_points_1[i].x;
       A(i*2 + 1, 3) = 1;
-      b(i*2 + 1)    = feature_points[1][0][i].y;
+      b(i*2 + 1)    = feature_points_2[i].y;
     }
     VectorXd solution = A.colPivHouseholderQr().solve(b);
     double p = solution(0);
@@ -410,31 +390,30 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
 }
 
 void MultiImages::myWarping() {
+  pano_images.clear();
+  pano_masks.clear();
+  origin_masks.clear();
+  
   // 获得每个形变的图片, 图片的起点都是(0, 0)
   vector<Mat> images_warped;
   vector<Mat> masks_warped;
 
-  for (int i = 0; i < img_num; i ++) {
-    Mat warped_image;
-    Mat img_mask;
-    warpImage(
-      imgs[i]->vertices,
-      matching_pts[i],
-      imgs[i]->triangle_indices,
-      imgs[i]->data,
-      warped_image,
-      img_mask);
-    images_warped.emplace_back(warped_image);
-    masks_warped.emplace_back(img_mask);
-  }
+  Mat warped_image;
+  Mat img_mask;
+  warpImage(
+    imgs[0]->vertices,
+    matching_pts[0],
+    imgs[0]->triangle_indices,
+    imgs[0]->data,
+    warped_image,
+    img_mask);
+  images_warped.emplace_back(warped_image);
+  masks_warped.emplace_back(img_mask);
 
   // 对所有图像的网格点归一化(去除负值)
   pano_size = normalizeVertices(matching_pts);
 
   // 将每个图片/mask平移到最终位置
-  pano_images.clear();
-  pano_masks.clear();
-  origin_masks.clear();
   origin_masks.resize(2);
   for (int i = 0; i < img_num; i ++) {
     Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
@@ -446,8 +425,14 @@ void MultiImages::myWarping() {
     Mat dst_mask = Mat(tmp_mask, rect);
     Mat dst_weight = Mat(tmp_weight, rect);
 
-    images_warped[i].copyTo(dst_image);
-    masks_warped[i].copyTo(dst_mask);
+    if (i == 0) {
+      images_warped[i].copyTo(dst_image);
+      masks_warped[i].copyTo(dst_mask);
+    } else {
+      // 参考图片
+      imgs[i]->data.copyTo(dst_image);
+      imgs[i]->mask.copyTo(dst_mask);
+    }
 
     pano_images.emplace_back(tmp_image);
     pano_masks.emplace_back(tmp_mask);
@@ -761,50 +746,6 @@ void MultiImages::repairWarpping() {
  *
  **/
 
-void MultiImages::getMask() {
-  // 计算形变之后特征点的位置
-  assert(img_num == 2);
-  vector<vector<Point2f> > pano_feature_points(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    warpPoints(
-      imgs[i]->vertices,
-      matching_pts[i],
-      imgs[i]->triangle_indices,
-      feature_points[i][1 - i],
-      pano_feature_points[i]);
-    // 描绘最终特征点
-    drawPoints(pano_images[i], pano_feature_points[i]);
-  }
-
-  // 1 计算两个pano mask的交集
-  Mat common_mask = pano_masks[0] & pano_masks[1];
-  vector<Mat> masks(2);
-  masks[0] = pano_masks[0] ^ common_mask;
-  masks[1] = pano_masks[1] ^ common_mask;
-
-  // 2 连接每个特征点最近的一个特征点
-  int points_num = pano_feature_points[0].size();
-  for (int i = 0; i < points_num; i ++) {
-    int nearst = i;
-    double min_dis = 9999999;
-    for (int j = 0; j < i; j ++) {
-      Point2f d = pano_feature_points[0][i] - pano_feature_points[0][j];
-      double dis = d.x * d.x + d.y * d.y;
-      if (dis < min_dis) {
-        nearst = j;
-        min_dis = dis;
-      }
-    }
-    circle(masks[0], pano_feature_points[0][i], 50, Scalar(255), -1);
-    circle(masks[1], pano_feature_points[1][i], 50, Scalar(255), -1);
-    line(masks[0], pano_feature_points[0][i], pano_feature_points[0][nearst], Scalar(255), 10, LINE_AA);
-    line(masks[1], pano_feature_points[1][i], pano_feature_points[1][nearst], Scalar(255), 10, LINE_AA);
-    
-    circle(common_mask, pano_feature_points[0][i], 50, Scalar(0), -1);
-    circle(common_mask, pano_feature_points[1][i], 50, Scalar(0), -1);
-  }
-}
-
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
@@ -892,7 +833,7 @@ void MultiImages::myBlending() {
   blend_weight_mask.resize(2);
   for (int i = 0; i < img_num; i ++) {
     img_origins.emplace_back(0, 0);
-    // show_img(pano_images[i], "image %d", i);
+    show_img(pano_images[i], "image %d", i);
     pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   

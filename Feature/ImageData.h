@@ -10,6 +10,7 @@ public:
   char *name;
   Mat data;// 原始数据
   Mat grey_data;// 灰度数据
+  Mat mask;// 中间数据 TODO
 
   /* 特征 */
   vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
@@ -25,6 +26,7 @@ public:
   vector<Mat>          homographies;
 
   void readImg(const char *img_path);
+  void readImg(const Mat & _img, const Mat & _mask);// 直接由mat初始化
   void initVertices(vector<double> _col, vector<double> _row);
 };
 
