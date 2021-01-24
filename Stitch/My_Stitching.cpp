@@ -6,7 +6,7 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 
 Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
-
+  
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   // multi_images->similarityTransform(1, 0.03);
@@ -93,7 +93,9 @@ void My_Stitching::drawFeatureMatch() {
 void My_Stitching::drawMatchingPts() {
   int m1 = 0;
   int m2 = 1;
-  Mat result = multi_images->pano_images[m1];
+  // Mat result = multi_images->pano_images[m1];
+  Mat result = Mat::zeros(multi_images->pano_size, CV_8UC3);
+  LOG("total size %ld %ld", multi_images->pano_size.width, multi_images->pano_size.height);
 
   // 描绘所有匹配点
   for (int i = 0; i < multi_images->imgs[m1]->vertices.size(); i ++) {
