@@ -6,7 +6,7 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 
 Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
-  assert(img_num == 2);
+
   multi_images->getFeatureInfo();
   multi_images->getMeshInfo();
   // multi_images->similarityTransform(1, 0.03);
