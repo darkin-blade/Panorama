@@ -71,6 +71,6 @@ Scalar SSIM(
   meanStdDev(ssim_map, mean_ssim, std_ssim, mask);
   LOG("score:");
   cout << mean_ssim << endl;
-  cout << std_ssim << endl;
+  // cout << std_ssim << endl;
   return mean_ssim;
 }

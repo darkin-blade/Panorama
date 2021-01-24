@@ -46,17 +46,76 @@ Mat Blending(const vector<Mat> & images,
   return result;
 }
 
-void getExpandMat(
-  Mat & src_image,
-  const Mat & dst_image,
+void getSeamPts(
   const Mat & src_mask,
   const Mat & dst_mask,
   vector<Point2f> & seam_pts// 记录接缝线位置
 )
 {
-  assert(src_image.channels() == 4);
   assert(dst_mask.size() == src_mask.size());
   assert(seam_pts.empty());
+
+  Mat expand = (Scalar(255) - src_mask) & dst_mask;
+  int rows = dst_mask.rows;
+  int cols = dst_mask.cols;
+  int steps[4][2] = {
+    {-1, 0}, {0, -1}, {1, 0}, {0, 1}
+  };
+  Mat visit = Mat::zeros(rows, cols, CV_8UC1);
+
+  // BFS
+  queue<pair<int, int> > q;
+  for (int i = 0; i < rows; i ++) {
+    for (int j = 0; j < cols; j ++) {
+      if (src_mask.at<uchar>(i, j)) {
+        q.push(make_pair(i, j));
+      }
+    }
+  }
+
+  // 使用单一颜色填充带扩展区域
+  while (!q.empty()) {
+    pair<int, int> u = q.front();
+    q.pop();
+    int r = u.first;
+    int c = u.second;
+    int is_border = false;
+
+    for (int i = 0; i < 4; i ++) {
+      int next_r = r + steps[i][0];
+      int next_c = c + steps[i][1];
+      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+        // 未出界
+        if (expand.at<uchar>(next_r, next_c)) {
+          // 记录接缝线位置
+          if (!expand.at<uchar>(r, c)) {
+            is_border = true;
+          }
+
+          // 需要扩展的区域
+          if (!visit.at<uchar>(next_r, next_c)) {
+            q.push(make_pair(next_r, next_c));
+            visit.at<uchar>(next_r, next_c) = 255;
+          }
+        }
+      }
+    }
+
+    if (is_border) {
+      seam_pts.emplace_back(c, r);
+    }
+  }
+}
+
+void getExpandMat(
+  Mat & src_image,
+  const Mat & dst_image,
+  const Mat & src_mask,
+  const Mat & dst_mask
+)
+{
+  assert(src_image.channels() == 4);
+  assert(dst_mask.size() == src_mask.size());
 
   Mat expand = (Scalar(255) - src_mask) & dst_mask;
   int rows = dst_mask.rows;
@@ -91,11 +150,6 @@ void getExpandMat(
       if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
         // 未出界
         if (expand.at<uchar>(next_r, next_c)) {
-          // 记录接缝线位置
-          if (!expand.at<uchar>(r, c)) {
-            seam_pts.emplace_back(c, r);
-          }
-
           // 需要扩展的区域
           int diff = abs(src_pix[0] - dst_pix[0]) + abs(src_pix[1] - dst_pix[1]) + abs(src_pix[2] - dst_pix[2]);
           if (diff < 100 && !visit.at<uchar>(next_r, next_c)) {
@@ -108,12 +162,6 @@ void getExpandMat(
       }
     }
   }
-
-  // 羽化扩充区域
-  // Mat blured;
-  // src_image.copyTo(blured);
-  // blur(blured, blured, Size(9, 9));
-  // blured.copyTo(src_image, dst_mask);
 }
 
 void getGradualMat(

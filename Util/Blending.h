@@ -10,13 +10,19 @@ Mat Blending(
   const vector<Mat> & weight_mask,
   const bool ignore_weight_mask = true);
 
+
+// 记录接缝线位置
+void getSeamPts(
+  const Mat & src_mask,
+  const Mat & dst_mask,
+  vector<Point2f> & seam_pts);
+
 // 暴力图像扩展
 void getExpandMat(
   Mat & src_image,
   const Mat & dst_image,
   const Mat & src_mask,
-  const Mat & dst_mask,
-  vector<Point2f> & seam_pts);
+  const Mat & dst_mask);
 
 // 计算线型融合的mask
 void getGradualMat(

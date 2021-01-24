@@ -459,27 +459,7 @@ void MultiImages::myWarping() {
   const vector<vector<int> > & indices = imgs[0]->rectangle_indices;
   int rect_num = indices.size();
   for (int i = 0; i < rect_num; i ++) {
-    // 计算顶点区域的mask
-    // Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
-    // const Point2i contour[] = {
-    //   matching_pts[0][indices[i][0]],
-    //   matching_pts[0][indices[i][1]],
-    //   matching_pts[0][indices[i][2]],
-    //   matching_pts[0][indices[i][3]],
-    // };
-    // // 往索引矩阵中填充索引值
-    // fillConvexPoly(
-    //   mesh_mask, // 索引矩阵
-    //   contour,   // 四边形区域
-    //   4,         // 4个角
-    //   Scalar(255),
-    //   LINE_AA,
-    //   PRECISION);
-    // Mat patch, match_result;
-    // pano_images[0].copyTo(patch, pano_masks[0]);
-    // cvtColor(patch, patch, COLOR_RGBA2RGB);
-    // matchTemplate(patch, imgs[0]->data, match_result, TM_CCOEFF_NORMED);
-    // // Scalar ssim = SSIM(pano_images[0], pano_images[1], intersect);
+    // TODO
   }
 }
 
@@ -622,12 +602,6 @@ void MultiImages::warpPoints(
     _dst_features.emplace_back(p_f);
   }
 }
-
-/***
-  *
-  * 图像融合
-  *
-  **/
 
 void MultiImages::repairWarpping() {
   /*
@@ -781,46 +755,6 @@ void MultiImages::repairWarpping() {
   }
 }
 
-void MultiImages::myBlending() {
-  // 直接法
-  // pano_result = Mat::zeros(pano_size, CV_8UC4);
-  // for (int i = 0; i < img_num; i ++) {
-  //   Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
-  //   pano_images[i].copyTo(dst_image, pano_masks[i]);
-  // }
-
-  int pano_rows = pano_masks[0].rows;
-  int pano_cols = pano_masks[0].cols;
-  vector<vector<Point2f> > seam_pts(2);
-
-  // 图像扩充
-  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1], seam_pts[0]);
-  drawPoints(pano_images[0], seam_pts[0]);
-  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0], seam_pts[1]);
-  // 线性融合mask计算
-  getGradualMat(
-    pano_images[0], pano_images[1], 
-    origin_masks[0], origin_masks[1], 
-    pano_masks[0], pano_masks[1]);
-
-  vector<Point2f> img_origins;
-  blend_weight_mask.clear();
-  blend_weight_mask.resize(2);
-  for (int i = 0; i < img_num; i ++) {
-    img_origins.emplace_back(0, 0);
-    show_img(pano_images[i], "image %d", i);
-    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
-  }
-  
-  bool ignore_weight_mask = false;
-  pano_result = Blending(
-    pano_images,
-    img_origins,
-    pano_size,
-    blend_weight_mask,
-    ignore_weight_mask);
-}
-
 /***
  *
  * 寻找接缝线
@@ -872,10 +806,6 @@ void MultiImages::getMask() {
 }
 
 void MultiImages::getSeam() {
-  // Ptr<SeamFinder> seam_finder;
-  // seam_finder = makePtr<detail::VoronoiSeamFinder>();
-  // seam_finder = makePtr<detail::DpSeamFinder>(DpSeamFinder::COLOR);// 动态规划法
-  // seam_finder = makePtr<detail::GraphCutSeamFinder>(GraphCutSeamFinderBase::COST_COLOR_GRAD);// 图割法
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
   // 图像类型转换
@@ -899,7 +829,84 @@ void MultiImages::getSeam() {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
   }
 
-  myBlending();
+  // 计算接缝线位置
+  vector<Point2f> seam_pts;
+  getSeamPts(pano_masks[0], pano_masks[1], seam_pts);
+
+  // 计算接缝线质量
+  int seam_size = seam_pts.size();
+  LOG("seam pts num %d", seam_size);
+  int step_num = 200;
+  int step_len = seam_size / (step_num + 1);
+  vector<Point2f> tmp_pts;
+  for (int i = 0; i < step_num; i ++) {
+    // 在接缝线上选择合适的点
+    Point2f patch_center = seam_pts[(i + 1) * step_len];
+    // 计算点对应patch的mask
+    const Point2i contour[] = {
+      seam_pts[(i + 1) * step_len] + Point2f(-10, -10),
+      seam_pts[(i + 1) * step_len] + Point2f(-10, +10),
+      seam_pts[(i + 1) * step_len] + Point2f(+10, +10),
+      seam_pts[(i + 1) * step_len] + Point2f(+10, -10),
+    };
+    // 计算与两幅图片的相似度
+    Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
+    fillConvexPoly(
+      mesh_mask, // 索引矩阵
+      contour,   // 四边形区域
+      4,         // 4个角
+      Scalar(255),
+      LINE_AA,
+      PRECISION);
+
+    myBlending();// 先进行图像融合
+    Scalar ssim = SSIM(pano_result, pano_images[1], mesh_mask);
+  }
+}
+
+/***
+  *
+  * 图像融合
+  *
+  **/
+
+void MultiImages::myBlending() {
+  // 直接法
+  // pano_result = Mat::zeros(pano_size, CV_8UC4);
+  // for (int i = 0; i < img_num; i ++) {
+  //   Mat dst_image = Mat(pano_result, Rect(0, 0, pano_images[i].cols, pano_images[i].rows));
+  //   pano_images[i].copyTo(dst_image, pano_masks[i]);
+  // }
+
+  int pano_rows = pano_masks[0].rows;
+  int pano_cols = pano_masks[0].cols;
+
+  // 图像扩充
+  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1]);
+  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0]);
+
+  // 线性融合mask计算
+  getGradualMat(
+    pano_images[0], pano_images[1], 
+    origin_masks[0], origin_masks[1], 
+    pano_masks[0], pano_masks[1]);
+
+  vector<Point2f> img_origins;
+  blend_weight_mask.clear();
+  blend_weight_mask.resize(2);
+  for (int i = 0; i < img_num; i ++) {
+    img_origins.emplace_back(0, 0);
+    // show_img(pano_images[i], "image %d", i);
+    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
+  }
+  
+  bool ignore_weight_mask = false;
+  pano_result = Blending(
+    pano_images,
+    img_origins,
+    pano_size,
+    blend_weight_mask,
+    ignore_weight_mask);
 }
 
 /***
@@ -913,7 +920,7 @@ void MultiImages::drawPoints(Mat _img, vector<Point2f> _points) {
   for (int i = 0; i < _points.size(); i ++) {
     Point2f p = _points[i];
     Scalar color1(255, 0, 255, 255);
-    circle(result, p, CIRCLE_SIZE, color1, -1);
+    circle(result, p, 1, color1, -1);// circle_size = 1
   }
   show_img("result", result);
 }
