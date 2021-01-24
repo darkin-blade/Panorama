@@ -61,48 +61,23 @@ void getSeamPts(
   int steps[4][2] = {
     {-1, 0}, {0, -1}, {1, 0}, {0, 1}
   };
-  Mat visit = Mat::zeros(rows, cols, CV_8UC1);
 
-  // BFS
-  queue<pair<int, int> > q;
-  for (int i = 0; i < rows; i ++) {
-    for (int j = 0; j < cols; j ++) {
-      if (src_mask.at<uchar>(i, j)) {
-        q.push(make_pair(i, j));
-      }
-    }
-  }
-
-  // 使用单一颜色填充带扩展区域
-  while (!q.empty()) {
-    pair<int, int> u = q.front();
-    q.pop();
-    int r = u.first;
-    int c = u.second;
-    int is_border = false;
-
-    for (int i = 0; i < 4; i ++) {
-      int next_r = r + steps[i][0];
-      int next_c = c + steps[i][1];
-      if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
-        // 未出界
-        if (expand.at<uchar>(next_r, next_c)) {
-          // 记录接缝线位置
-          if (!expand.at<uchar>(r, c)) {
-            is_border = true;
-          }
-
-          // 需要扩展的区域
-          if (!visit.at<uchar>(next_r, next_c)) {
-            q.push(make_pair(next_r, next_c));
-            visit.at<uchar>(next_r, next_c) = 255;
+  for (int r = 0; r < rows; r ++) {
+    for (int c = 0; c < cols; c ++) {
+      if (src_mask.at<uchar>(r, c)) {
+        for (int i = 0; i < 4; i ++) {
+          int next_r = r + steps[i][0];
+          int next_c = c + steps[i][1];
+          if (next_r >= 0 && next_c >= 0 && next_r < rows && next_c < cols) {
+            // 未出界
+            if (expand.at<uchar>(next_r, next_c)) {
+              // 待扩充区域
+              seam_pts.emplace_back(c, r);
+              break;
+            }
           }
         }
       }
-    }
-
-    if (is_border) {
-      seam_pts.emplace_back(c, r);
     }
   }
 }

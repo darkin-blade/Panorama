@@ -829,44 +829,34 @@ void MultiImages::getSeam() {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
   }
 
-  myBlending();// 先进行图像融合
-
   // 计算接缝线位置
   vector<Point2f> seam_pts;
   getSeamPts(pano_masks[0], pano_masks[1], seam_pts);
+
+  myBlending();// 先进行图像融合
 
   // 计算接缝线质量
   int seam_size = seam_pts.size();
   LOG("seam pts num %d", seam_size);
   double total_error = 0;
-  int step_num = 50;
-  int step_len = seam_size / (step_num + 1);
   vector<Point2f> tmp_pts;
-  for (int i = 0; i < step_num; i ++) {
+  for (int i = 0; i < seam_size; i ++) {
     // 在接缝线上选择合适的点
-    Point2f patch_center = seam_pts[(i + 1) * step_len];
-    // 计算点对应patch的mask
-    const Point2i contour[] = {
-      seam_pts[(i + 1) * step_len] + Point2f(-10, -10),
-      seam_pts[(i + 1) * step_len] + Point2f(-10, +10),
-      seam_pts[(i + 1) * step_len] + Point2f(+10, +10),
-      seam_pts[(i + 1) * step_len] + Point2f(+10, -10),
-    };
-    // 计算与两幅图片的相似度
-    Mat mesh_mask = Mat::zeros(pano_size, CV_8UC1);
-    fillConvexPoly(
-      mesh_mask, // 索引矩阵
-      contour,   // 四边形区域
-      4,         // 4个角
-      Scalar(255),
-      LINE_AA,
-      PRECISION);
+    Point2f patch_center = seam_pts[i];
+    Rect seam_rect(patch_center + Point2f(-8, -8), patch_center + Point2f(+8, +8));
 
-    Scalar ssim = SSIM(pano_result, pano_images[1], mesh_mask, 1);
-    double seam_error = 3 - ssim[0] - ssim[1] - ssim[2];
+    Mat result_patch = pano_result(seam_rect);
+    Mat patch_1 = pano_images[0](seam_rect);
+    Mat patch_2 = pano_images[1](seam_rect);
+    Mat ssam_mask = Mat(patch_1.size(), CV_8UC1, Scalar(255));
+
+    // 计算与两幅图片的相似度
+    Scalar ssim_1 = SSIM(result_patch, patch_1, ssam_mask, 1);
+    Scalar ssim_2 = SSIM(result_patch, patch_2, ssam_mask, 1);
+    double seam_error = max(ssim_1[0], ssim_2[0]);
     total_error += seam_error;
   }
-  LOG("total error %lf", total_error);
+  LOG("total error %lf", total_error / seam_size);
 }
 
 /***

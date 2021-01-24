@@ -9,20 +9,18 @@ Scalar SSIM(
   assert(src_image.size() == dst_image.size());
   assert(src_image.channels() == dst_image.channels());
 
-  Mat  i1, i2;
+  Mat tmp1, tmp2, i1, i2;
+  src_image.copyTo(tmp1, mask);
+  dst_image.copyTo(tmp2, mask);
   // show_img("1", tmp1);
   // show_img("2", tmp2);
 
   if (mode == 1) {
     // 原图
-    src_image.copyTo(i1, mask);
-    dst_image.copyTo(i2, mask);
+    cvtColor(tmp1, i1, COLOR_RGBA2GRAY);
+    cvtColor(tmp2, i2, COLOR_RGBA2GRAY); 
   } else if (mode == 2) {
     // Canny
-    Mat tmp1, tmp2;
-    src_image.copyTo(tmp1, mask);
-    dst_image.copyTo(tmp2, mask);
-
     cvtColor(tmp1, tmp1, COLOR_RGBA2GRAY);
     cvtColor(tmp2, tmp2, COLOR_RGBA2GRAY);
     blur(tmp1, tmp1, Size(3, 3));
@@ -82,8 +80,8 @@ Scalar SSIM(
 
   Scalar mean_ssim, std_ssim;
   meanStdDev(ssim_map, mean_ssim, std_ssim, mask);
-  LOG("score:");
-  cout << mean_ssim << endl;
+  // LOG("score:");
+  // cout << mean_ssim << endl;
   // cout << std_ssim << endl;
   return mean_ssim;
 }
