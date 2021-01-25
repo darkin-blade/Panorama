@@ -42,6 +42,7 @@ public:
 
   /* 原始数据 */
   int                      img_num;
+  vector<Mat>              origin_data;// 未进行缩放的图像数据
   vector<double>           img_rotations;// 拍摄时的旋转角度
   vector<pair<int, int> >  img_pairs;// 图片的配对信息
   vector<ImageData *>      imgs;
@@ -71,6 +72,7 @@ public:
 
   /* 最终结果 */
   Mat    pano_result;
+  Mat    mask_result;
 
   /* 图片读取 */
   void readImg(const char *img_path);

@@ -6,21 +6,40 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 
 Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
+  multi_images->imgs.resize(2);
+  multi_images->imgs[0] = new ImageData();
+  multi_images->imgs[1] = new ImageData();
 
-  multi_images->getFeatureInfo();
-  multi_images->getMeshInfo();
-  // multi_images->similarityTransform(1, 0.03);
-  // multi_images->repairWarpping();
+  for (int i = 1; i < img_num; i ++) {
+    // 初始化
+    multi_images->imgs[0]->initData();
+    multi_images->imgs[1]->initData();
 
+    // 目标图片
+    multi_images->imgs[0]->readImg(multi_images->origin_data[i - 1]);
+    // 参考图片
+    if (i == 1) {
+      multi_images->imgs[1]->readImg(multi_images->origin_data[i]);
+    } else {
+      multi_images->imgs[1]->readImg(multi_images->pano_result, multi_images->mask_result);
+    }
+    
+    // 进行拼接
 
-  // multi_images->textureMapping(0);
-  // drawFeatureMatch();
+    multi_images->getFeatureInfo();
+    multi_images->getMeshInfo();
+    // multi_images->similarityTransform(1, 0.03);
+    // multi_images->repairWarpping();
 
-  multi_images->myWarping();
-  multi_images->getSeam();
-  
-  // drawMatchingPts();
-  show_img("result", multi_images->pano_result);
+    // multi_images->textureMapping(0);
+    // drawFeatureMatch();
+
+    multi_images->myWarping();
+    multi_images->getSeam();
+    
+    // drawMatchingPts();
+    show_img("result", multi_images->pano_result);
+  }
 
   return multi_images->pano_result;
 }
@@ -91,8 +110,8 @@ void My_Stitching::drawFeatureMatch() {
 }
 
 void My_Stitching::drawMatchingPts() {
-  int m1 = 0;
-  int m2 = 1;
+  int m1 = 1;
+  int m2 = 0;
   // Mat result = multi_images->pano_images[m1];
   Mat result = Mat::zeros(multi_images->pano_size, CV_8UC3);
   LOG("total size %ld %ld", multi_images->pano_size.width, multi_images->pano_size.height);

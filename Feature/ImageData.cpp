@@ -1,8 +1,17 @@
 #include "ImageData.h"
 
-void ImageData::readImg(const char *img_path) {
-  data = imread(img_path);
-  mask = Mat::ones(data.size(), CV_8UC1);
+void ImageData::initData() {
+  descriptors.clear();
+  feature_points.clear();
+  rows = cols = 0;// 网格顶点的行列数目 
+  vertices.clear();
+  triangle_indices.clear();
+  rectangle_indices.clear();
+  homographies.clear();
+}
+
+void ImageData::readImg(const Mat & _img) {
+  _img.copyTo(data);
 
   LOG("origin channels %d", data.channels());
   float original_img_size = data.rows * data.cols;
@@ -12,6 +21,7 @@ void ImageData::readImg(const char *img_path) {
     resize(data, data, Size(), scale, scale);
   }
 
+  mask = Mat(data.size(), CV_8UC1, Scalar(255));
   cvtColor(data, grey_data, CV_BGR2GRAY);// 灰色图
 }
 
