@@ -17,7 +17,7 @@ public:
 
   /* 网格 */
   int rows, cols;// 网格顶点的行列数目 
-  vector<Point2f>      vertices;// 原始网格顶点
+  vector<Point2i>      vertices;// 原始网格顶点
   vector<vector<int> > triangle_indices;// 三角形的线型索引
   vector<vector<int> > rectangle_indices;// 四边形的线性索引
 

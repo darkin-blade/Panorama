@@ -147,9 +147,6 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
 
 void MultiImages::getFeaturePairs() {
   // 获取feature points下标的配对信息
-  // 初始化vector大小
-  initial_pairs.clear();
-  feature_pairs.clear();
 
   vector<pair<int, int> > initial_indices = getInitialFeaturePairs();
 
@@ -190,6 +187,7 @@ void MultiImages::rotateImage(vector<double> _angle, vector<Point2f> _src_p, vec
 }
 
 void MultiImages::getFeatureInfo() {
+  // 初始化
   initial_pairs.clear();
   feature_pairs.clear();
   feature_points_1.clear();
@@ -384,6 +382,7 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
 }
 
 void MultiImages::myWarping() {
+  // 初始化
   pano_images.clear();
   pano_masks.clear();
   origin_masks.clear();
@@ -417,6 +416,7 @@ void MultiImages::myWarping() {
       cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
       imgs[i]->mask.copyTo(tmp_mask(rect));
     } else {
+      LOG("%d %d", image_mask.cols, image_mask.rows);
       warped_image.copyTo(tmp_image(rect));
       image_mask.copyTo(tmp_mask(rect));
     }
@@ -424,14 +424,6 @@ void MultiImages::myWarping() {
     pano_images.emplace_back(tmp_image);
     pano_masks.emplace_back(tmp_mask);
     origin_masks.emplace_back(tmp_mask);
-  }
-
-  // 重叠区域模板匹配
-  // 遍历所有正方形区域
-  const vector<vector<int> > & indices = imgs[0]->rectangle_indices;
-  int rect_num = indices.size();
-  for (int i = 0; i < rect_num; i ++) {
-    // TODO
   }
 }
 
@@ -676,7 +668,7 @@ void MultiImages::myBlending() {
     blend_weight_mask,
     ignore_weight_mask);
   mask_result = pano_masks[0] | pano_masks[1];
-  show_img("mask", mask_result);
+  // show_img("mask", mask_result);
 }
 
 /***
