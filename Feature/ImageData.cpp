@@ -11,7 +11,11 @@ void ImageData::initData() {
 }
 
 void ImageData::readImg(const Mat & _img) {
-  _img.copyTo(data);
+  if (_img.channels() == 3) {
+    _img.copyTo(data);
+  } else {
+    cvtColor(_img, data, COLOR_RGBA2RGB);
+  }
 
   LOG("origin channels %d", data.channels());
   float original_img_size = data.rows * data.cols;
@@ -26,7 +30,11 @@ void ImageData::readImg(const Mat & _img) {
 }
 
 void ImageData::readImg(const Mat & _img, const Mat & _mask) {
-  _img.copyTo(data);
+  if (_img.channels() == 3) {
+    _img.copyTo(data);
+  } else {
+    cvtColor(_img, data, COLOR_RGBA2RGB);
+  }
   _mask.copyTo(mask);
 
   LOG("origin channels %d", data.channels());
@@ -35,6 +43,7 @@ void ImageData::readImg(const Mat & _img, const Mat & _mask) {
   if (original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
     float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
     resize(data, data, Size(), scale, scale);
+    resize(mask, mask, Size(), scale, scale);
   }
 
   cvtColor(data, grey_data, CV_BGR2GRAY);// 灰色图

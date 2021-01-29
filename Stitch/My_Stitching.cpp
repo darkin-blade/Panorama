@@ -19,8 +19,10 @@ Mat My_Stitching::getMyResult() {
     multi_images->imgs[0]->readImg(multi_images->origin_data[i - 1]);
     // 参考图片
     if (i == 1) {
+      // 使用原始图片
       multi_images->imgs[1]->readImg(multi_images->origin_data[i]);
     } else {
+      // 使用之前的结果
       multi_images->imgs[1]->readImg(multi_images->pano_result, multi_images->mask_result);
     }
     
@@ -32,13 +34,13 @@ Mat My_Stitching::getMyResult() {
     // multi_images->repairWarpping();
 
     // multi_images->textureMapping(0);
-    // drawFeatureMatch();
+    drawFeatureMatch();
 
     multi_images->myWarping();
     multi_images->getSeam();
     
     // drawMatchingPts();
-    show_img("result", multi_images->pano_result);
+    // show_img("result", multi_images->pano_result);
   }
 
   return multi_images->pano_result;
@@ -46,64 +48,62 @@ Mat My_Stitching::getMyResult() {
 
 void My_Stitching::drawFeatureMatch() {
   // 描绘特征点
+  int m1 = 0;
+  int m2 = 1;
   Mat result;// 存储结果
   Mat left, right;// 分割矩阵
-  if (multi_images->img_pairs.size() > 0) {
-    int m1 = multi_images->img_pairs[0].first;
-    int m2 = multi_images->img_pairs[0].second;
-    Mat img1 = multi_images->imgs[m1]->data;
-    Mat img2 = multi_images->imgs[m2]->data;
-    result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
-    left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
-    right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
-    // 复制图片
-    img1.copyTo(left);
-    img2.copyTo(right);
+  Mat img1 = multi_images->imgs[m1]->data;
+  Mat img2 = multi_images->imgs[m2]->data;
+  result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+  left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+  right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+  // 复制图片
+  img1.copyTo(left);
+  img2.copyTo(right);
 
-    if (0) {
-      // 匹配RANSAC之前的所有特征点
-      for (int i = 0; i < multi_images->initial_pairs.size(); i ++) {
-        // 计算索引
-        int src = multi_images->initial_pairs[i].first;
-        int dst = multi_images->initial_pairs[i].second;
+  if (0) {
+    // 匹配RANSAC之前的所有特征点
+    for (int i = 0; i < multi_images->initial_pairs.size(); i ++) {
+      // 计算索引
+      int src = multi_images->initial_pairs[i].first;
+      int dst = multi_images->initial_pairs[i].second;
 
-        // 获取特征点
-        Point2f src_p, dst_p;
-        src_p = multi_images->imgs[m1]->feature_points[src];
-        dst_p = multi_images->imgs[m2]->feature_points[dst] + Point2f(img1.cols, 0);
+      // 获取特征点
+      Point2f src_p, dst_p;
+      src_p = multi_images->imgs[m1]->feature_points[src];
+      dst_p = multi_images->imgs[m2]->feature_points[dst] + Point2f(img1.cols, 0);
 
-        // 描绘
-        Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
-        circle(result, src_p, CIRCLE_SIZE, color, -1);
-        line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
-        circle(result, dst_p, CIRCLE_SIZE, color, -1);
-      }
-    } else if (1) {
-      // 匹配RANSAC之后的所有特征点
-      for (int i = 0; i < multi_images->feature_points_1.size(); i ++) {
-        // 获取特征点
-        Point2f src_p, dst_p;
-        src_p = multi_images->feature_points_1[i];
-        dst_p = multi_images->feature_points_2[i] + Point2f(img1.cols, 0);
+      // 描绘
+      Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
+      circle(result, src_p, CIRCLE_SIZE, color, -1);
+      line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
+      circle(result, dst_p, CIRCLE_SIZE, color, -1);
+    }
+  } else if (1) {
+    // 匹配RANSAC之后的所有特征点
+    for (int i = 0; i < multi_images->feature_points_1.size(); i ++) {
+      // 获取特征点
+      Point2f src_p, dst_p;
+      src_p = multi_images->feature_points_1[i];
+      dst_p = multi_images->feature_points_2[i] + Point2f(img1.cols, 0);
 
-        // 描绘
-        Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
-        circle(result, src_p, CIRCLE_SIZE, color, -1);
-        line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
-        circle(result, dst_p, CIRCLE_SIZE, color, -1);
-      }
-    } else {
-      // 描绘所有特征点
-      for (int i = 0; i < multi_images->imgs[m1]->feature_points.size(); i ++) {
-        Point2f src_p = multi_images->imgs[m1]->feature_points[i];
-        Scalar color(255, 0, 0);
-        circle(result, src_p, CIRCLE_SIZE, color, -1);
-      }
-      for (int i = 0; i < multi_images->imgs[m2]->feature_points.size(); i ++) {
-        Point2f src_p = multi_images->imgs[m2]->feature_points[i];
-        Scalar color(255, 0, 0);
-        circle(result, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
-      }
+      // 描绘
+      Scalar color(rand() % 256, rand() % 256, rand() % 256, 255);
+      circle(result, src_p, CIRCLE_SIZE, color, -1);
+      line(result, src_p, dst_p, color, LINE_SIZE, LINE_AA);
+      circle(result, dst_p, CIRCLE_SIZE, color, -1);
+    }
+  } else {
+    // 描绘所有特征点
+    for (int i = 0; i < multi_images->imgs[m1]->feature_points.size(); i ++) {
+      Point2f src_p = multi_images->imgs[m1]->feature_points[i];
+      Scalar color(255, 0, 0);
+      circle(result, src_p, CIRCLE_SIZE, color, -1);
+    }
+    for (int i = 0; i < multi_images->imgs[m2]->feature_points.size(); i ++) {
+      Point2f src_p = multi_images->imgs[m2]->feature_points[i];
+      Scalar color(255, 0, 0);
+      circle(result, src_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color, -1);
     }
   }
   show_img("feature pairs", result);

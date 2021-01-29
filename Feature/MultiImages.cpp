@@ -190,6 +190,11 @@ void MultiImages::rotateImage(vector<double> _angle, vector<Point2f> _src_p, vec
 }
 
 void MultiImages::getFeatureInfo() {
+  initial_pairs.clear();
+  feature_pairs.clear();
+  feature_points_1.clear();
+  feature_points_2.clear();
+
   for (int i = 0; i < 2; i ++) {
     Mat grey_img;
     cvtColor(imgs[i]->data, grey_img, CV_BGR2GRAY);
@@ -404,15 +409,14 @@ void MultiImages::myWarping() {
     Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
     // 计算目标矩阵
     Rect2f rect = getVerticesRects(matching_pts[i]);
-    drawPoints(tmp_image, matching_pts[i]);
 
     cout << rect << endl;
     if (i == 1) {
       // 参考图片
+      LOG("%d %d", imgs[i]->mask.cols, imgs[i]->mask.rows);
       cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
       imgs[i]->mask.copyTo(tmp_mask(rect));
     } else {
-      LOG("%d %d", warped_image.cols, warped_image.rows);
       warped_image.copyTo(tmp_image(rect));
       image_mask.copyTo(tmp_mask(rect));
     }
