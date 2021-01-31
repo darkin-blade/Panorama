@@ -400,7 +400,8 @@ void MultiImages::myWarping() {
 
   // 对所有图像的网格点归一化(去除负值)
   matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-  pano_size = normalizeVertices(matching_pts);
+  Size2f tmp_size = normalizeVertices(matching_pts);
+  pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
 
   // 将每个图片/mask平移到最终位置
   for (int i = 0; i < 2; i ++) {
@@ -417,6 +418,7 @@ void MultiImages::myWarping() {
       imgs[i]->mask.copyTo(tmp_mask(rect));
     } else {
       LOG("%d %d", image_mask.cols, image_mask.rows);
+      LOG("%d %d", tmp_mask.cols, tmp_mask.rows);
       warped_image.copyTo(tmp_image(rect));
       image_mask.copyTo(tmp_mask(rect));
     }
