@@ -608,29 +608,6 @@ void MultiImages::getSeam() {
 
   myBlending();// 先进行图像融合
   drawPoints(pano_result, seam_pts);
-
-  // 计算接缝线质量, BUG: 出界
-//   int seam_size = seam_pts.size();
-//   LOG("seam pts num %d", seam_size);
-//   double total_error = 0;
-//   vector<Point2f> tmp_pts;
-//   for (int i = 0; i < seam_size; i ++) {
-//     // 在接缝线上选择合适的点
-//     Point2f patch_center = seam_pts[i];
-//     Rect seam_rect(patch_center + Point2f(-8, -8), patch_center + Point2f(+8, +8));
-
-//     Mat result_patch = pano_result(seam_rect);
-//     Mat patch_1 = pano_images[0](seam_rect);
-//     Mat patch_2 = pano_images[1](seam_rect);
-//     Mat ssam_mask = Mat(patch_1.size(), CV_8UC1, Scalar(255));
-
-//     // 计算与两幅图片的相似度
-//     Scalar ssim_1 = SSIM(result_patch, patch_1, ssam_mask, 1);
-//     Scalar ssim_2 = SSIM(result_patch, patch_2, ssam_mask, 1);
-//     double seam_error = max(ssim_1[0], ssim_2[0]);
-//     total_error += seam_error;
-//   }
-//   LOG("total error %lf", total_error / seam_size);
 }
 
 /***
@@ -669,8 +646,6 @@ void MultiImages::myBlending() {
     pano_size,
     blend_weight_mask,
     ignore_weight_mask);
-  mask_result = pano_masks[0] | pano_masks[1];
-  // show_img("mask", mask_result);
 }
 
 /***

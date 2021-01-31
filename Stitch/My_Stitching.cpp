@@ -18,15 +18,15 @@ Mat My_Stitching::getMyResult() {
     if (i == 1) {
       // 使用原始图片
       // 目标图片
-      multi_images->imgs[0]->readImg(multi_images->origin_data[i - 1]);
+      multi_images->imgs[0]->readImg(multi_images->origin_data[i - 1], 1);
       // 参考图片
-      multi_images->imgs[1]->readImg(multi_images->origin_data[i]);
+      multi_images->imgs[1]->readImg(multi_images->origin_data[i], 1);
     } else {
       // 使用之前的结果
       // 目标图片
-      multi_images->imgs[0]->readImg(multi_images->origin_data[i]);
+      multi_images->imgs[0]->readImg(multi_images->origin_data[i], 1);
       // 参考图片
-      multi_images->imgs[1]->readImg(multi_images->pano_result, multi_images->mask_result);
+      multi_images->imgs[1]->readImg(multi_images->pano_result, 2);
     }
     
     // 进行拼接

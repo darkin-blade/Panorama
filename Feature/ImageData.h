@@ -25,8 +25,7 @@ public:
   vector<Mat>          homographies;
 
   void initData();
-  void readImg(const Mat & _img);
-  void readImg(const Mat & _img, const Mat & _mask);// 直接由mat初始化
+  void readImg(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
 };
 

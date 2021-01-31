@@ -72,7 +72,6 @@ public:
 
   /* 最终结果 */
   Mat    pano_result;
-  Mat    mask_result;
 
   /* 图片读取 */
   void readImg(const char *img_path);
