@@ -6,7 +6,15 @@ MultiImages::MultiImages() {
 
 void MultiImages::readImg(const char *img_path) {
   // 读取原始图片Mat
-  origin_data.emplace_back(imread(img_path));
+  Mat origin_img = imread(img_path);
+  float original_img_size = origin_img.rows * origin_img.cols;
+
+  // 缩放
+  if (original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
+    float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
+    resize(origin_img, origin_img, Size(), scale, scale);
+  }
+  origin_data.emplace_back(origin_img);
   img_num ++;
   assert(origin_data.size() == img_num);
 }

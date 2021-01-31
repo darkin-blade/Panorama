@@ -13,15 +13,6 @@ void ImageData::initData() {
 void ImageData::readImg(const Mat & _img, int mode) {
   LOG("origin channels %d", _img.channels());
   _img.copyTo(data);
-  float original_img_size = data.rows * data.cols;
-
-  // 缩放
-  if (mode == 1) {
-    if (original_img_size > DOWN_SAMPLE_IMAGE_SIZE) {
-      float scale = sqrt(DOWN_SAMPLE_IMAGE_SIZE / original_img_size);
-      resize(data, data, Size(), scale, scale);
-    }
-  }
 
   if (mode == 1) {
     // 原图
@@ -32,14 +23,6 @@ void ImageData::readImg(const Mat & _img, int mode) {
     vector<Mat> channels;
     split(data, channels);
     channels[3].copyTo(mask);
-
-    // TODO 检查黑边
-    Mat tmp_result = Mat(data.size(), CV_8UC4, Scalar::all(255));
-    show_img("mask", mask);
-    Mat tmp_img;
-    cvtColor(data, tmp_img, COLOR_RGB2RGBA);
-    tmp_img.copyTo(tmp_result, mask);
-    show_img("last", tmp_result);
   } else {
     assert(0);
   }
