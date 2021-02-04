@@ -34,7 +34,6 @@ Mat My_Stitching::getMyResult() {
     multi_images->getFeatureInfo();
     multi_images->getMeshInfo();
     // multi_images->similarityTransform(1, 0.03);
-    // multi_images->repairWarpping();
 
     // multi_images->textureMapping(0);
     // drawFeatureMatch();

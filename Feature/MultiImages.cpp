@@ -181,19 +181,6 @@ void MultiImages::getFeaturePairs() {
   *
   **/
 
-void MultiImages::rotateImage(vector<double> _angle, vector<Point2f> _src_p, vector<Point2f> & _dst_p) {
-  // 旋转图片, 计算透视变换 TODO
-  assert(_angle.size() == 3);
-  assert(_src_p.size() == 4);
-  // 计算图像中心
-  double x = 0, y = 0;
-  for (int i = 0; i < 4; i ++) {
-    x += _src_p[i].x;
-    y += _src_p[i].y;
-  }
-  Point2f center(x / 2, y / 2);
-}
-
 void MultiImages::getFeatureInfo() {
   // 初始化
   initial_pairs.clear();
@@ -577,7 +564,13 @@ void MultiImages::warpPoints(
   }
 }
 
-void MultiImages::repairWarpping() {
+/***
+  *
+  * 网格优化
+  *
+  **/
+
+void MultiImages::meshOptimization() {
 }
 
 /***
