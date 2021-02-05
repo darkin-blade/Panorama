@@ -61,6 +61,18 @@ public:
   /* 网格变换 */
   vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
 
+  /* 网格优化 */
+  double aligment_weight                = 1 * 1;
+  double local_similarity_weight        = 1 * 0.56;
+  double global_similarity_weight_beta  = 1 * 6;
+  double global_similarity_weight_gamma = 1 * 20;
+  /* 下面3项pair的含义:
+     first: 该部分等式中第一个等式在所有等式中的索引
+     second: 该部分等式含有的等式的总数 */
+  pair<int, int> alignment_equation;
+  pair<int, int> local_similarity_equation;
+  pair<int, int> global_similarity_equation;
+
   /* 图像融合 */
   Size2i                  pano_size;
   vector<Mat>             blend_weight_mask;
@@ -91,6 +103,16 @@ public:
 
   /* 网格优化 */
   void meshOptimization();
+  void reserveData(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
+  void prepareAlignmentTerm(vector<Triplet<double> > & _triplets);
+  void prepareSimilarityTerm(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
+  void getSolution(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
 
   /**
     图像形变

@@ -571,6 +571,64 @@ void MultiImages::warpPoints(
   **/
 
 void MultiImages::meshOptimization() {
+  vector<Triplet<double> > triplets;
+  vector<pair<int, double> > b_vector;
+
+  reserveData(triplets, b_vector);
+  prepareAlignmentTerm(triplets);
+  prepareSimilarityTerm(triplets, b_vector);
+  getSolution(triplets, b_vector);
+}
+
+void MultiImages::reserveData(
+    vector<Triplet<double> > & _triplets, 
+    vector<pair<int, double> > & _b_vector) {
+
+  int edge_count = 0;// TODO 边的数目
+  int edge_neighbor_vertices_count = 0;// TODO 每条边的每个顶点的相邻顶点数目和
+
+  int equation = 0;// 用于标记第一个等式的索引
+
+  // 对齐项
+  alignment_equation.first = equation;
+  alignment_equation.second = 0;// TODO 目标图像在参考图像上的未出界顶点数目和
+  equation += alignment_equation.second;
+
+  // 局部相似项
+  local_similarity_equation.first = equation;
+  local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
+  equation += local_similarity_equation.second;
+
+  // 全局相似项
+  global_similarity_equation.first = equation;
+  global_similarity_equation.second = edge_count * 2;
+
+  // triplet的大小并不对应equations的数目
+  int triplet_size = alignment_equation.second * 4 // 对齐项的每个等式需要4个参数(每个网格有4个顶点)
+    + edge_neighbor_vertices_count * 4 + local_similarity_equation.second // TODO, 局部相似项的每个等式需要?个参数
+    + edge_neighbor_vertices_count * 4;// TODO, 全局相似项的每个等式需要?个参数
+  _triplets.reserve(triplet_size);
+
+  // 只有全局对齐项的b向量不为零
+  int b_vector_size = global_similarity_equation.second;
+  _b_vector.reserve(b_vector_size);
+}
+
+void MultiImages::prepareAlignmentTerm(
+    vector<Triplet<double> > & _triplets) {
+  ;
+}
+
+void MultiImages::prepareSimilarityTerm(  
+    vector<Triplet<double> > & _triplets, 
+    vector<pair<int, double> > & _b_vector) {
+  ;
+}
+
+void MultiImages::getSolution(  
+    vector<Triplet<double> > & _triplets, 
+    vector<pair<int, double> > & _b_vector) {
+  ;
 }
 
 /***

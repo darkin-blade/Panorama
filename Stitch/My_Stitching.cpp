@@ -2,6 +2,7 @@
 
 My_Stitching::My_Stitching(MultiImages & _multi_images) {
   multi_images = & _multi_images;
+  debug();
 }
 
 Mat My_Stitching::getMyResult() {
@@ -46,6 +47,30 @@ Mat My_Stitching::getMyResult() {
   }
 
   return multi_images->pano_result;
+}
+
+void My_Stitching::debug() {
+  vector<Triplet<double> > triplets;
+  triplets.emplace_back(0, 0, 3);
+  triplets.emplace_back(0, 1, 1);
+  triplets.emplace_back(1, 0, 4);
+  triplets.emplace_back(1, 1, 2);
+  triplets.emplace_back(2, 0, 1);
+  triplets.emplace_back(2, 1, 0);
+
+  SparseMatrix<double> A(3, 2);
+  A.setFromTriplets(triplets.begin(), triplets.end());
+  VectorXd b = VectorXd::Zero(3), x;
+  b[0] = 4;
+  b[1] = 5;
+  b[2] = 1;
+
+  LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
+  lscg.compute(A);
+  x = lscg.solve(b);
+  cout << x << endl;
+
+  assert(0);
 }
 
 void My_Stitching::drawFeatureMatch() {
