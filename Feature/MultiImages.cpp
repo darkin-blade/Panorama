@@ -604,6 +604,11 @@ void MultiImages::reserveData(
   global_similarity_equation.second = edge_count * 2;
 
   // triplet的大小并不对应equations的数目
+  // triplet(row, col, val):
+  // row: 第row个等式, 不会超过equations
+  // col: 第col个matching points
+  // val: 系数
+  // dim: TODO, x或y
   int triplet_size = alignment_equation.second * 4 // 对齐项的每个等式需要4个参数(每个网格有4个顶点)
     + edge_neighbor_vertices_count * 4 + local_similarity_equation.second // TODO, 局部相似项的每个等式需要?个参数
     + edge_neighbor_vertices_count * 4;// TODO, 全局相似项的每个等式需要?个参数

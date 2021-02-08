@@ -59,16 +59,17 @@ public:
   Point2f   shift_vec;// 在图片的原始尺寸和方向状态的坐标系, 图片中心从src到dst的平移向量
 
   /* 网格变换 */
-  vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点, 后半段为经过平移计算得到的网格点
+  vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点
+  vector<int>                valid_pts;// 目标图像在参考图像上未出界的匹配点索引
 
   /* 网格优化 */
   double aligment_weight                = 1 * 1;
   double local_similarity_weight        = 1 * 0.56;
   double global_similarity_weight_beta  = 1 * 6;
   double global_similarity_weight_gamma = 1 * 20;
-  /* 下面3项pair的含义:
-     first: 该部分等式中第一个等式在所有等式中的索引
-     second: 该部分等式含有的等式的总数 */
+  // 下面3项pair的含义:
+  // first: 该部分等式中第一个等式在所有等式中的索引
+  // second: 该部分等式含有的等式的总数
   pair<int, int> alignment_equation;
   pair<int, int> local_similarity_equation;
   pair<int, int> global_similarity_equation;

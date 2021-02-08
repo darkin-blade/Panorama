@@ -16,7 +16,8 @@ public:
   vector<Point2f>      feature_points;// 特征点(全部)
 
   /* 网格 */
-  int rows, cols;// 网格顶点的行列数目 
+  int rows, cols;// 网格顶点的行列数目
+  vector<double>       row_vec, col_vec;// 在初始网格时使用的比例序列, 用于计算点在图像中的网格索引
   vector<Point2f>      vertices;// 原始网格顶点
   vector<vector<int> > triangle_indices;// 三角形的线型索引
   vector<vector<int> > rectangle_indices;// 四边形的线性索引
@@ -27,6 +28,11 @@ public:
   void initData();
   void readImg(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
+  int getGridIndexOfPoint(const Point2f & _p);
+  void ImageData::getInterpolateVertex(
+    const Point2f & _p,
+    int & _grid_index,
+    vector<double> & _weights);
 };
 
 #endif

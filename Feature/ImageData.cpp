@@ -4,6 +4,8 @@ void ImageData::initData() {
   descriptors.clear();
   feature_points.clear();
   rows = cols = 0;// 网格顶点的行列数目 
+  row_vec.clear(), col_vec.clear();
+
   vertices.clear();
   triangle_indices.clear();
   rectangle_indices.clear();
@@ -41,6 +43,15 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
   assert(cols >= 2);
   assert(rows >= 2);
 
+  // 便于查找grid索引
+  assert(row_vec.empty() && col_vec.empty());
+  for (int i = 0; i < cols; i ++) {
+    col_vec.emplace_back(_col[i]);
+  }
+  for (int i = 0; i < rows; i ++) {
+    row_vec.emplace_back(_row[i]);
+  }
+
   // 从左往右, 从上往下
   assert(vertices.empty());
   for (int i = 0; i < rows; i ++) {
@@ -77,5 +88,47 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
       indice_3.emplace_back((i + 1) * cols + j);
       rectangle_indices.emplace_back(indice_3);
     }
+  }
+}
+
+int ImageData::getGridIndexOfPoint(const Point2f & _p) {
+  // 计算某点在这幅图中所在的grid位置
+  int row_index = 0, col_index = 0;
+  while (_p.x <= col_vec[col_index + 1]) {
+    col_index ++;
+    assert(col_index + 1 < cols);
+  }
+  while (_p.y <= row_vec[row_index + 1]) {
+    row_index ++;
+    assert(row_index + 1 < rows);
+  }
+  return col_index + row_index * rows;
+}
+
+void ImageData::getInterpolateVertex(
+    const Point2f & _p,
+    int & _grid_index,
+    vector<double> & _weights) {
+  // 计算某点在这幅图片中所在的grid位置, 并求出在这个grid内与4个顶点的归一化距离
+  assert(_weights.size() == 4);
+
+  // 计算grid索引
+  _grid_index = getGridIndexOfPoint(_p);
+
+  // 获取grid的4个顶点
+  assert(!rectangle_indices.empty());
+  vector<int> g = rectangle_indices[_grid_index];
+
+  // 需要按一定次序存储 TODO
+  const vector<int> diagonal_indices = {2, 3, 0, 1};
+  double sum_inv = 0;// 用于归一化
+  for (int i = 0; i < 4; i ++) {
+    Point2f tmp(_p.x - vertices[g[diagonal_indices[i]]].x, _p.y - vertices[g[diagonal_indices[i]]].y);
+    _weights[i] = fabs(tmp.x * tmp.y);
+    sum_inv += _weights[i];
+  }
+  sum_inv = 1. / sum_inv;
+  for (int i = 0; i < 4; i ++) {
+    _weights[i] *= sum_inv;
   }
 }
