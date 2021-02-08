@@ -46,10 +46,10 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
   // 便于查找grid索引
   assert(row_vec.empty() && col_vec.empty());
   for (int i = 0; i < cols; i ++) {
-    col_vec.emplace_back(_col[i]);
+    col_vec.emplace_back(_col[i] * data.cols);
   }
   for (int i = 0; i < rows; i ++) {
-    row_vec.emplace_back(_row[i]);
+    row_vec.emplace_back(_row[i] * data.rows);
   }
 
   // 从左往右, 从上往下
@@ -99,12 +99,11 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
   // 计算某点在这幅图中所在的grid位置
   int row_index = 0, col_index = 0;
-  while (_p.x < col_vec[col_index + 1]) {
+  while (_p.x > col_vec[col_index + 1]) {
     col_index ++;
     assert(col_index + 1 < cols);
   }
-  while (_p.y < row_vec[row_index + 1]) {
-    LOG("%lf %lf", _p.y, row_vec[row_index + 1]);
+  while (_p.y > row_vec[row_index + 1]) {
     row_index ++;
     assert(row_index + 1 < rows);
   }
@@ -117,6 +116,7 @@ void ImageData::getInterpolateVertex(
     vector<double> & _weights) {
   // 计算某点在这幅图片中所在的grid位置, 并求出在这个grid内与4个顶点的归一化距离
   assert(_weights.size() == 4);
+  assert(!vertices.empty());
 
   // 计算grid索引
   _grid_index = getGridIndexOfPoint(_p);
@@ -124,6 +124,8 @@ void ImageData::getInterpolateVertex(
   // 获取grid的4个顶点
   assert(!rectangle_indices.empty());
   vector<int> g = rectangle_indices[_grid_index];
+  LOG("%d %d", rectangle_indices.size(), _grid_index);
+  // LOG("%d %d %d %d %d", vertices.size(), g[0], g[1], g[2], g[3]);
 
   // 需要按一定次序存储 TODO
   const vector<int> diagonal_indices = {2, 3, 0, 1};
