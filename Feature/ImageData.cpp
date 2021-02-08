@@ -92,13 +92,19 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
 }
 
 int ImageData::getGridIndexOfPoint(const Point2f & _p) {
+  assert(_p.x >= 0);
+  assert(_p.x >= 0);
+  assert(_p.x <= data.cols);
+  assert(_p.y <= data.rows);
+
   // 计算某点在这幅图中所在的grid位置
   int row_index = 0, col_index = 0;
-  while (_p.x <= col_vec[col_index + 1]) {
+  while (_p.x < col_vec[col_index + 1]) {
     col_index ++;
     assert(col_index + 1 < cols);
   }
-  while (_p.y <= row_vec[row_index + 1]) {
+  while (_p.y < row_vec[row_index + 1]) {
+    LOG("%lf %lf", _p.y, row_vec[row_index + 1]);
     row_index ++;
     assert(row_index + 1 < rows);
   }

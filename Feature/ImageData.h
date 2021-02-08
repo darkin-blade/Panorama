@@ -29,7 +29,7 @@ public:
   void readImg(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
   int getGridIndexOfPoint(const Point2f & _p);
-  void ImageData::getInterpolateVertex(
+  void getInterpolateVertex(
     const Point2f & _p,
     int & _grid_index,
     vector<double> & _weights);

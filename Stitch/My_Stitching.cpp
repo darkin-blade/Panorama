@@ -2,7 +2,6 @@
 
 My_Stitching::My_Stitching(MultiImages & _multi_images) {
   multi_images = & _multi_images;
-  debug();
 }
 
 Mat My_Stitching::getMyResult() {
@@ -34,6 +33,7 @@ Mat My_Stitching::getMyResult() {
 
     multi_images->getFeatureInfo();
     multi_images->getMeshInfo();
+    multi_images->meshOptimization();
     // multi_images->similarityTransform(1, 0.03);
 
     // multi_images->textureMapping(0);

@@ -213,6 +213,7 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化图像网格
   matching_pts.clear();
+  matching_index.clear();
   vector<double> col_r, row_r;
 
   // double base = 0;
@@ -245,6 +246,18 @@ void MultiImages::getMeshInfo() {
     matching_pts[0],
     imgs[0]->homographies
   );
+
+  // 获取m1在m2上(未出界)的匹配点
+  int matching_pts_size = matching_pts[0].size();
+  for (int i = 0; i < matching_pts_size; i ++) {
+    Point2f tmp_point = matching_pts[0][i];
+    // 此时以m2为参照, m1的坐标可能为负
+    if ( tmp_point.x >= 0 && tmp_point.x >= 0
+      && tmp_point.x <= imgs[1]->data.cols && tmp_point.y <= imgs[1]->data.rows) {
+      // 没有出界
+      matching_index.emplace_back(i);
+    }
+  }
 }
 
 void MultiImages::similarityTransform(int _mode, double _angle) {
@@ -575,7 +588,7 @@ void MultiImages::meshOptimization() {
   vector<pair<int, double> > b_vector;
 
   reserveData(triplets, b_vector);
-  prepareAlignmentTerm(triplets);
+  prepareAlignmentTerm(triplets, b_vector);
   prepareSimilarityTerm(triplets, b_vector);
   getSolution(triplets, b_vector);
 }
@@ -591,7 +604,7 @@ void MultiImages::reserveData(
 
   // 对齐项
   alignment_equation.first = equation;
-  alignment_equation.second = 0;// TODO 目标图像在参考图像上的未出界顶点数目和
+  alignment_equation.second = matching_index.size() * 2;// 目标图像在参考图像上的未出界顶点数目和
   equation += alignment_equation.second;
 
   // 局部相似项
@@ -620,8 +633,68 @@ void MultiImages::reserveData(
 }
 
 void MultiImages::prepareAlignmentTerm(
-    vector<Triplet<double> > & _triplets) {
-  ;
+    vector<Triplet<double> > & _triplets,
+    vector<pair<int, double> > & _b_vector) {
+  // 计算(m1在m2上所有未出界的匹配点)与(m1原始顶点)的线性分解
+  // 原始的
+  vector<int>             index_1;
+  vector<vector<double> > weights_1;
+  // 经过形变的匹配点
+  vector<int>             index_2;
+  vector<vector<double> > weights_2;
+
+  for (int i = 0; i < matching_index.size(); i ++) {
+    int tmp_index;
+    vector<double> tmp_weights(4);
+    Point2f point_1 = imgs[0]->vertices[matching_index[i]];// 原始顶点
+    Point2f point_2 = matching_pts[0][matching_index[i]];// 匹配点
+
+    // 计算顶点在自身的线性分解
+    imgs[0]->getInterpolateVertex(point_1, tmp_index, tmp_weights);
+    index_1.emplace_back(tmp_index);
+    weights_1.emplace_back(tmp_weights);
+    // 计算匹配点在参考图像上的线性分解
+    imgs[1]->getInterpolateVertex(point_2, tmp_index, tmp_weights);
+    index_2.emplace_back(tmp_index);
+    weights_2.emplace_back(tmp_weights);
+  }
+  assert(matching_index.size() == index_1.size());
+  assert(matching_index.size() == index_2.size());
+  assert(!imgs[1]->vertices.empty());
+
+  const int equation = alignment_equation.first;
+  int eq_count = 0;
+
+  const vector<vector<int> > indices_1 = imgs[0]->rectangle_indices;
+  const vector<vector<int> > indices_2 = imgs[1]->rectangle_indices;
+  for (int i = 0; i < matching_index.size(); i ++) {
+    for (int dim = 0; dim < 2; dim ++) {
+      // x, y
+      double b_sum = 0;// 参考图像的4个分量之和
+      for (int j = 0; j < 4; j ++) {
+        // 顶点在自身的分量
+        _triplets.emplace_back(equation + eq_count + dim,// 等式index
+          dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
+          alignment_weight * weights_1[i][j]);
+
+        // 匹配点在参考图像的分量(定值)
+        int index_of_m2 = indices_2[index_2[i]][j];
+        if (dim == 0) {
+          // x
+          b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].x * weights_2[i][j];
+        } else {
+          // y
+          b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].y * weights_2[i][j];
+        }
+      }
+      _b_vector.emplace_back(equation + eq_count + dim, b_sum);
+
+    }
+    eq_count += 2;// x, y
+  }
+
+  assert(eq_count == alignment_equation.second);
+  assert(0);
 }
 
 void MultiImages::prepareSimilarityTerm(  

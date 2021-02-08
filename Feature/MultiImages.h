@@ -60,10 +60,10 @@ public:
 
   /* 网格变换 */
   vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点
-  vector<int>                valid_pts;// 目标图像在参考图像上未出界的匹配点索引
+  vector<int>                matching_index;// 目标图像在参考图像上未出界的匹配点索引
 
   /* 网格优化 */
-  double aligment_weight                = 1 * 1;
+  double alignment_weight                = 1 * 1;
   double local_similarity_weight        = 1 * 0.56;
   double global_similarity_weight_beta  = 1 * 6;
   double global_similarity_weight_gamma = 1 * 20;
@@ -107,7 +107,9 @@ public:
   void reserveData(
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
-  void prepareAlignmentTerm(vector<Triplet<double> > & _triplets);
+  void prepareAlignmentTerm(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
   void prepareSimilarityTerm(
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
