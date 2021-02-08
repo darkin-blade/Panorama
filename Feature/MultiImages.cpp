@@ -679,11 +679,9 @@ void MultiImages::prepareAlignmentTerm(
 
         // 匹配点在参考图像的分量(定值)
         int index_of_m2 = indices_2[index_2[i]][j];
-        if (dim == 0) {
-          // x
+        if (dim == 0) { // x
           b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].x * weights_2[i][j];
-        } else {
-          // y
+        } else { // y
           b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].y * weights_2[i][j];
         }
       }

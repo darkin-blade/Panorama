@@ -107,7 +107,7 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
     row_index ++;
     assert(row_index + 1 < rows);
   }
-  return col_index + row_index * rows;
+  return col_index + row_index * (rows - 1);
 }
 
 void ImageData::getInterpolateVertex(
@@ -124,7 +124,7 @@ void ImageData::getInterpolateVertex(
   // 获取grid的4个顶点
   assert(!rectangle_indices.empty());
   vector<int> g = rectangle_indices[_grid_index];
-  LOG("%d %d", rectangle_indices.size(), _grid_index);
+  LOG("%d %d %d %d", rectangle_indices.size(), _grid_index, cols, rows);
   // LOG("%d %d %d %d %d", vertices.size(), g[0], g[1], g[2], g[3]);
 
   // 需要按一定次序存储 TODO
