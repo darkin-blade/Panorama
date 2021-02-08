@@ -1,6 +1,7 @@
 #include "ImageData.h"
 
 void ImageData::initData() {
+  // 清空所有数据
   descriptors.clear();
   feature_points.clear();
   rows = cols = 0;// 网格顶点的行列数目 
@@ -8,8 +9,13 @@ void ImageData::initData() {
 
   vertices.clear();
   triangle_indices.clear();
-  rectangle_indices.clear();
+  polygons_indices.clear();
   homographies.clear();
+  edges.clear();
+  polygons_neighbors.clear();
+  vertex_structures.clear();
+  polygons_center.clear();
+  polygons_weight.clear();
 }
 
 void ImageData::readImg(const Mat & _img, int mode) {
@@ -52,7 +58,7 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
     row_vec.emplace_back(_row[i] * data.rows);
   }
 
-  // 从左往右, 从上往下
+  // 记录顶点: 从左往右, 从上往下
   assert(vertices.empty());
   for (int i = 0; i < rows; i ++) {
     for (int j = 0; j < cols; j ++) {
@@ -61,9 +67,17 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
     }
   }
 
-  // 记录网格线性索引
+  getPolygonsCenter();
+  getIndices();
+  getEdges();
+  getPolygonsNeighbors();
+  getVertexStructures();
+}
+
+void ImageData::getIndices() {
+  // 记录网格(三角形, 四边形)线性索引
   assert(triangle_indices.empty());
-  assert(rectangle_indices.empty());
+  assert(polygons_indices.empty());
   for (int i = 0; i < rows - 1; i ++) {
     for (int j = 0; j < cols - 1; j ++) {
       // 将一个mesh分为两个三角形记录
@@ -86,7 +100,74 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
       indice_3.emplace_back(i * cols + (j + 1));
       indice_3.emplace_back((i + 1) * cols + (j + 1));
       indice_3.emplace_back((i + 1) * cols + j);
-      rectangle_indices.emplace_back(indice_3);
+      polygons_indices.emplace_back(indice_3);
+    }
+  }
+}
+
+void ImageData::getPolygonsCenter() {
+  assert(polygons_center.empty());
+  for (int i = 0; i < polygons_indices.size(); i ++) {
+    Point2f center(0, 0);
+    for (int j = 0; j < polygons_indices[i].size(); j ++) {
+      center += vertices[polygons_indices[i][j]];
+    }
+    // 求4个顶点的平均值
+    assert(polygons_indices[i].size() == 4);
+    polygons_center.emplace_back(center / 4);
+  }
+}
+
+void ImageData::getEdges() {
+  assert(edges.empty());
+  const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1) };
+  for (int r = 0; r < rows; r ++) {
+    for (int c = 0; c < cols; c ++) {
+      const Point2i p1(c, r);
+      for (int i = 0; i < nexts.size(); i ++) {
+        const Point2i p2 = p1 + nexts[i];
+        if (p2.x >= 0 && p2.y >= 0 && p2.x < cols && p2.y < rows) {
+          edges.emplace_back(p1.x + p1.y * cols, p2.x + p2.y * cols);
+        }
+      }
+    }
+  }
+  assert(edges.size() == 2 * cols * rows - cols - rows);
+}
+
+void ImageData::getPolygonsNeighbors() {
+  assert(polygons_neighbors.empty());
+  const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1) };
+  polygons_neighbors.resize((rows - 1)*(cols - 1));// 网格数(不是顶点数)
+  int index = 0;
+  for (int r = 0; r < rows - 1; r ++) {
+    for (int c = 0; c < cols - 1; c ++) {
+      const Point2i(c, r);
+      for (int i = 0; i < nexts.size(); i ++) {
+        const Point2i p2 = p1 + nexts[i];
+        if (p2.x >= 0 && p2.y >= 0 && p2.x < cols - 1 && p2.y < rows - 1) {
+          polygons_neighbors[index].emplace_back(p2.x + p2.y * (cols - 1));
+        }
+      }
+      index ++;
+    }
+  }
+}
+
+void ImageData::getVertexStructures() {
+  assert(vertex_structures.empty());
+  const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1) };
+  vertex_structures.resize(rows * cols);// 顶点数
+  int index = 0;
+  for (int r = 0; r < rows; r ++) {
+    for (int c = 0; c < cols; c ++) {
+      Point2i p1(c, r);
+      for (int i = 0; i < nexts.size(); i ++) {
+        Point2i p2 = p1 + nexts[i];
+        if (p2.x >= 0 && p2.y >= 0 && p2.x < cols && p2.y < rows) {
+          vertex_structures[index].emplace_back(p2.x + p2.y * cols);
+        }
+      }
     }
   }
 }
@@ -122,10 +203,7 @@ void ImageData::getInterpolateVertex(
   _grid_index = getGridIndexOfPoint(_p);
 
   // 获取grid的4个顶点
-  assert(!rectangle_indices.empty());
-  vector<int> g = rectangle_indices[_grid_index];
-  LOG("%d %d %d %d", rectangle_indices.size(), _grid_index, cols, rows);
-  // LOG("%d %d %d %d %d", vertices.size(), g[0], g[1], g[2], g[3]);
+  vector<int> g = polygons_indices[_grid_index];
 
   // 需要按一定次序存储 TODO
   const vector<int> diagonal_indices = {2, 3, 0, 1};

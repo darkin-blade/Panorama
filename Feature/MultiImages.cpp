@@ -665,8 +665,8 @@ void MultiImages::prepareAlignmentTerm(
   const int equation = alignment_equation.first;
   int eq_count = 0;
 
-  const vector<vector<int> > indices_1 = imgs[0]->rectangle_indices;
-  const vector<vector<int> > indices_2 = imgs[1]->rectangle_indices;
+  const vector<vector<int> > indices_1 = imgs[0]->polygons_indices;
+  const vector<vector<int> > indices_2 = imgs[1]->polygons_indices;
   for (int i = 0; i < matching_index.size(); i ++) {
     for (int dim = 0; dim < 2; dim ++) {
       // x, y
@@ -692,7 +692,6 @@ void MultiImages::prepareAlignmentTerm(
   }
 
   assert(eq_count == alignment_equation.second);
-  assert(0);
 }
 
 void MultiImages::prepareSimilarityTerm(  
