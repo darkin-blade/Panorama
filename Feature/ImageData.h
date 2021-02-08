@@ -36,15 +36,11 @@ public:
   void readImg(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
 
+  void getPolygonsCenter();
   void getIndices();
   void getEdges();
   void getPolygonsNeighbors();
   void getVertexStructures();
-  void getPolygonsCenter();
-
-  void getPolygonsWeight(
-    const vector<int> _polygon_index,
-    vector<double> & _weights);// TODO
 
   int getGridIndexOfPoint(const Point2f & _p);
   void getInterpolateVertex(
