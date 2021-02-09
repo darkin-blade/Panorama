@@ -252,7 +252,7 @@ void MultiImages::getMeshInfo() {
   for (int i = 0; i < matching_pts_size; i ++) {
     Point2f tmp_point = matching_pts[0][i];
     // 此时以m2为参照, m1的坐标可能为负
-    if ( tmp_point.x >= 0 && tmp_point.x >= 0
+    if ( tmp_point.x >= 0 && tmp_point.y >= 0
       && tmp_point.x <= imgs[1]->data.cols && tmp_point.y <= imgs[1]->data.rows) {
       // 没有出界
       matching_index.emplace_back(i);
@@ -580,24 +580,25 @@ void MultiImages::meshOptimization() {
 void MultiImages::reserveData(
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
+  total_eq = 0;
 
-  int edge_count = 0;// TODO 边的数目
-  int edge_neighbor_vertices_count = 0;// TODO 每条边的每个顶点的相邻顶点数目和
-
-  int equation = 0;// 用于标记第一个等式的索引
+  int edge_count = imgs[0]->edges.size();// 边的数目
+  int edge_neighbor_vertices_count = 0;// 每条边的每个顶点的相邻顶点数目和(不包括自身)
+  for (int i = 0; i < imgs[0]->edge_neighbors.size(); i ++) {
+    edge_neighbor_vertices_count += imgs[0]->edge_neighbors[i].size();
+  }
+  int keypoint_count = matching_index.size();// 目标图像在参考图像上未出界的匹配点数目
 
   // 对齐项
-  alignment_equation.first = equation;
-  alignment_equation.second = matching_index.size() * 2;// 目标图像在参考图像上的未出界顶点数目和
-  equation += alignment_equation.second;
+  alignment_equation.first = 0;
+  alignment_equation.second = keypoint_count * 2;// 目标图像在参考图像上的未出界顶点数目和
 
   // 局部相似项
-  local_similarity_equation.first = equation;
+  local_similarity_equation.first = alignment_equation.first + alignment_equation.second;
   local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
-  equation += local_similarity_equation.second;
 
   // 全局相似项
-  global_similarity_equation.first = equation;
+  global_similarity_equation.first = local_similarity_equation.first + local_similarity_equation.second;
   global_similarity_equation.second = edge_count * 2;
 
   // triplet的大小并不对应equations的数目
@@ -606,9 +607,9 @@ void MultiImages::reserveData(
   // col: 第col个matching points
   // val: 系数
   // dim: TODO, x或y
-  int triplet_size = alignment_equation.second * 4 // 对齐项的每个等式需要4个参数(每个网格有4个顶点)
-    + edge_neighbor_vertices_count * 4 + local_similarity_equation.second // TODO, 局部相似项的每个等式需要?个参数
-    + edge_neighbor_vertices_count * 4;// TODO, 全局相似项的每个等式需要?个参数
+  int triplet_size = keypoint_count * 4 // 对齐项: 等式 == grid的4个顶点
+    + edge_neighbor_vertices_count * 4 + edge_count * 2 // 局部相似项: 等式 == edge的2个端点 + 2维 * 2维 * edge的邻接顶点
+    + edge_neighbor_vertices_count * 4;// 全局相似项: 等式 == 2维 * 2维 * edge的邻接顶点
   _triplets.reserve(triplet_size);
 
   // 只有全局对齐项的b向量不为零
@@ -673,12 +674,13 @@ void MultiImages::prepareAlignmentTerm(
 
     }
     eq_count += 2;// x, y
+    total_eq += 2;
   }
 
   assert(eq_count == alignment_equation.second);
 }
 
-void MultiImages::prepareSimilarityTerm(  
+void MultiImages::prepareSimilarityTerm(
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
   int eq_count = 0;
@@ -690,7 +692,9 @@ void MultiImages::prepareSimilarityTerm(
 
   const vector<pair<int, int> > edges = imgs[0]->edges;
   const vector<Point2f> vertices = imgs[0]->vertices;
-  const vector<vector<int> > v_neighbors = imgs[0]->vertex_structures;
+  const vector<vector<int> > v_neighbors = imgs[0]->vertex_neighbors;
+  const vector<vector<int> > e_neighbors = imgs[0]->edge_neighbors;// 和原意不同
+  assert(e_neighbors.size() == edges.size());
 
   for (int i = 0; i < edges.size(); i ++) {
     // 获取边的两个端点
@@ -700,21 +704,7 @@ void MultiImages::prepareSimilarityTerm(
     const Point2f dst = vertices[ind_e2];
 
     // 记录边端点的邻接顶点
-    vector<int> point_ind_set;
-    // 第1个端点的邻接顶点
-    for (int j = 0; j < v_neighbors[edges[i].first].size(); j ++) {
-      int v_index = v_neighbors[edges[i].first][j];
-      if (v_index != ind_e1 && v_index != ind_e2) {
-        point_ind_set.emplace_back(v_index);
-      }
-    }
-    // 第2个端点的邻接顶点
-    for (int j = 0; j < v_neighbors[edges[i].second].size(); j ++) {
-      int v_index = v_neighbors[edges[i].second][j];
-      if (v_index != ind_e1 && v_index != ind_e2) {
-        point_ind_set.emplace_back(v_index);
-      }
-    }
+    const vector<int> point_ind_set = e_neighbors[i];
 
     // 看不懂
     Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
@@ -774,7 +764,10 @@ void MultiImages::prepareSimilarityTerm(
       -local_similarity_weight);
     
     eq_count += 2;
+    total_eq += 4;
   }
+
+  LOG("total %d", total_eq);
   assert(eq_count ==  local_similarity_equation.second);
   assert(eq_count == global_similarity_equation.second);
 }
@@ -800,8 +793,6 @@ void MultiImages::getSolution(
   for (int i = 0; i < imgs[0]->vertices.size() * 2; i += 2) {
     matching_pts[0].emplace_back(x[i], x[i + 1]);
   }
-
-  assert(0);
 }
 
 /***

@@ -13,7 +13,8 @@ void ImageData::initData() {
   homographies.clear();
   edges.clear();
   polygons_neighbors.clear();
-  vertex_structures.clear();
+  vertex_neighbors.clear();
+  edge_neighbors.clear();
   polygons_center.clear();
   polygons_weight.clear();
 }
@@ -71,7 +72,8 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
   getIndices();
   getEdges();
   getPolygonsNeighbors();
-  getVertexStructures();
+  getVertexNeighbors();
+  getEdgeNeighbors();
 }
 
 void ImageData::getIndices() {
@@ -154,10 +156,10 @@ void ImageData::getPolygonsNeighbors() {
   }
 }
 
-void ImageData::getVertexStructures() {
-  assert(vertex_structures.empty());
+void ImageData::getVertexNeighbors() {
+  assert(vertex_neighbors.empty());
   const vector<Point2i> nexts = { Point2i(1, 0), Point2i(0, 1), Point2i(-1, 0), Point2i(0, -1) };
-  vertex_structures.resize(rows * cols);// 顶点数
+  vertex_neighbors.resize(rows * cols);// 顶点数
   int index = 0;
   for (int r = 0; r < rows; r ++) {
     for (int c = 0; c < cols; c ++) {
@@ -165,10 +167,38 @@ void ImageData::getVertexStructures() {
       for (int i = 0; i < nexts.size(); i ++) {
         Point2i p2 = p1 + nexts[i];
         if (p2.x >= 0 && p2.y >= 0 && p2.x < cols && p2.y < rows) {
-          vertex_structures[index].emplace_back(p2.x + p2.y * cols);
+          vertex_neighbors[index].emplace_back(p2.x + p2.y * cols);
         }
       }
       index ++;
+    }
+  }
+}
+
+void ImageData::getEdgeNeighbors() {
+  assert(edge_neighbors.empty());
+  edge_neighbors.resize(edges.size());// 边的数目
+  // 记录边端点的邻接顶点
+  for (int i = 0; i < edges.size(); i ++) {
+    // 获取边的两个端点
+    const int ind_e1 = edges[i].first;
+    const int ind_e2 = edges[i].second;
+    const Point2f src = vertices[ind_e1];
+    const Point2f dst = vertices[ind_e2];
+
+    // 第1个端点的邻接顶点
+    for (int j = 0; j < vertex_neighbors[edges[i].first].size(); j ++) {
+      int v_index = vertex_neighbors[edges[i].first][j];
+      if (v_index != ind_e1 && v_index != ind_e2) {
+        edge_neighbors[i].emplace_back(v_index);
+      }
+    }
+    // 第2个端点的邻接顶点
+    for (int j = 0; j < vertex_neighbors[edges[i].second].size(); j ++) {
+      int v_index = vertex_neighbors[edges[i].second][j];
+      if (v_index != ind_e1 && v_index != ind_e2) {
+        edge_neighbors[i].emplace_back(v_index);
+      }
     }
   }
 }

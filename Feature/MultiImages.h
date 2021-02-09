@@ -85,6 +85,9 @@ public:
   /* 最终结果 */
   Mat    pano_result;
 
+  /* debug */
+  int    total_eq;
+
   /* 图片读取 */
   void readImg(const char *img_path);
 
