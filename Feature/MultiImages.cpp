@@ -693,8 +693,13 @@ void MultiImages::prepareSimilarityTerm(
   const vector<vector<int> > v_neighbors = imgs[0]->vertex_structures;
 
   for (int i = 0; i < edges.size(); i ++) {
+    // 获取边的两个端点
     const int ind_e1 = edges[i].first;
     const int ind_e2 = edges[i].second;
+    const Point2f src = vertices[ind_e1];
+    const Point2f dst = vertices[ind_e2];
+
+    // 记录边端点的邻接顶点
     vector<int> point_ind_set;
     // 第1个端点的邻接顶点
     for (int j = 0; j < v_neighbors[edges[i].first].size(); j ++) {
@@ -711,7 +716,7 @@ void MultiImages::prepareSimilarityTerm(
       }
     }
 
-
+    // 看不懂
     Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
     for (int j = 0; j < point_ind_set.size(); j ++) {
       Point2f e = vertices[point_ind_set[j]] - src;
