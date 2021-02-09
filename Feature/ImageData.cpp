@@ -168,6 +168,7 @@ void ImageData::getVertexStructures() {
           vertex_structures[index].emplace_back(p2.x + p2.y * cols);
         }
       }
+      index ++;
     }
   }
 }

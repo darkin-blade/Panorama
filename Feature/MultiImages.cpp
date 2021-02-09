@@ -715,7 +715,6 @@ void MultiImages::prepareSimilarityTerm(
         point_ind_set.emplace_back(v_index);
       }
     }
-    LOG("%d %d", v_neighbors[edges[i].first].size() + v_neighbors[edges[i].second].size(), point_ind_set.size());
 
     // 看不懂
     Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
