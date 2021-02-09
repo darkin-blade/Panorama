@@ -401,8 +401,6 @@ void MultiImages::myWarping() {
     Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
     // 计算目标矩阵
     Rect2f rect = getVerticesRects(matching_pts[i]);
-
-    cout << rect << endl;
     if (i == 1) {
       // 参考图片
       LOG("%d %d", imgs[i]->mask.cols, imgs[i]->mask.rows);
@@ -661,6 +659,9 @@ void MultiImages::prepareAlignmentTerm(
         _triplets.emplace_back(equation + eq_count + dim,// 等式index
           dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
           alignment_weight * weights_1[i][j]);
+        LOG("%d %d %lf", equation + eq_count + dim,// 等式index
+          dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
+          alignment_weight * weights_1[i][j]);
 
         // 匹配点在参考图像的分量(定值)
         int index_of_m2 = indices_2[index_2[i]][j];
@@ -670,8 +671,7 @@ void MultiImages::prepareAlignmentTerm(
           b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].y * weights_2[i][j];
         }
       }
-      _b_vector.emplace_back(equation + eq_count + dim, b_sum);
-      LOG("%d %lf", equation + eq_count + dim, b_sum);
+      _b_vector.emplace_back(equation + eq_count + dim, b_sum);// TODO 这个可以直接设为匹配点的坐标
 
     }
     eq_count += 2;// x, y
@@ -738,11 +738,17 @@ void MultiImages::prepareSimilarityTerm(
           _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
             -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+          LOG("%d %d %lf", local_similarity_equation.first + eq_count + dim,
+            2 * ind_e1 + xy,
+            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
           // global
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
             2 * point_ind_set[j] + xy,
             _global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
+            2 * ind_e1 + xy,
+            -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
+          LOG("%d %d %lf", global_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
             -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
         }
@@ -755,18 +761,21 @@ void MultiImages::prepareSimilarityTerm(
     }
 
     // local: x1, y1, x2, y2 
-    _triplets.emplace_back( local_similarity_equation.first + eq_count    , 2 * ind_e2    ,
+    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e2    ,
       local_similarity_weight);
-    _triplets.emplace_back( local_similarity_equation.first + eq_count + 1, 2 * ind_e2 + 1,
+    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e2 + 1,
       local_similarity_weight);
-    _triplets.emplace_back( local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
+    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
       -local_similarity_weight);
-    _triplets.emplace_back( local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
+    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
+      -local_similarity_weight);
+    LOG("%d %d %lf", local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
       -local_similarity_weight);
     
     eq_count += 2;
     total_eq += 4;
   }
+
 
   LOG("total %d", total_eq);
   assert(eq_count ==  local_similarity_equation.second);
@@ -776,7 +785,7 @@ void MultiImages::prepareSimilarityTerm(
 void MultiImages::getSolution(  
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
-  const int equations = alignment_equation.second + local_similarity_equation.second + global_similarity_equation.second;
+  int equations = alignment_equation.second + local_similarity_equation.second + global_similarity_equation.second;
 
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
   SparseMatrix<double> A(equations, imgs[0]->vertices.size() * 2);

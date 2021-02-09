@@ -68,7 +68,6 @@ void My_Stitching::debug() {
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
   lscg.compute(A);
   x = lscg.solve(b);
-  cout << x << endl;
 
   assert(0);
 }
