@@ -52,11 +52,10 @@ public:
   vector<pair<int, int> > feature_pairs;// RANSAC之后的特征点配对信息
   vector<Point2f>         feature_points_1, feature_points_2;// RANSAC的特征点;
 
-  /* 相似变换 */
+  /* 相似变换: 目标图像 */
   double    scale;
   double    rotate;// 顺时针(因为坐标系是反的)
   double    shift_x, shift_y;
-  Point2f   shift_vec;// 在图片的原始尺寸和方向状态的坐标系, 图片中心从src到dst的平移向量
 
   /* 网格变换 */
   vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点

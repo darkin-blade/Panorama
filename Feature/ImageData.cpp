@@ -142,7 +142,7 @@ void ImageData::getPolygonsNeighbors() {
   int index = 0;
   for (int r = 0; r < rows - 1; r ++) {
     for (int c = 0; c < cols - 1; c ++) {
-      const Point2i(c, r);
+      const Point2i p1(c, r);
       for (int i = 0; i < nexts.size(); i ++) {
         const Point2i p2 = p1 + nexts[i];
         if (p2.x >= 0 && p2.y >= 0 && p2.x < cols - 1 && p2.y < rows - 1) {

@@ -26,11 +26,11 @@ public:
   vector<Mat>          homographies;
 
   /* 网格优化 */
-  vector<pair<int> >   edges;// 每条边对应的顶点索引
-  vector<vector<int> > polygons_neighbors;// 每个网格的邻接网格的索引
-  vector<vector<int> > vertex_structures;// 每个顶点的邻接顶点的索引
-  vector<Point2f>      polygons_center;// 每个网格的中心
-  vector<double>       polygons_weight;// 每个网格的权重(与含有匹配点的网格之间的最小距离)
+  vector<pair<int, int> >   edges;// 每条边对应的顶点索引
+  vector<vector<int> >      polygons_neighbors;// 每个网格的邻接网格的索引
+  vector<vector<int> >      vertex_structures;// 每个顶点的邻接顶点的索引
+  vector<Point2f>           polygons_center;// 每个网格的中心
+  vector<double>            polygons_weight;// 每个网格的权重(与含有匹配点的网格之间的最小距离)
 
   void initData();
   void readImg(const Mat & _img, int mode);

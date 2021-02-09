@@ -371,22 +371,6 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
     matching_pts[2].emplace_back(new_x, new_y);
   }
   matching_pts[3].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-
-  // 计算参考点
-  double dst_x = imgs[0]->data.cols / 2;
-  double dst_y = imgs[0]->data.rows / 2;
-  double src_x = (dst_x * cos(rotate) - dst_y * sin(rotate)) + shift_x;
-  double src_y = (dst_x * sin(rotate) + dst_y * cos(rotate)) + shift_y;
-  double delta_x = dst_x - src_x;
-  double delta_y = dst_y - src_y;
-  // 反向旋转(顺时针旋转rotate弧度
-  double vec_x = delta_x * cos(-rotate) - delta_y * sin(-rotate);
-  double vec_y = delta_x * sin(-rotate) + delta_y * cos(-rotate);
-  // 修正缩放比(缩小scale比例)
-  vec_x /= scale;
-  vec_y /= scale;
-  shift_vec = Point2f(vec_x, vec_y);
-  LOG("vector(%lf, %lf)", vec_x, vec_y);
 }
 
 void MultiImages::myWarping() {
@@ -699,14 +683,15 @@ void MultiImages::prepareSimilarityTerm(
     vector<pair<int, double> > & _b_vector) {
   int eq_count = 0;
 
-  const similarity[2] = {
-    scale[0] * cos(rotate[0]),
-    scale[0] * sin(rotate[0])
+  const double similarity[2] = {
+    scale * cos(rotate),
+    scale * sin(rotate)
   };// TODO 单位
 
   const vector<pair<int, int> > edges = imgs[0]->edges;
-  // const vector<Point2f> vertices = imgs[0]->vertices;
-  const vector<vector<int> > v_neighbors = imgs[0]->vertex_strctures;
+  const vector<Point2f> vertices = imgs[0]->vertices;
+  const vector<vector<int> > v_neighbors = imgs[0]->vertex_structures;
+
   for (int i = 0; i < edges.size(); i ++) {
     const int ind_e1 = edges[i].first;
     const int ind_e2 = edges[i].second;
@@ -728,13 +713,12 @@ void MultiImages::prepareSimilarityTerm(
 
 
     Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
-    set<int>::const_iterator it = point_ind_set.begin();
-    for (int p = 0; it != point_ind_set.end(); p ++, it ++) {
-      Point2f e = mesh_points[*it] - src;
-      E.at<double>(2 * p    , 0) =  e.x;
-      E.at<double>(2 * p    , 1) =  e.y;
-      E.at<double>(2 * p + 1, 0) =  e.y;
-      E.at<double>(2 * p + 1, 1) = -e.x;
+    for (int j = 0; j < point_ind_set.size(); j ++) {
+      Point2f e = vertices[point_ind_set[j]] - src;
+      E.at<double>(2 * j    , 0) =  e.x;
+      E.at<double>(2 * j    , 1) =  e.y;
+      E.at<double>(2 * j + 1, 0) =  e.y;
+      E.at<double>(2 * j + 1, 1) = -e.x;
     }
     transpose(E, Et);// 转置
     Point2f e_main = dst - src;
@@ -751,22 +735,20 @@ void MultiImages::prepareSimilarityTerm(
     for (int j = 0; j < point_ind_set.size(); j ++) {
       for (int xy = 0; xy < 2; xy ++) {
         for (int dim = 0; dim < 2; dim ++) {
-          if (local_similarity_term) {
-            _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
-              2 * point_ind_set[j] + xy,
-              local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
-            _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
-              2 * ind_e1 + xy,
-              -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
-          }
-          if (global_similarity_term) {
-            _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
-              2 * point_ind_set[j] + xy,
-              _global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
-            _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
-              2 * ind_e1 + xy,
-              -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
-          }
+          // local
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+            2 * point_ind_set[j] + xy,
+            local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+            2 * ind_e1 + xy,
+            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+          // global
+          _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
+            2 * point_ind_set[j] + xy,
+            _global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
+          _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
+            2 * ind_e1 + xy,
+            -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
         }
       }
     }
@@ -788,12 +770,33 @@ void MultiImages::prepareSimilarityTerm(
     
     eq_count += 2;
   }
+  assert(eq_count ==  local_similarity_equation.second);
+  assert(eq_count == global_similarity_equation.second);
 }
 
 void MultiImages::getSolution(  
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
-  ;
+  const int equations = alignment_equation.second + local_similarity_equation.second + global_similarity_equation.second;
+
+  LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
+  SparseMatrix<double> A(equations, imgs[0]->vertices.size() * 2);
+  VectorXd b = VectorXd::Zero(equations), x;
+
+  A.setFromTriplets(_triplets.begin(), _triplets.end());
+  for (int i = 0; i < _b_vector.size(); i ++) {
+    b[_b_vector[i].first] = _b_vector[i].second;
+  }
+
+  lscg.compute(A);
+  x = lscg.solve(b);
+
+  matching_pts[0].clear();
+  for (int i = 0; i < imgs[0]->vertices.size() * 2; i += 2) {
+    matching_pts[0].emplace_back(x[i], x[i + 1]);
+  }
+
+  assert(0);
 }
 
 /***
