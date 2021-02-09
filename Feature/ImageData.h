@@ -30,14 +30,12 @@ public:
   vector<vector<int> >      polygons_neighbors;// 每个网格的邻接网格的索引
   vector<vector<int> >      vertex_neighbors;// 每个顶点的邻接顶点的索引
   vector<vector<int> >      edge_neighbors;// 每个顶点的邻接顶点的索引
-  vector<Point2f>           polygons_center;// 每个网格的中心
   vector<double>            polygons_weight;// 每个网格的权重(与含有匹配点的网格之间的最小距离)
 
   void initData();
   void readImg(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
 
-  void getPolygonsCenter();
   void getIndices();
   void getEdges();
   void getPolygonsNeighbors();

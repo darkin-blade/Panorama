@@ -15,7 +15,6 @@ void ImageData::initData() {
   polygons_neighbors.clear();
   vertex_neighbors.clear();
   edge_neighbors.clear();
-  polygons_center.clear();
   polygons_weight.clear();
 }
 
@@ -68,7 +67,6 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
     }
   }
 
-  getPolygonsCenter();
   getIndices();
   getEdges();
   getPolygonsNeighbors();
@@ -104,19 +102,6 @@ void ImageData::getIndices() {
       indice_3.emplace_back((i + 1) * cols + j);
       polygons_indices.emplace_back(indice_3);
     }
-  }
-}
-
-void ImageData::getPolygonsCenter() {
-  assert(polygons_center.empty());
-  for (int i = 0; i < polygons_indices.size(); i ++) {
-    Point2f center(0, 0);
-    for (int j = 0; j < polygons_indices[i].size(); j ++) {
-      center += vertices[polygons_indices[i][j]];
-    }
-    // 求4个顶点的平均值
-    assert(polygons_indices[i].size() == 4);
-    polygons_center.emplace_back(center / 4);
   }
 }
 

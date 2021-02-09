@@ -671,6 +671,7 @@ void MultiImages::prepareAlignmentTerm(
         }
       }
       _b_vector.emplace_back(equation + eq_count + dim, b_sum);
+      LOG("%d %lf", equation + eq_count + dim, b_sum);
 
     }
     eq_count += 2;// x, y
