@@ -63,7 +63,7 @@ void ImageData::initVertices(vector<double> _col, vector<double> _row) {
   for (int i = 0; i < rows; i ++) {
     for (int j = 0; j < cols; j ++) {
       // 记录网格顶点
-      vertices.emplace_back(data.cols * _col[j], data.rows * _row[i]);
+      vertices.emplace_back(_col[j] * data.cols, _row[i] * data.rows);
     }
   }
 
@@ -196,14 +196,21 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
   // 计算某点在这幅图中所在的grid位置
   int row_index = 0, col_index = 0;
-  while (_p.x > col_vec[col_index + 1]) {
-    col_index ++;
-    assert(col_index + 1 < cols);
+  for (; _p.x >= col_vec[col_index + 1]; col_index ++) {
+    if (col_index + 1 >= cols) {
+      col_index --;
+      break;
+    }
   }
-  while (_p.y > row_vec[row_index + 1]) {
-    row_index ++;
-    assert(row_index + 1 < rows);
+  for (; _p.y >= row_vec[row_index + 1]; row_index ++) {
+    if (row_index + 1 >= rows) {
+      row_index --;
+      break;
+    }
   }
+  assert(col_index + 1 < cols);
+  assert(row_index + 1 < rows);
+
   return col_index + row_index * (rows - 1);
 }
 

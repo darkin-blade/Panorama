@@ -641,6 +641,9 @@ void MultiImages::prepareAlignmentTerm(
     index_2.emplace_back(tmp_index);
     weights_2.emplace_back(tmp_weights);
   }
+  LOG("%d %d", imgs[0]->data.cols, imgs[0]->data.rows);
+  cout << imgs[0]->col_vec[5] << endl;
+  cout << imgs[0]->vertices[16] << endl;
   assert(matching_index.size() == index_1.size());
   assert(matching_index.size() == index_2.size());
   assert(!imgs[1]->vertices.empty());
@@ -650,16 +653,15 @@ void MultiImages::prepareAlignmentTerm(
 
   const vector<vector<int> > indices_1 = imgs[0]->polygons_indices;
   const vector<vector<int> > indices_2 = imgs[1]->polygons_indices;
+  
   for (int i = 0; i < matching_index.size(); i ++) {
+    LOG("%d %d %d", i, matching_index[i], index_1[i]);
     for (int dim = 0; dim < 2; dim ++) {
       // x, y
       double b_sum = 0;// 参考图像的4个分量之和
       for (int j = 0; j < 4; j ++) {
         // 顶点在自身的分量
         _triplets.emplace_back(equation + eq_count + dim,// 等式index
-          dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
-          alignment_weight * weights_1[i][j]);
-        LOG("%d %d %lf", equation + eq_count + dim,// 等式index
           dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
           alignment_weight * weights_1[i][j]);
 
@@ -738,17 +740,11 @@ void MultiImages::prepareSimilarityTerm(
           _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
             -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
-          LOG("%d %d %lf", local_similarity_equation.first + eq_count + dim,
-            2 * ind_e1 + xy,
-            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
           // global
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
             2 * point_ind_set[j] + xy,
             _global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
-            2 * ind_e1 + xy,
-            -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
-          LOG("%d %d %lf", global_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
             -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
         }
@@ -768,8 +764,6 @@ void MultiImages::prepareSimilarityTerm(
     _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
       -local_similarity_weight);
     _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
-      -local_similarity_weight);
-    LOG("%d %d %lf", local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
       -local_similarity_weight);
     
     eq_count += 2;
