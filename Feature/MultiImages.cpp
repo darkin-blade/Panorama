@@ -641,9 +641,6 @@ void MultiImages::prepareAlignmentTerm(
     index_2.emplace_back(tmp_index);
     weights_2.emplace_back(tmp_weights);
   }
-  LOG("%d %d", imgs[0]->data.cols, imgs[0]->data.rows);
-  cout << imgs[0]->col_vec[5] << endl;
-  cout << imgs[0]->vertices[16] << endl;
   assert(matching_index.size() == index_1.size());
   assert(matching_index.size() == index_2.size());
   assert(!imgs[1]->vertices.empty());
@@ -655,7 +652,6 @@ void MultiImages::prepareAlignmentTerm(
   const vector<vector<int> > indices_2 = imgs[1]->polygons_indices;
   
   for (int i = 0; i < matching_index.size(); i ++) {
-    LOG("%d %d %d", i, matching_index[i], index_1[i]);
     for (int dim = 0; dim < 2; dim ++) {
       // x, y
       double b_sum = 0;// 参考图像的4个分量之和
@@ -792,6 +788,7 @@ void MultiImages::getSolution(
 
   lscg.compute(A);
   x = lscg.solve(b);
+  cout << b << endl;
 
   matching_pts[0].clear();
   for (int i = 0; i < imgs[0]->vertices.size() * 2; i += 2) {
