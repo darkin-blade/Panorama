@@ -685,8 +685,8 @@ void MultiImages::prepareSimilarityTerm(
   int eq_count = 0;
 
   const double similarity[2] = {
-    scale * cos(rotate),
-    scale * sin(rotate)
+    1 * cos(rotate),
+    1 * sin(rotate)
   };// TODO 单位
 
   const vector<pair<int, int> > edges = imgs[0]->edges;
@@ -766,7 +766,6 @@ void MultiImages::prepareSimilarityTerm(
     total_eq += 4;
   }
 
-
   LOG("total %d", total_eq);
   assert(eq_count ==  local_similarity_equation.second);
   assert(eq_count == global_similarity_equation.second);
@@ -788,7 +787,6 @@ void MultiImages::getSolution(
 
   lscg.compute(A);
   x = lscg.solve(b);
-  cout << b << endl;
 
   matching_pts[0].clear();
   for (int i = 0; i < imgs[0]->vertices.size() * 2; i += 2) {

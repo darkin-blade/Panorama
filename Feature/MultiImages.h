@@ -62,7 +62,7 @@ public:
   vector<int>                matching_index;// 目标图像在参考图像上未出界的匹配点索引
 
   /* 网格优化 */
-  double alignment_weight                = 1 * 1;
+  double alignment_weight               = 1 * 1;
   double local_similarity_weight        = 1 * 0.56;
   double global_similarity_weight_beta  = 1 * 6;
   double global_similarity_weight_gamma = 1 * 20;
