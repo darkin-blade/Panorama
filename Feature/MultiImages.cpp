@@ -222,7 +222,7 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  int mesh_size = 10;
+  int mesh_size = 8;
   for (int i = 0; i <= mesh_size; i ++) {
     col_r.emplace_back((double)i / mesh_size);
     row_r.emplace_back((double)i / mesh_size);
@@ -684,6 +684,7 @@ void MultiImages::prepareSimilarityTerm(
     vector<pair<int, double> > & _b_vector) {
   int eq_count = 0;
 
+  rotate = 0.5;
   const double similarity[2] = {
     1 * cos(rotate),
     1 * sin(rotate)

@@ -96,7 +96,7 @@ const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
 /*****************************************************************************************/
 
 /*** data setting ***/
-const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 600;// 800 * 600
+const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 300;// 800 * 600
 
 /*** APAP ***/
 const double APAP_GAMMA = 0.0015;// 0.0015
@@ -115,7 +115,7 @@ const int DIMENSION_2D = 2;
 const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
 /*** vlfeat sift ***/
-const    int SIFT_LEVEL_COUNT          = 2;// nlevels 3
+const    int SIFT_LEVEL_COUNT          = 1;// nlevels 3
 const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;// o_min 0
 const double SIFT_PEAK_THRESH = 0.;
 const double SIFT_EDGE_THRESH = 10.;

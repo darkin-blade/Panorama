@@ -189,6 +189,7 @@ void ImageData::getEdgeNeighbors() {
 }
 
 int ImageData::getGridIndexOfPoint(const Point2f & _p) {
+  // 稍有偏差不影响
   assert(_p.x >= 0);
   assert(_p.x >= 0);
   assert(_p.x <= data.cols);
@@ -196,20 +197,14 @@ int ImageData::getGridIndexOfPoint(const Point2f & _p) {
 
   // 计算某点在这幅图中所在的grid位置
   int row_index = 0, col_index = 0;
-  for (; _p.x >= col_vec[col_index + 1]; col_index ++) {
-    if (col_index + 1 >= cols) {
-      col_index --;
-      break;
-    }
+  while (_p.x > col_vec[col_index + 1]) {
+    col_index ++;
+    assert(col_index + 1 < cols);
   }
-  for (; _p.y >= row_vec[row_index + 1]; row_index ++) {
-    if (row_index + 1 >= rows) {
-      row_index --;
-      break;
-    }
+  while (_p.y > row_vec[row_index + 1]) {
+    row_index ++;
+    assert(row_index + 1 < rows);
   }
-  assert(col_index + 1 < cols);
-  assert(row_index + 1 < rows);
 
   return col_index + row_index * (rows - 1);
 }
