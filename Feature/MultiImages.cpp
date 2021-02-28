@@ -222,7 +222,7 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  int mesh_size = 8;
+  int mesh_size = 5;
   for (int i = 0; i <= mesh_size; i ++) {
     col_r.emplace_back((double)i / mesh_size);
     row_r.emplace_back((double)i / mesh_size);
@@ -246,6 +246,7 @@ void MultiImages::getMeshInfo() {
     matching_pts[0],
     imgs[0]->homographies
   );
+  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());// 参考图像的最终顶点位置
 
   // 获取m1在m2上(未出界)的匹配点
   int matching_pts_size = matching_pts[0].size();
@@ -362,15 +363,14 @@ void MultiImages::similarityTransform(int _mode, double _angle) {
 
   // 进行相似变换
   LOG("r=%lf, s=%lf, x=%lf, y=%lf", rotate, scale, shift_x, shift_y);
-  assert(matching_pts.size() == 2);
+  similarity_pts.resize(2);
   for (int i = 0; i < imgs[0]->vertices.size(); i ++) {
     double x = imgs[0]->vertices[i].x;
     double y = imgs[0]->vertices[i].y;
     double new_x = (x * cos(rotate) - y * sin(rotate)) * scale + shift_x;
     double new_y = (x * sin(rotate) + y * cos(rotate)) * scale + shift_y;
-    matching_pts[2].emplace_back(new_x, new_y);
+    similarity_pts[0].emplace_back(new_x, new_y);
   }
-  matching_pts[3].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
 }
 
 void MultiImages::myWarping() {
@@ -378,8 +378,15 @@ void MultiImages::myWarping() {
   pano_images.clear();
   pano_masks.clear();
   origin_masks.clear();
+
+  // 对所有图像的网格点归一化(去除负值)
+  Size2f tmp_size = normalizeVertices(matching_pts);
+  for (int i = 0; i < matching_pts[0].size(); i ++) {
+    LOG("%lf %lf", matching_pts[0][i].x, matching_pts[0][i].y);
+  }
+  pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
   
-  // 获得每个形变的图片, 图片的起点都是(0, 0)
+  // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
   Mat warped_image;
   Mat image_mask;
   warpImage(
@@ -389,11 +396,7 @@ void MultiImages::myWarping() {
     imgs[0]->data,
     warped_image,
     image_mask);
-
-  // 对所有图像的网格点归一化(去除负值)
-  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-  Size2f tmp_size = normalizeVertices(matching_pts);
-  pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
+  show_img("test1", warped_image);
 
   // 将每个图片/mask平移到最终位置
   for (int i = 0; i < 2; i ++) {
@@ -403,12 +406,9 @@ void MultiImages::myWarping() {
     Rect2f rect = getVerticesRects(matching_pts[i]);
     if (i == 1) {
       // 参考图片
-      LOG("%d %d", imgs[i]->mask.cols, imgs[i]->mask.rows);
       cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
       imgs[i]->mask.copyTo(tmp_mask(rect));
     } else {
-      LOG("%d %d", image_mask.cols, image_mask.rows);
-      LOG("%d %d", tmp_mask.cols, tmp_mask.rows);
       warped_image.copyTo(tmp_image(rect));
       image_mask.copyTo(tmp_mask(rect));
     }
@@ -571,7 +571,7 @@ void MultiImages::meshOptimization() {
 
   reserveData(triplets, b_vector);
   prepareAlignmentTerm(triplets, b_vector);
-  prepareSimilarityTerm(triplets, b_vector);
+  // prepareSimilarityTerm(triplets, b_vector);
   getSolution(triplets, b_vector);
 }
 
@@ -651,32 +651,44 @@ void MultiImages::prepareAlignmentTerm(
   const vector<vector<int> > indices_1 = imgs[0]->polygons_indices;
   const vector<vector<int> > indices_2 = imgs[1]->polygons_indices;
   
-  for (int i = 0; i < matching_index.size(); i ++) {
-    for (int dim = 0; dim < 2; dim ++) {
-      // x, y
-      double b_sum = 0;// 参考图像的4个分量之和
-      for (int j = 0; j < 4; j ++) {
-        // 顶点在自身的分量
-        _triplets.emplace_back(equation + eq_count + dim,// 等式index
-          dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
-          alignment_weight * weights_1[i][j]);
+  // for (int i = 0; i < matching_index.size(); i ++) {
+  //   for (int dim = 0; dim < 2; dim ++) {
+  //     // x, y
+  //     double b_sum = 0;// 参考图像的4个分量之和
+  //     for (int j = 0; j < 4; j ++) {
+  //       // 顶点在自身的分量
+  //       _triplets.emplace_back(equation + eq_count + dim,// 等式index
+  //         dim + 2 * indices_1[index_1[i]][j],// 顶点对应的未知数
+  //         alignment_weight * weights_1[i][j]);
 
-        // 匹配点在参考图像的分量(定值)
-        int index_of_m2 = indices_2[index_2[i]][j];
-        if (dim == 0) { // x
-          b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].x * weights_2[i][j];
-        } else { // y
-          b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].y * weights_2[i][j];
-        }
-      }
-      _b_vector.emplace_back(equation + eq_count + dim, b_sum);// TODO 这个可以直接设为匹配点的坐标
+  //       // 匹配点在参考图像的分量(定值)
+  //       int index_of_m2 = indices_2[index_2[i]][j];
+  //       if (dim == 0) { // x
+  //         b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].x * weights_2[i][j];
+  //       } else { // y
+  //         b_sum += alignment_weight * imgs[1]->vertices[index_of_m2].y * weights_2[i][j];
+  //       }
+  //     }
+  //     _b_vector.emplace_back(equation + eq_count + dim, b_sum);// TODO 这个可以直接设为匹配点的坐标
 
-    }
-    eq_count += 2;// x, y
-    total_eq += 2;
+  //   }
+  //   eq_count += 2;// x, y
+  //   total_eq += 2;
+  // }
+
+  // assert(eq_count == alignment_equation.second);
+
+  assert(similarity_pts[0].size() == imgs[0]->vertices.size());
+  for (int i = 0; i < similarity_pts[0].size(); i ++) {
+    double x = similarity_pts[0][i].x;
+    _triplets.emplace_back(equation + equation + 0, i * 2 + 0, 1);
+    _b_vector.emplace_back(equation + equation + 0, x);
+    double y = similarity_pts[0][i].y;
+    _triplets.emplace_back(equation + equation + 1, i * 2 + 1, 1);
+    _b_vector.emplace_back(equation + equation + 1, y);
+    LOG("%d %d %lf %lf", i * 2 + 0, x, i * 2 + 1, y);
+    eq_count += 2;
   }
-
-  assert(eq_count == alignment_equation.second);
 }
 
 void MultiImages::prepareSimilarityTerm(
@@ -684,7 +696,8 @@ void MultiImages::prepareSimilarityTerm(
     vector<pair<int, double> > & _b_vector) {
   int eq_count = 0;
 
-  rotate = 0.5;
+  rotate = 0;
+  LOG("rotate is %lf", rotate);
   const double similarity[2] = {
     1 * cos(rotate),
     1 * sin(rotate)

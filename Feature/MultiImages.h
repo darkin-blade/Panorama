@@ -58,12 +58,13 @@ public:
   double    shift_x, shift_y;
 
   /* 网格变换 */
-  vector<vector<Point2f> >   matching_pts;// TODO 前半段为mdlt计算的网格点
+  vector<vector<Point2f> >   matching_pts;// TODO
+  vector<vector<Point2f> >   similarity_pts;// 相似变换计算出的结果
   vector<int>                matching_index;// 目标图像在参考图像上未出界的匹配点索引
 
   /* 网格优化 */
   double alignment_weight               = 1 * 1;
-  double local_similarity_weight        = 1 * 0.56;
+  double local_similarity_weight        = 10 * 0.56;
   double global_similarity_weight_beta  = 1 * 6;
   double global_similarity_weight_gamma = 1 * 20;
   // 下面3项pair的含义:

@@ -15,12 +15,13 @@ Mat My_Stitching::getMyResult() {
     multi_images->imgs[0]->initData();
     multi_images->imgs[1]->initData();
 
+    // 目标图片序号为0, 参考图片序号为1
     if (i == 1) {
       // 使用原始图片
       // 目标图片
-      multi_images->imgs[0]->readImg(multi_images->origin_data[i - 1], 1);
+      multi_images->imgs[0]->readImg(multi_images->origin_data[i], 1);
       // 参考图片
-      multi_images->imgs[1]->readImg(multi_images->origin_data[i], 1);
+      multi_images->imgs[1]->readImg(multi_images->origin_data[i - 1], 1);
     } else {
       // 使用之前的结果
       // 目标图片
@@ -33,8 +34,8 @@ Mat My_Stitching::getMyResult() {
 
     multi_images->getFeatureInfo();
     multi_images->getMeshInfo();
+    multi_images->similarityTransform(1, -0.09);// 负为逆时针
     multi_images->meshOptimization();
-    // multi_images->similarityTransform(1, 0.03);
 
     // multi_images->textureMapping(0);
     // drawFeatureMatch();

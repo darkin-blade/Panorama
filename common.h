@@ -87,16 +87,13 @@ void show_img(UMat img, const char *fmt, ...);
 
 /*****************************************************************************************/
 
-/** MeshGrid.cpp **/
-const int GRID_VERTEX_SIZE = 4;
-
 /** MultiImages textureMapping **/
 const int NO_GRID = -1, TRIANGLE_COUNT = 3, PRECISION = 0;
 
 /*****************************************************************************************/
 
 /*** data setting ***/
-const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 300;// 800 * 600
+const int DOWN_SAMPLE_IMAGE_SIZE = 800 * 600;// 800 * 600
 
 /*** APAP ***/
 const double APAP_GAMMA = 0.0015;// 0.0015
