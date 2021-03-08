@@ -73,6 +73,8 @@ public:
   pair<int, int> alignment_equation;
   pair<int, int> local_similarity_equation;
   pair<int, int> global_similarity_equation;
+  // 传感器数据
+  pair<int, int> sensor_equation;
 
   /* 图像融合 */
   Size2i                  pano_size;
@@ -114,6 +116,9 @@ public:
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareSimilarityTerm(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
+  void prepareSensorTerm(
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void getSolution(

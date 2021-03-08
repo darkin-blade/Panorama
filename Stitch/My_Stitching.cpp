@@ -34,7 +34,7 @@ Mat My_Stitching::getMyResult() {
 
     multi_images->getFeatureInfo();
     multi_images->getMeshInfo();
-    multi_images->similarityTransform(1, -0.09);// 负为逆时针
+    multi_images->similarityTransform(1, 0);// 负为逆时针
     multi_images->meshOptimization();
 
     // multi_images->textureMapping(0);
