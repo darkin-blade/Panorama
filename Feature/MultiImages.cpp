@@ -214,6 +214,7 @@ void MultiImages::getMeshInfo() {
   // 初始化图像网格
   matching_pts.clear();
   matching_index.clear();
+  unmatching_index.clear();
   vector<double> col_r, row_r;
 
   // double base = 0;
@@ -222,7 +223,7 @@ void MultiImages::getMeshInfo() {
   //   base += (1 - base) / 2.5;
   // }
   // col_r.emplace_back(1);
-  int mesh_size = 5;
+  int mesh_size = 8;
   for (int i = 0; i <= mesh_size; i ++) {
     col_r.emplace_back((double)i / mesh_size);
     row_r.emplace_back((double)i / mesh_size);
@@ -257,6 +258,8 @@ void MultiImages::getMeshInfo() {
       && tmp_point.x <= imgs[1]->data.cols && tmp_point.y <= imgs[1]->data.rows) {
       // 没有出界
       matching_index.emplace_back(i);
+    } else {
+      unmatching_index.emplace_back(i);
     }
   }
 }
@@ -385,9 +388,6 @@ void MultiImages::myWarping() {
 
   // 对所有图像的网格点归一化(去除负值)
   Size2f tmp_size = normalizeVertices(matching_pts);
-  for (int i = 0; i < matching_pts[0].size(); i ++) {
-    LOG("%lf %lf", matching_pts[0][i].x, matching_pts[0][i].y);
-  }
   pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
   
   // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
@@ -571,11 +571,32 @@ void MultiImages::warpPoints(
 void MultiImages::meshOptimization() {
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
+  assert(imgs[0]->vertices.size() == matching_index.size() + unmatching_index.size());
+  
+  // vector<Point2f> p1, p2;
+  // for (int i = 0; i < matching_index.size(); i ++) {
+  //   p1.emplace_back(matching_pts[0][matching_index[i]]);
+  // }
+  // for (int i = 0; i < unmatching_index.size(); i ++) {
+  //   p2.emplace_back(matching_pts[0][unmatching_index[i]]);
+  // }
+  
+  // drawPoints(imgs[0]->data, p1);
+  // drawPoints(imgs[0]->data, p2);
 
   reserveData(triplets, b_vector);
-  // prepareAlignmentTerm(triplets, b_vector);
-  // prepareSimilarityTerm(triplets, b_vector);
-  prepareSensorTerm(triplets, b_vector);
+  if (alignment_equation.second > 0) {
+    prepareAlignmentTerm(triplets, b_vector);
+  }
+  if (local_similarity_equation.second > 0) {
+    prepareLocalSimilarityTerm(triplets, b_vector);
+  }
+  if (global_similarity_equation.second  > 0) {
+    prepareGlobalSimilarityTerm(triplets, b_vector);
+  }
+  if (sensor_equation.second > 0) {
+    prepareSensorTerm(triplets, b_vector);
+  }
   getSolution(triplets, b_vector);
 }
 
@@ -589,26 +610,26 @@ void MultiImages::reserveData(
   for (int i = 0; i < imgs[0]->edge_neighbors.size(); i ++) {
     edge_neighbor_vertices_count += imgs[0]->edge_neighbors[i].size();
   }
-  int keypoint_count = matching_index.size();// 目标图像在参考图像上未出界的匹配点数目
 
   // 对齐项
   alignment_equation.first = 0;
-  alignment_equation.second = 0;
-  // alignment_equation.second = keypoint_count * 2;// 目标图像在参考图像上的未出界顶点数目和
+  // alignment_equation.second = 0;
+  alignment_equation.second = matching_index.size() * 2;// 目标图像在参考图像上的未出界顶点数目和
 
   // 局部相似项
   local_similarity_equation.first = alignment_equation.first + alignment_equation.second;
-  local_similarity_equation.second = 0;
-  // local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
+  // local_similarity_equation.second = 0;
+  local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
 
   // 全局相似项
   global_similarity_equation.first = local_similarity_equation.first + local_similarity_equation.second;
-  // global_similarity_equation.second = edge_count * 2;
-  global_similarity_equation.second = 0;
+  // global_similarity_equation.second = 0;
+  global_similarity_equation.second = edge_count * 2;
 
   // 传感器定位
   sensor_equation.first = global_similarity_equation.first + global_similarity_equation.second;
-  sensor_equation.second = imgs[0]->vertices.size() * 2;// 顶点数 * 2 
+  // sensor_equation.second = 0;
+  sensor_equation.second = unmatching_index.size() * 2;// 顶点数 * 2 
 
   // triplet的大小并不对应equations的数目
   // triplet(row, col, val):
@@ -616,14 +637,14 @@ void MultiImages::reserveData(
   // col: 第col个matching points
   // val: 系数
   // dim: TODO, x或y
-  int triplet_size = keypoint_count * 4 // 对齐项: 等式 == grid的4个顶点
+  int triplet_size = matching_index.size() * 4 // 对齐项: 等式 == grid的4个顶点
     + edge_neighbor_vertices_count * 4 + edge_count * 2 // 局部相似项: 等式 == edge的2个端点 + 2维 * 2维 * edge的邻接顶点
     + edge_neighbor_vertices_count * 4// 全局相似项: 等式 == 2维 * 2维 * edge的邻接顶点
     + sensor_equation.second;// TODO
   _triplets.reserve(triplet_size);
 
-  // 只有全局对齐项的b向量不为零
-  int b_vector_size = sensor_equation.second;
+  // b向量不为零的数目
+  int b_vector_size = global_similarity_equation.second + sensor_equation.second;
   _b_vector.reserve(b_vector_size);
 }
 
@@ -688,10 +709,81 @@ void MultiImages::prepareAlignmentTerm(
     total_eq += 2;
   }
 
+  LOG("alignment %d", eq_count);
   assert(eq_count == alignment_equation.second);
 }
 
-void MultiImages::prepareSimilarityTerm(
+void MultiImages::prepareLocalSimilarityTerm(
+    vector<Triplet<double> > & _triplets, 
+    vector<pair<int, double> > & _b_vector) {
+  int eq_count = 0;
+
+  const vector<pair<int, int> > edges = imgs[0]->edges;
+  const vector<Point2f> vertices = imgs[0]->vertices;
+  const vector<vector<int> > v_neighbors = imgs[0]->vertex_neighbors;
+  const vector<vector<int> > e_neighbors = imgs[0]->edge_neighbors;// 和原意不同
+  assert(e_neighbors.size() == edges.size());
+
+  for (int i = 0; i < edges.size(); i ++) {
+    // 获取边的两个端点
+    const int ind_e1 = edges[i].first;
+    const int ind_e2 = edges[i].second;
+    const Point2f src = vertices[ind_e1];
+    const Point2f dst = vertices[ind_e2];
+
+    // 记录边端点的邻接顶点
+    const vector<int> point_ind_set = e_neighbors[i];
+
+    // 看不懂
+    Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
+    for (int j = 0; j < point_ind_set.size(); j ++) {
+      Point2f e = vertices[point_ind_set[j]] - src;
+      E.at<double>(2 * j    , 0) =  e.x;
+      E.at<double>(2 * j    , 1) =  e.y;
+      E.at<double>(2 * j + 1, 0) =  e.y;
+      E.at<double>(2 * j + 1, 1) = -e.x;
+    }
+    transpose(E, Et);// 转置
+    Point2f e_main = dst - src;
+    E_Main.at<double>(0, 0) =  e_main.x;
+    E_Main.at<double>(0, 1) =  e_main.y;
+    E_Main.at<double>(1, 0) =  e_main.y;
+    E_Main.at<double>(1, 1) = -e_main.x;
+
+    Mat G_W = (Et * E).inv(DECOMP_SVD) * Et;
+    Mat L_W = - E_Main * G_W;
+
+    for (int j = 0; j < point_ind_set.size(); j ++) {
+      for (int xy = 0; xy < 2; xy ++) {
+        for (int dim = 0; dim < 2; dim ++) {
+          // local
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+            2 * point_ind_set[j] + xy,
+            local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
+            2 * ind_e1 + xy,
+            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+        }
+      }
+    }
+
+    // local: x1, y1, x2, y2 
+    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e2    ,
+      local_similarity_weight);
+    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e2 + 1,
+      local_similarity_weight);
+    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
+      -local_similarity_weight);
+    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
+      -local_similarity_weight);
+    
+    eq_count += 2;
+  }
+
+  assert(eq_count ==  local_similarity_equation.second);
+}
+
+void MultiImages::prepareGlobalSimilarityTerm(
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
   int eq_count = 0;
@@ -738,68 +830,48 @@ void MultiImages::prepareSimilarityTerm(
     Mat G_W = (Et * E).inv(DECOMP_SVD) * Et;
     Mat L_W = - E_Main * G_W;
 
-    double _global_similarity_weight = global_similarity_weight_beta;
-
     for (int j = 0; j < point_ind_set.size(); j ++) {
       for (int xy = 0; xy < 2; xy ++) {
         for (int dim = 0; dim < 2; dim ++) {
-          // local
-          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
-            2 * point_ind_set[j] + xy,
-            local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
-          _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
-            2 * ind_e1 + xy,
-            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
-          // global
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
             2 * point_ind_set[j] + xy,
-            _global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
+            global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
           _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
-            -_global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
+            -global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
         }
       }
     }
 
     // global的b向量
-    for (int dim = 0; dim < 2; dim ++) {
-      _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, _global_similarity_weight * similarity[dim]);
+    if (global_similarity_equation.second > 0) {
+      for (int dim = 0; dim < 2; dim ++) {
+        _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, global_similarity_weight * similarity[dim]);
+      }
     }
-
-    // local: x1, y1, x2, y2 
-    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e2    ,
-      local_similarity_weight);
-    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e2 + 1,
-      local_similarity_weight);
-    _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
-      -local_similarity_weight);
-    _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
-      -local_similarity_weight);
     
     eq_count += 2;
-    total_eq += 4;
   }
 
-  LOG("total %d", total_eq);
-  assert(eq_count ==  local_similarity_equation.second);
   assert(eq_count == global_similarity_equation.second);
 }
 
 void MultiImages::prepareSensorTerm(
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
-  const int equation = alignment_equation.first;
+  const int equation = global_similarity_equation.first;
   int eq_count = 0;
 
-  LOG("%d %d", similarity_pts[0].size(), imgs[0]->vertices.size());
+  assert(!similarity_pts.empty());
   assert(similarity_pts[0].size() == imgs[0]->vertices.size());
-  for (int i = 0; i < similarity_pts[0].size(); i ++) {
-    double x = similarity_pts[0][i].x;
-    _triplets.emplace_back(equation + eq_count + 0, i * 2 + 0, 1);
-    _b_vector.emplace_back(equation + eq_count + 0, x);
-    double y = similarity_pts[0][i].y;
-    _triplets.emplace_back(equation + eq_count + 1, i * 2 + 1, 1);
-    _b_vector.emplace_back(equation + eq_count + 1, y);
+  for (int i = 0; i < unmatching_index.size(); i ++) {
+    int j = unmatching_index[i];
+    double x = similarity_pts[0][j].x;
+    _triplets.emplace_back(equation + eq_count + 0, j * 2 + 0, 1 * sensor_weight);
+    _b_vector.emplace_back(equation + eq_count + 0, x * sensor_weight);
+    double y = similarity_pts[0][j].y;
+    _triplets.emplace_back(equation + eq_count + 1, j * 2 + 1, 1 * sensor_weight);
+    _b_vector.emplace_back(equation + eq_count + 1, y * sensor_weight);
     eq_count += 2;
   }
 
@@ -913,11 +985,22 @@ void MultiImages::myBlending() {
   **/
 
 void MultiImages::drawPoints(Mat _img, vector<Point2f> _points) {
-  Mat result = _img.clone();
-  for (int i = 0; i < _points.size(); i ++) {
-    Point2f p = _points[i];
+  Mat result;
+  vector<Point2f> tmp_points;
+  tmp_points.assign(_points.begin(), _points.end());
+  Size2f result_size = normalizeVertices(tmp_points);
+
+  if (result_size.width < _img.cols || result_size.height < _img.rows) {
+    result = _img.clone();
+    tmp_points.assign(_points.begin(), _points.end());
+  } else {
+    result = Mat::zeros(result_size, _img.type());
+  }
+
+  for (int i = 0; i < tmp_points.size(); i ++) {
+    Point2f p = tmp_points[i];
     Scalar color1(255, 0, 255, 255);
-    circle(result, p, 1, color1, -1);// circle_size = 1
+    circle(result, p, 2, color1, -1);// circle_size = 1
   }
   show_img("result", result);
 }

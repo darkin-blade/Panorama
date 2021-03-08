@@ -61,12 +61,13 @@ public:
   vector<vector<Point2f> >   matching_pts;// TODO
   vector<vector<Point2f> >   similarity_pts;// 相似变换计算出的结果
   vector<int>                matching_index;// 目标图像在参考图像上未出界的匹配点索引
+  vector<int>                unmatching_index;
 
   /* 网格优化 */
   double alignment_weight               = 1 * 1;
   double local_similarity_weight        = 10 * 0.56;
-  double global_similarity_weight_beta  = 1 * 6;
-  double global_similarity_weight_gamma = 1 * 20;
+  double global_similarity_weight       = 1 * 6;
+  double sensor_weight                  = 1 * 0.1;
   // 下面3项pair的含义:
   // first: 该部分等式中第一个等式在所有等式中的索引
   // second: 该部分等式含有的等式的总数
@@ -115,7 +116,10 @@ public:
   void prepareAlignmentTerm(
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
-  void prepareSimilarityTerm(
+  void prepareLocalSimilarityTerm(
+      vector<Triplet<double> > & _triplets, 
+      vector<pair<int, double> > & _b_vector);
+  void prepareGlobalSimilarityTerm(
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareSensorTerm(
