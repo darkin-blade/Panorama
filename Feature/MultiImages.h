@@ -67,7 +67,7 @@ public:
   double alignment_weight               = 1 * 1;
   double local_similarity_weight        = 10 * 0.56;
   double global_similarity_weight       = 1 * 6;
-  double sensor_weight                  = 1 * 0.1;
+  double sensor_weight                  = 1 * 1;
   // 下面3项pair的含义:
   // first: 该部分等式中第一个等式在所有等式中的索引
   // second: 该部分等式含有的等式的总数
