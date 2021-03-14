@@ -21,11 +21,11 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
 
   // 相似变换
-  vector<double> angles;
-  for (int i = 0; i < img_num; i ++) {
-    angles.emplace_back(0);// 负为逆时针
-  }
-  multi_images->similarityTransform(1, angles);
+  // vector<double> angles;
+  // for (int i = 0; i < img_num; i ++) {
+  //   angles.emplace_back(0);// 负为逆时针
+  // }
+  // multi_images->similarityTransform(1, angles);
 
   // 网格优化
   // multi_images->meshOptimization();

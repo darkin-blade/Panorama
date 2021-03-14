@@ -259,6 +259,13 @@ void MultiImages::getMeshInfo() {
       apap_pts[m1][m2],
       imgs[m1]->homographies
     );
+    Homographies::compute(
+      feature_points[m2][m1],
+      feature_points[m1][m2],
+      imgs[m2]->vertices,
+      apap_pts[m2][m1],
+      imgs[m2]->homographies
+    );
 
     // 获取m1在m2上(未出界)的匹配点
     int pts_num = apap_pts[m1][m2].size();
@@ -409,10 +416,10 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
 void MultiImages::getAPAPResult() {
   assert(matching_pts.empty());
   matching_pts.resize(img_num);
-  // matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
-  // matching_pts[1].assign(apap_pts[1][0].begin(), apap_pts[1][0].end());
-  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-  matching_pts[0].assign(apap_pts[0][1].begin(), apap_pts[0][1].end());
+  matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
+  matching_pts[1].assign(apap_pts[1][0].begin(), apap_pts[1][0].end());
+  // matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
+  // matching_pts[0].assign(apap_pts[0][1].begin(), apap_pts[0][1].end());
 }
 
 /***

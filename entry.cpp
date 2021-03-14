@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
   // 自动从前往后匹配
   for (int i = 1; i < multi_images.img_num; i ++) {
     // 自定义图片配对关系,如果配对错误会导致`type == CV_32F || type == CV_64F`错误
-    multi_images.img_pairs.emplace_back(make_pair(i - 1, i));// 顺序: 后者为先计算的图像索引, 即(目标图像, 参考图像)
-    // multi_images.img_pairs.emplace_back(make_pair(i, i - 1));// 顺序: 后者为先计算的图像索引, 即(目标图像, 参考图像)
+    // multi_images.img_pairs.emplace_back(make_pair(i - 1, i));// 顺序: 后者为先计算的图像索引, 即(目标图像, 参考图像)
+    multi_images.img_pairs.emplace_back(make_pair(i, i - 1));// 顺序: 后者为先计算的图像索引, 即(目标图像, 参考图像)
   }
 
   My_Stitching my_stitcher(multi_images);
