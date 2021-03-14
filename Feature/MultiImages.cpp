@@ -247,7 +247,7 @@ void MultiImages::getMeshInfo() {
   }
 
   // apap匹配点
-  for (int i = 0; i < img_pairs; i ++) {
+  for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
     
@@ -412,32 +412,22 @@ void MultiImages::meshOptimization() {
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
 
+  // 重组图像配对信息
+  assert(pair_index.empty());
   pair_index.resize(img_num);
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
-
     pair_index[m1].emplace_back(m2);
   }
 
   for (int i = 0; i < img_num; i ++) {
     // 输入的图像顺序要按拼接的顺序输入
-    for (int j = 0; j < pair_index[i].size(); j ++) {
-      reserveData(i, j, triplets, b_vector);
-      if (alignment_equation.second > 0) {
-        prepareAlignmentTerm(i, j, triplets, b_vector);
-      }
-      if (local_similarity_equation.second > 0) {
-        prepareLocalSimilarityTerm(i, triplets, b_vector);
-      }
-      if (global_similarity_equation.second  > 0) {
-        prepareGlobalSimilarityTerm(i, triplets, b_vector);
-      }
-      if (sensor_equation.second > 0) {
-        prepareSensorTerm(i, j, triplets, b_vector);
-      }
-      getSolution(triplets, b_vector);
-    }
+    reserveData(i, triplets, b_vector);
+    prepareAlignmentTerm(i, triplets, b_vector);
+    prepareLocalSimilarityTerm(i, triplets, b_vector);
+    prepareSensorTerm(i, triplets, b_vector);
+    getSolution(triplets, b_vector);
   }
 }
 
@@ -468,7 +458,7 @@ void MultiImages::reserveData(
 
     // 计算目标图像在参考图像上的未出界顶点数目和(可能与多张图片有重合)
     for (int j = 0; j < single_mask[m1][m2].size(); j ++) {
-      if (single_mask[m1][m2]) {
+      if (single_mask[m1][m2][j]) {
         alignment_equation.second += 2;
       }
     }
@@ -517,6 +507,7 @@ void MultiImages::prepareAlignmentTerm(
     vector<Triplet<double> > & _triplets,
     vector<pair<int, double> > & _b_vector) {
 
+  int eq_count = 0;
   if (alignment_equation.second <= 0) {
     assert(eq_count == alignment_equation.second);
     return;
@@ -524,9 +515,6 @@ void MultiImages::prepareAlignmentTerm(
 
   // polygon索引
   const vector<vector<int> > indices_1 = imgs[_m1]->polygons_indices;
-
-  const int equation = alignment_equation.first;
-  int eq_count = 0;
 
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
     int m1 = _m1;
@@ -556,16 +544,16 @@ void MultiImages::prepareAlignmentTerm(
         // dim: x, y
         for (int k = 0; k < 4; k ++) {
           // 目标图像的顶点在自身的分量
-          _triplets.emplace_back(equation + eq_count + dim,
+          _triplets.emplace_back(alignment_equation.first + eq_count + dim,
             dim + 2 * indices_1[index_1[j]][k],
             alignment_weight * weights_1[j][k]);
         }
 
         // 目标图像的匹配点在参考图像的分量
         if (dim == 0) {// x
-          _b_vector.empty(equation + eq_count + dim, apap_pts[m1][m2][j].x);
+          _b_vector.empty(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].x);
         } else {// y
-          _b_vector.empty(equation + eq_count + dim, apap_pts[m1][m2][j].y);
+          _b_vector.empty(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].y);
         }
       }
 
@@ -583,6 +571,10 @@ void MultiImages::prepareLocalSimilarityTerm(
     vector<pair<int, double> > & _b_vector) {
 
   int eq_count = 0;
+  if (local_similarity_equation.second <= 0) {
+    assert(eq_count == local_similarity_equation.second);
+    return;
+  }
 
   const vector<pair<int, int> > edges = imgs[_m1]->edges;
   const vector<Point2f> vertices = imgs[_m1]->vertices;
@@ -653,11 +645,15 @@ void MultiImages::prepareSensorTerm(
     int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
+
+  int eq_count = 0;
+  if (sensor_equation.second <= 0) {
+    assert(eq_count == sensor_equation.second);
+    return;
+  }
+
   // 给非重叠区域的顶点定位
   assert(!similarity_pts.empty());
-
-  const int equation = global_similarity_equation.first;
-  int eq_count = 0;
 
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
     int m1 = _m1;
@@ -671,11 +667,11 @@ void MultiImages::prepareSensorTerm(
 
       // x: dim = 0, y: dim = 1
       double x = similarity_pts[m1][m2][j].x;
-      _triplets.emplace_back(equation + eq_count + 0, j * 2 + 0, 1 * sensor_weight);
-      _b_vector.emplace_back(equation + eq_count + 0, x * sensor_weight);
+      _triplets.emplace_back(global_similarity_equation.first + eq_count + 0, j * 2 + 0, 1 * sensor_weight);
+      _b_vector.emplace_back(global_similarity_equation.first + eq_count + 0, x * sensor_weight);
       double y = similarity_pts[m1][m2][j].y;
-      _triplets.emplace_back(equation + eq_count + 1, j * 2 + 1, 1 * sensor_weight);
-      _b_vector.emplace_back(equation + eq_count + 1, y * sensor_weight);
+      _triplets.emplace_back(global_similarity_equation.first + eq_count + 1, j * 2 + 1, 1 * sensor_weight);
+      _b_vector.emplace_back(global_similarity_equation.first + eq_count + 1, y * sensor_weight);
       eq_count += 2;
     }
   }

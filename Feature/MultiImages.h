@@ -108,7 +108,7 @@ public:
   /* 图像配准 */
   void getFeatureInfo();
   void getMeshInfo();
-  void similarityTransform(int _mode, double _angles);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
+  void similarityTransform(int _mode, vector<double> _angles);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
 
   /* 网格优化 */
   void meshOptimization();
