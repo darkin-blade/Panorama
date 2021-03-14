@@ -204,7 +204,7 @@ void MultiImages::getFeatureInfo() {
     feature_pairs.clear();
 
     // 特征点匹配
-    getFeaturePairs();
+    getFeaturePairs(m1, m2);
 
     // 筛选所有图片的成功匹配的特征点
     const vector<Point2f> & m1_fpts = imgs[m1]->feature_points;
@@ -312,7 +312,7 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
         b(i*2 + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
       }
       VectorXd solution = A.colPivHouseholderQr().solve(b);
-      rotate  = _angle;
+      rotate  = _angles[m1];
       scale   = 1;
       shift_x = solution(0);
       shift_y = solution(1);
@@ -338,7 +338,7 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
         b(i*2 + 1)    = y2;
       }
       VectorXd solution = A.colPivHouseholderQr().solve(b);
-      rotate  = _angle;
+      rotate  = _angles[m1];
       scale   = solution(0);
       shift_x = solution(1);
       shift_y = solution(2);
@@ -428,6 +428,8 @@ void MultiImages::meshOptimization() {
     prepareLocalSimilarityTerm(i, triplets, b_vector);
     prepareSensorTerm(i, triplets, b_vector);
     getSolution(triplets, b_vector);
+
+    // TODO 用网格优化的结果替代apap网格
   }
 }
 
@@ -525,7 +527,7 @@ void MultiImages::prepareAlignmentTerm(
     vector<vector<double> > weights_1(single_mask[m1][m2].size());
 
     for (int j = 0; j < single_mask[m1][m2].size(); j ++) {
-      if (!single_mask[m1][m2]) {
+      if (!single_mask[m1][m2][j]) {
         // 该匹配点出界
         continue;
       }
@@ -551,9 +553,9 @@ void MultiImages::prepareAlignmentTerm(
 
         // 目标图像的匹配点在参考图像的分量
         if (dim == 0) {// x
-          _b_vector.empty(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].x);
+          _b_vector.emplace_back(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].x);
         } else {// y
-          _b_vector.empty(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].y);
+          _b_vector.emplace_back(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].y);
         }
       }
 

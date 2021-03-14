@@ -6,45 +6,6 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 
 Mat My_Stitching::getMyResult() {
   int img_num = multi_images->img_num;
-  multi_images->imgs.resize(2);
-  multi_images->imgs[0] = new ImageData();
-  multi_images->imgs[1] = new ImageData();
-
-  for (int i = 1; i < img_num; i ++) {
-    // 初始化
-    multi_images->imgs[0]->initData();
-    multi_images->imgs[1]->initData();
-
-    // 目标图片序号为0, 参考图片序号为1
-    if (i == 1) {
-      // 使用原始图片
-      // 目标图片
-      multi_images->imgs[0]->readImg(multi_images->origin_data[i], 1);
-      // 参考图片
-      multi_images->imgs[1]->readImg(multi_images->origin_data[i - 1], 1);
-    } else {
-      // 使用之前的结果
-      // 目标图片
-      multi_images->imgs[0]->readImg(multi_images->origin_data[i], 1);
-      // 参考图片
-      multi_images->imgs[1]->readImg(multi_images->pano_result, 2);
-    }
-    
-    // 进行拼接
-
-    multi_images->getMeshInfo();
-    multi_images->similarityTransform(1, 0);// 负为逆时针
-    multi_images->meshOptimization();
-
-    // multi_images->textureMapping(0);
-    // drawFeatureMatch();
-
-    multi_images->myWarping();
-    multi_images->getSeam();
-    
-    // drawMatchingPts();
-    // show_img("result", multi_images->pano_result);
-  }
 
   assert(multi_images->imgs.empty());
   for (int i = 0; i < img_num; i ++) {
@@ -52,13 +13,26 @@ Mat My_Stitching::getMyResult() {
     multi_images->imgs.emplace_back(new ImageData());
     // multi_images->imgs[i]->initData();// 单纯地清空所有数据
     multi_images->imgs[i]->readImg(multi_images->origin_data[i], 1);
-
-    // 特征检测
   }
+
+  // 特征检测及特征点匹配
+  multi_images->getFeatureInfo();
   // apap网格计算
+  multi_images->getMeshInfo();
+
   // 相似变换
+  vector<double> angles;
+  for (int i = 0; i < img_num; i ++) {
+    angles.emplace_back(0);// 负为逆时针
+  }
+  multi_images->similarityTransform(1, angles);
+
   // 网格优化
+  multi_images->meshOptimization();
+
   // 接缝线算法
+  multi_images->myWarping();
+  multi_images->getSeam();// 图像融合过程内嵌在这个函数中
 
   return multi_images->pano_result;
 }
