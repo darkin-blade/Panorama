@@ -220,7 +220,6 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::getMeshInfo() {
   // 初始化数据
   apap_pts.resize(img_num);
-  matching_pts.resize(img_num);
   total_mask.resize(img_num);
   single_mask.resize(img_num);
 
@@ -409,6 +408,8 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
   **/
 
 void MultiImages::meshOptimization() {
+  // 初始化结果
+  matching_pts.resize(img_num);
   
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
@@ -422,16 +423,20 @@ void MultiImages::meshOptimization() {
     pair_index[m1].emplace_back(m2);
   }
 
-  // 第0张图片为参考图像
-  for (int i = 0 + 1; i < img_num; i ++) {
-    // 输入的图像顺序要按拼接的顺序输入
-    reserveData(i, triplets, b_vector);
-    prepareAlignmentTerm(i, triplets, b_vector);
-    prepareLocalSimilarityTerm(i, triplets, b_vector);
-    prepareSensorTerm(i, triplets, b_vector);
-    getSolution(i, triplets, b_vector);
+  for (int i = 0; i < img_num; i ++) {
+    if (i == 0) {
+      // 第0张图片为参考图像
+      matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
+    } else {
+      // 输入的图像顺序要按拼接的顺序输入
+      reserveData(i, triplets, b_vector);
+      prepareAlignmentTerm(i, triplets, b_vector);
+      prepareLocalSimilarityTerm(i, triplets, b_vector);
+      prepareSensorTerm(i, triplets, b_vector);
+      getSolution(i, triplets, b_vector);
 
-    // TODO 用网格优化的结果替代apap网格
+      // TODO 用网格优化的结果替代apap网格
+    }
   }
 }
 
@@ -693,7 +698,6 @@ void MultiImages::getSolution(
   SparseMatrix<double> A(equations, imgs[_m1]->vertices.size() * 2);
   VectorXd b = VectorXd::Zero(equations), x;
 
-  LOG("triplets size %d", _triplets.size());
   A.setFromTriplets(_triplets.begin(), _triplets.end());
   for (int i = 0; i < _b_vector.size(); i ++) {
     b[_b_vector[i].first] = _b_vector[i].second;
@@ -702,9 +706,9 @@ void MultiImages::getSolution(
   lscg.compute(A);
   x = lscg.solve(b);
 
-  matching_pts[0].clear();
-  for (int i = 0; i < imgs[0]->vertices.size() * 2; i += 2) {
-    matching_pts[0].emplace_back(x[i], x[i + 1]);
+  assert(matching_pts[_m1].empty());
+  for (int i = 0; i < imgs[_m1]->vertices.size() * 2; i += 2) {
+    matching_pts[_m1].emplace_back(x[i], x[i + 1]);
   }
 }
 
@@ -714,48 +718,6 @@ void MultiImages::getSolution(
     两个函数不会改变网格的位置, 且图像原点为(0, 0)
   *
   **/
-
-void MultiImages::myWarping() {
-  // 初始化
-  pano_images.clear();
-  pano_masks.clear();
-  origin_masks.clear();
-
-  // 对所有图像的网格点归一化(去除负值)
-  Size2f tmp_size = normalizeVertices(matching_pts);
-  pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
-  
-  // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
-  Mat warped_image;
-  Mat image_mask;
-  warpImage(
-    imgs[0]->vertices,
-    matching_pts[0],
-    imgs[0]->triangle_indices,
-    imgs[0]->data,
-    warped_image,
-    image_mask);
-
-  // 将每个图片/mask平移到最终位置
-  for (int i = 0; i < 2; i ++) {
-    Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
-    Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
-    // 计算目标矩阵
-    Rect2f rect = getVerticesRects(matching_pts[i]);
-    if (i == 1) {
-      // 参考图片
-      cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
-      imgs[i]->mask.copyTo(tmp_mask(rect));
-    } else {
-      warped_image.copyTo(tmp_image(rect));
-      image_mask.copyTo(tmp_mask(rect));
-    }
-
-    pano_images.emplace_back(tmp_image);
-    pano_masks.emplace_back(tmp_mask);
-    origin_masks.emplace_back(tmp_mask);
-  }
-}
 
 void MultiImages::warpImage(
     vector<Point2f> _src_p, vector<Point2f> _dst_p,
@@ -896,6 +858,50 @@ void MultiImages::warpPoints(
  * 寻找接缝线
  *
  **/
+
+void MultiImages::myWarping() {
+  // 初始化
+  pano_images.clear();
+  pano_masks.clear();
+  origin_masks.clear();
+
+  // 对所有图像的网格点归一化(去除负值)
+  Size2f tmp_size = normalizeVertices(matching_pts);
+  pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
+  
+  // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
+  for (int i = 0; i < img_num; i ++) {
+    Mat warped_image;
+    Mat image_mask;
+    warpImage(
+      imgs[i]->vertices,
+      matching_pts[i],
+      imgs[i]->triangle_indices,
+      imgs[i]->data,
+      warped_image,
+      image_mask);
+
+    // 将每个图片/mask平移到最终位置
+    for (int i = 0; i < 2; i ++) {
+      Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
+      Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
+      // 计算目标矩阵
+      Rect2f rect = getVerticesRects(matching_pts[i]);
+      if (i == 1) {
+        // 参考图片
+        cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
+        imgs[i]->mask.copyTo(tmp_mask(rect));
+      } else {
+        warped_image.copyTo(tmp_image(rect));
+        image_mask.copyTo(tmp_mask(rect));
+      }
+
+      pano_images.emplace_back(tmp_image);
+      pano_masks.emplace_back(tmp_mask);
+      origin_masks.emplace_back(tmp_mask);
+    }
+  }
+}
 
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
