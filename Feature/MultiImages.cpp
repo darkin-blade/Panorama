@@ -442,7 +442,7 @@ void MultiImages::meshOptimization() {
 
 void MultiImages::reserveData(
     int _m1,
-    vector<Triplet<double> > & _triplets, 
+    vector<Triplet<double> > & _triplets,
     vector<pair<int, double> > & _b_vector) {
   // 清空数据
   _triplets.clear();
@@ -533,6 +533,8 @@ void MultiImages::prepareAlignmentTerm(
     // 记录顶点所在polygon索引, 以及在polygon中的分量
     vector<int>             index_1(single_mask[m1][m2].size());
     vector<vector<double> > weights_1(single_mask[m1][m2].size());
+    vector<int>             index_2(single_mask[m1][m2].size());
+    vector<vector<double> > weights_2(single_mask[m1][m2].size());
 
     for (int j = 0; j < single_mask[m1][m2].size(); j ++) {
       if (!single_mask[m1][m2][j]) {
@@ -550,6 +552,11 @@ void MultiImages::prepareAlignmentTerm(
       index_1[j] = tmp_index;
       weights_1[j] = tmp_weights;
 
+      // 目标图像的匹配点在参考图像的分量
+      imgs[m2]->getInterpolateVertex(point_2, tmp_index, tmp_weights);
+      index_2[j] = tmp_index;
+      weights_2[j] = tmp_weights;
+
       for (int dim = 0; dim < 2; dim ++) {
         // dim: x, y
         for (int k = 0; k < 4; k ++) {
@@ -559,7 +566,7 @@ void MultiImages::prepareAlignmentTerm(
             alignment_weight * weights_1[j][k]);
         }
 
-        // 目标图像的匹配点在参考图像的分量
+        // 目标图像的匹配点在参考图像的分量, 此时参考图像的顶点位置已经确定
         if (dim == 0) {// x
           _b_vector.emplace_back(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].x);
         } else {// y
