@@ -124,10 +124,6 @@ public:
     int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
-  void prepareGlobalSimilarityTerm(
-    int _m1,
-      vector<Triplet<double> > & _triplets, 
-      vector<pair<int, double> > & _b_vector);
   void prepareSensorTerm(
       int _m1,
       vector<Triplet<double> > & _triplets, 

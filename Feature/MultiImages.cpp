@@ -459,7 +459,7 @@ void MultiImages::reserveData(
     edge_neighbor_vertices_count += imgs[_m1]->edge_neighbors[i].size();
   }
   local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
-  global_similarity_equation.second = edge_count * 2;
+  // global_similarity_equation.second = edge_count * 2;// 已经舍弃
 
   // 对齐项
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
@@ -516,6 +516,11 @@ void MultiImages::prepareAlignmentTerm(
     int _m1,
     vector<Triplet<double> > & _triplets,
     vector<pair<int, double> > & _b_vector) {
+
+  if (alignment_equation.second <= 0) {
+    assert(eq_count == alignment_equation.second);
+    return;
+  }
 
   // polygon索引
   const vector<vector<int> > indices_1 = imgs[_m1]->polygons_indices;
@@ -576,6 +581,7 @@ void MultiImages::prepareLocalSimilarityTerm(
     int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
+
   int eq_count = 0;
 
   const vector<pair<int, int> > edges = imgs[_m1]->edges;
@@ -640,103 +646,38 @@ void MultiImages::prepareLocalSimilarityTerm(
     eq_count += 2;
   }
 
-  assert(eq_count ==  local_similarity_equation.second);
-}
-
-void MultiImages::prepareGlobalSimilarityTerm(
-    int _m1,
-    vector<Triplet<double> > & _triplets, 
-    vector<pair<int, double> > & _b_vector) {
-  int eq_count = 0;
-
-  rotate = 0;
-  LOG("rotate is %lf", rotate);
-  const double similarity[2] = {
-    1 * cos(rotate),
-    1 * sin(rotate)
-  };// TODO 单位
-
-  const vector<pair<int, int> > edges = imgs[_m1]->edges;
-  const vector<Point2f> vertices = imgs[_m1]->vertices;
-  const vector<vector<int> > v_neighbors = imgs[_m1]->vertex_neighbors;
-  const vector<vector<int> > e_neighbors = imgs[_m1]->edge_neighbors;// 和原意不同
-  assert(e_neighbors.size() == edges.size());
-
-  for (int i = 0; i < edges.size(); i ++) {
-    // 获取边的两个端点
-    const int ind_e1 = edges[i].first;
-    const int ind_e2 = edges[i].second;
-    const Point2f src = vertices[ind_e1];
-    const Point2f dst = vertices[ind_e2];
-
-    // 记录边端点的邻接顶点
-    const vector<int> point_ind_set = e_neighbors[i];
-
-    // 看不懂
-    Mat Et, E_Main(2, 2, CV_64FC1), E((int)point_ind_set.size() * 2, 2, CV_64FC1);
-    for (int j = 0; j < point_ind_set.size(); j ++) {
-      Point2f e = vertices[point_ind_set[j]] - src;
-      E.at<double>(2 * j    , 0) =  e.x;
-      E.at<double>(2 * j    , 1) =  e.y;
-      E.at<double>(2 * j + 1, 0) =  e.y;
-      E.at<double>(2 * j + 1, 1) = -e.x;
-    }
-    transpose(E, Et);// 转置
-    Point2f e_main = dst - src;
-    E_Main.at<double>(0, 0) =  e_main.x;
-    E_Main.at<double>(0, 1) =  e_main.y;
-    E_Main.at<double>(1, 0) =  e_main.y;
-    E_Main.at<double>(1, 1) = -e_main.x;
-
-    Mat G_W = (Et * E).inv(DECOMP_SVD) * Et;
-    Mat L_W = - E_Main * G_W;
-
-    for (int j = 0; j < point_ind_set.size(); j ++) {
-      for (int xy = 0; xy < 2; xy ++) {
-        for (int dim = 0; dim < 2; dim ++) {
-          _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
-            2 * point_ind_set[j] + xy,
-            global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
-          _triplets.emplace_back(global_similarity_equation.first + eq_count + dim,
-            2 * ind_e1 + xy,
-            -global_similarity_weight * G_W.at<double>(dim, 2 * j + xy));
-        }
-      }
-    }
-
-    // global的b向量
-    if (global_similarity_equation.second > 0) {
-      for (int dim = 0; dim < 2; dim ++) {
-        _b_vector.emplace_back(global_similarity_equation.first + eq_count + dim, global_similarity_weight * similarity[dim]);
-      }
-    }
-    
-    eq_count += 2;
-  }
-
-  assert(eq_count == global_similarity_equation.second);
+  assert(eq_count == local_similarity_equation.second);
 }
 
 void MultiImages::prepareSensorTerm(
-    int _m1, int _m2,
+    int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
+  // 给非重叠区域的顶点定位
+  assert(!similarity_pts.empty());
+
   const int equation = global_similarity_equation.first;
   int eq_count = 0;
 
-  assert(!similarity_pts.empty());
-  for (int i = 0; i < imgs[_m1]->vertices.size(); i ++) {
-    // 给非重叠区域的顶点定位
-    if (matching_mask[_m1][i]) {
-      continue;
+  for (int i = 0; i < pair_index[_m1].size(); i ++) {
+    int m1 = _m1;
+    int m2 = pair_index[_m1][i];
+
+    for (int j = 0; j < total_mask[m1].size(); j ++) {
+      if (total_mask[m1][j]) {
+        // 该顶点至少与一张图片重合
+        continue;
+      }
+
+      // x: dim = 0, y: dim = 1
+      double x = similarity_pts[m1][m2][j].x;
+      _triplets.emplace_back(equation + eq_count + 0, j * 2 + 0, 1 * sensor_weight);
+      _b_vector.emplace_back(equation + eq_count + 0, x * sensor_weight);
+      double y = similarity_pts[m1][m2][j].y;
+      _triplets.emplace_back(equation + eq_count + 1, j * 2 + 1, 1 * sensor_weight);
+      _b_vector.emplace_back(equation + eq_count + 1, y * sensor_weight);
+      eq_count += 2;
     }
-    double x = similarity_pts[_m1][_m2][j].x;
-    _triplets.emplace_back(equation + eq_count + 0, j * 2 + 0, 1 * sensor_weight);
-    _b_vector.emplace_back(equation + eq_count + 0, x * sensor_weight);
-    double y = similarity_pts[_m1][_m2][j].y;
-    _triplets.emplace_back(equation + eq_count + 1, j * 2 + 1, 1 * sensor_weight);
-    _b_vector.emplace_back(equation + eq_count + 1, y * sensor_weight);
-    eq_count += 2;
   }
 
   assert(eq_count == sensor_equation.second);
