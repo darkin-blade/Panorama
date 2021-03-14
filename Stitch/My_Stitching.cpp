@@ -32,7 +32,6 @@ Mat My_Stitching::getMyResult() {
     
     // 进行拼接
 
-    multi_images->getFeatureInfo();
     multi_images->getMeshInfo();
     multi_images->similarityTransform(1, 0);// 负为逆时针
     multi_images->meshOptimization();
@@ -46,6 +45,13 @@ Mat My_Stitching::getMyResult() {
     // drawMatchingPts();
     // show_img("result", multi_images->pano_result);
   }
+
+  // 读取图像
+  // 特征检测
+  // apap网格计算
+  // 相似变换
+  // 网格优化
+  // 接缝线算法
 
   return multi_images->pano_result;
 }

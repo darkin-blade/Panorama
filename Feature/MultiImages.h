@@ -48,9 +48,9 @@ public:
   vector<ImageData *>      imgs;
 
   /* 特征匹配 */
-  vector<pair<int, int> > initial_pairs;// debug, RANSAC之前的特征点配对信息
-  vector<pair<int, int> > feature_pairs;// RANSAC之后的特征点配对信息
-  vector<Point2f>         feature_points_1, feature_points_2;// RANSAC的特征点;
+  vector<pair<int, int> >                   initial_pairs;// debug, RANSAC之前的特征点配对信息
+  vector<pair<int, int> >                   feature_pairs;// RANSAC之后的特征点配对信息
+  vector<vector<vector<Point2f> > >         feature_points;// RANSAC的特征点, [m1][m2]: m1与m2配对的特征点
 
   /* 相似变换: 目标图像 */
   double    scale;
@@ -58,12 +58,14 @@ public:
   double    shift_x, shift_y;
 
   /* 网格变换 */
-  vector<vector<Point2f> >   matching_pts;// TODO
-  vector<vector<Point2f> >   similarity_pts;// 相似变换计算出的结果
-  vector<int>                matching_index;// 目标图像在参考图像上未出界的匹配点索引
-  vector<int>                unmatching_index;
+  vector<vector<bool> >               total_mask;// 目标图像在参考图像上未出界的匹配点mask
+  vector<vector<vector<bool> > >      single_mask;// [m1][m2][j]: m1的第j个匹配点是否在m2上出界
+  vector<vector<vector<Point2f> > >   apap_pts;// apap的结果, [m1][m2]: m1与m2的结果
+  vector<vector<vector<Point2f> > >   similarity_pts;// 相似变换的结果, [m1][m2]
+  vector<vector<Point2f> >            matching_pts;// 最终结果;
 
   /* 网格优化 */
+  vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
   double alignment_weight               = 1 * 1;
   double local_similarity_weight        = 10 * 0.56;
   double global_similarity_weight       = 1 * 6;
@@ -96,7 +98,7 @@ public:
   void readImg(const char *img_path);
 
   /* 特征匹配 */
-  void getFeaturePairs();
+  void getFeaturePairs(int _m1, int _m2);
   vector<pair<int, int> > getInitialFeaturePairs();
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(
       const vector<Point2f> & _X,
@@ -106,23 +108,28 @@ public:
   /* 图像配准 */
   void getFeatureInfo();
   void getMeshInfo();
-  void similarityTransform(int _mode, double _angle);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
+  void similarityTransform(int _mode, double _angles);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
 
   /* 网格优化 */
   void meshOptimization();
   void reserveData(
+      int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareAlignmentTerm(
+      int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareLocalSimilarityTerm(
+    int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareGlobalSimilarityTerm(
+    int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void prepareSensorTerm(
+      int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void getSolution(
