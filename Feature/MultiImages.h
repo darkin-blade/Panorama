@@ -67,8 +67,7 @@ public:
   /* 网格优化 */
   vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
   double alignment_weight               = 1 * 1;
-  double local_similarity_weight        = 10 * 0.56;
-  double global_similarity_weight       = 1 * 6;
+  double local_similarity_weight        = 20 * 0.56;
   double sensor_weight                  = 1 * 1;
   // 下面3项pair的含义:
   // first: 该部分等式中第一个等式在所有等式中的索引
@@ -152,19 +151,6 @@ public:
       vector<vector<int> > _indices, // 四边形的线性索引
       Mat _src, Mat & _dst, Mat & _img_mask);
   void myWarping();
-
-  /* 
-    特征点形变
-    _src_vertices: 原始顶点
-    _dst_vertices: 形变之后的顶点
-    _indices: 顶点的索引
-    _src_features: 原始特征点
-    _dst_features: 形变之后的特征点
-    */
-  void warpPoints(
-      vector<Point2f> _src_vertices, vector<Point2f> _dst_vertices,
-      vector<vector<int> > _indices,
-      vector<Point2f> _src_features, vector<Point2f> & _dst_features);
 
   /* 图像融合 */
   void myBlending();

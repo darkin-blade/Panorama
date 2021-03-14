@@ -424,9 +424,9 @@ void MultiImages::meshOptimization() {
   }
 
   for (int i = 0; i < img_num; i ++) {
-    if (i == 0) {
-      // 第0张图片为参考图像
-      matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
+    if (i == 1) {
+      // 第?张图片为参考图像
+      matching_pts[i].assign(imgs[i]->vertices.begin(), imgs[i]->vertices.end());
     } else {
       // 输入的图像顺序要按拼接的顺序输入
       reserveData(i, triplets, b_vector);
@@ -444,7 +444,9 @@ void MultiImages::reserveData(
     int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
-  total_eq = 0;
+  // 清空数据
+  _triplets.clear();
+  _b_vector.clear();
 
   alignment_equation.second = 0;
   local_similarity_equation.second = 0;
@@ -458,7 +460,6 @@ void MultiImages::reserveData(
     edge_neighbor_vertices_count += imgs[_m1]->edge_neighbors[i].size();
   }
   local_similarity_equation.second = edge_count * 2;// 每条边对应两个顶点
-  // global_similarity_equation.second = edge_count * 2;// 已经舍弃
 
   // 对齐项
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
@@ -790,70 +791,6 @@ void MultiImages::warpImage2(
 }
 
 /***
-  *
-  * 特征点形变
-  *
-  **/
-
-void MultiImages::warpPoints(
-    vector<Point2f> _src_vertices, vector<Point2f> _dst_vertices,
-    vector<vector<int> > _indices,
-    vector<Point2f> _src_features, vector<Point2f> & _dst_features) {
-
-  assert(_src_vertices.size() == _dst_vertices.size());
-
-  Size2f src_size = normalizeVertices(_src_vertices);
-  Rect2f src_rect = getVerticesRects(_src_vertices);
-
-  /* 计算每个三角形的仿射变换 */
-  const Point2f shift(0.5, 0.5);
-  Mat polygon_index_mask(src_rect.height + shift.y, src_rect.width + shift.x, CV_32SC1, Scalar::all(NO_GRID));// 记录每个像素点对应三角形的索引矩阵, 并填充初始值
-  vector<Mat> affine_transform;
-  affine_transform.reserve(_indices.size());// 三角形数目
-  
-  for (int i = 0; i < _indices.size(); i ++) {
-    const Point2i contour[] = {
-      _src_vertices[_indices[i][0]],
-      _src_vertices[_indices[i][1]],
-      _src_vertices[_indices[i][2]],
-    };
-    // 往索引矩阵中填充索引值
-    fillConvexPoly(
-      polygon_index_mask, // 索引矩阵
-      contour,            // 三角形区域
-      TRIANGLE_COUNT,     // 三个角
-      i,
-      LINE_AA,
-      PRECISION);
-    // 计算三角形的仿射变换
-    Point2f src[] = {
-      _src_vertices[_indices[i][0]],
-      _src_vertices[_indices[i][1]],
-      _src_vertices[_indices[i][2]],
-    };
-    Point2f dst[] = {
-      _dst_vertices[_indices[i][0]],
-      _dst_vertices[_indices[i][1]],
-      _dst_vertices[_indices[i][2]],
-    };
-    // 按顺序保存(顺向的)仿射变换, 顺序对应三角形的索引
-    affine_transform.emplace_back(getAffineTransform(src, dst));
-  }
-
-  /* 计算目标特征点位置 */
-  _dst_features.clear();
-  for (int i = 0; i < _src_features.size(); i ++) {
-    int x = _src_features[i].x;
-    int y = _src_features[i].y;
-    int polygon_index = polygon_index_mask.at<int>(y, x);
-    assert(polygon_index != NO_GRID);
-    Point2f p_f = applyTransform2x3<float>(x, y, affine_transform[polygon_index]);// 计算目标特征点位置, (顺向的)仿射变换
-    _dst_features.emplace_back(p_f);
-  }
-}
-
-
-/***
  *
  * 寻找接缝线
  *
@@ -868,9 +805,14 @@ void MultiImages::myWarping() {
   // 对所有图像的网格点归一化(去除负值)
   Size2f tmp_size = normalizeVertices(matching_pts);
   pano_size = Size2i(ceil(tmp_size.width), ceil(tmp_size.height));
+  // for (int i = 0; i < img_num; i ++) {
+  //   for (int j = 0; j < matching_pts[i].size(); j ++) {
+  //     LOG("%d %d %lf %lf", i, j, matching_pts[i][j].x, matching_pts[i][j].y);
+  //   }
+  // }
   
-  // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
   for (int i = 0; i < img_num; i ++) {
+    // 获得每个形变的图片, 图片的起点都是(0, 0)?? TODO
     Mat warped_image;
     Mat image_mask;
     warpImage(
@@ -882,56 +824,48 @@ void MultiImages::myWarping() {
       image_mask);
 
     // 将每个图片/mask平移到最终位置
-    for (int i = 0; i < 2; i ++) {
-      Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
-      Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
-      // 计算目标矩阵
-      Rect2f rect = getVerticesRects(matching_pts[i]);
-      if (i == 1) {
-        // 参考图片
-        cvtColor(imgs[i]->data, tmp_image(rect), COLOR_RGB2RGBA);
-        imgs[i]->mask.copyTo(tmp_mask(rect));
-      } else {
-        warped_image.copyTo(tmp_image(rect));
-        image_mask.copyTo(tmp_mask(rect));
-      }
+    Mat tmp_image = Mat::zeros(pano_size, CV_8UC4);
+    Mat tmp_mask = Mat::zeros(pano_size, CV_8UC1);
 
-      pano_images.emplace_back(tmp_image);
-      pano_masks.emplace_back(tmp_mask);
-      origin_masks.emplace_back(tmp_mask);
-    }
+    Rect2f rect = getVerticesRects(matching_pts[i]);
+    warped_image.copyTo(tmp_image(rect));
+    image_mask.copyTo(tmp_mask(rect));
+
+    pano_images.emplace_back(tmp_image);
+    pano_masks.emplace_back(tmp_mask);
+    origin_masks.emplace_back(tmp_mask);
   }
 }
 
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
-  // 图像类型转换
-  vector<UMat> pano_images_f(2);
-  vector<UMat> pano_masks_gpu(2);
-  for (int i = 0; i < 2; i ++) {
+  vector<UMat> pano_images_f(img_num);
+  vector<UMat> pano_masks_gpu(img_num);
+  // 起点位置
+  vector<Point2i> img_origins;
+
+  for (int i = 0; i < img_num; i ++) {
+    // 图像类型转换
     pano_images[i].convertTo(pano_images_f[i], CV_32F);
     cvtColor(pano_images_f[i], pano_images_f[i], CV_RGBA2RGB);
-    pano_masks[i].copyTo(pano_masks_gpu[i]);
-  }
+    pano_masks[i].copyTo(pano_masks_gpu[i]);    
 
-  // 记录每个图像最终的起点位置
-  vector<Point2i> img_origins;
-  for (int i = 0; i < 2; i ++) {
+    // 记录每个图像最终的起点位置
     img_origins.emplace_back(0, 0);
   }
   seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
 
   // 同步Mat和UMat
-  for (int i = 0; i < 2; i ++) {
+  for (int i = 0; i < img_num; i ++) {
     pano_masks_gpu[i].copyTo(pano_masks[i]);
   }
 
   // 计算接缝线位置
   vector<Point2f> seam_pts;
-  getSeamPts(pano_masks[0], pano_masks[1], seam_pts);
+  getSeamPts(pano_masks[0], pano_masks[1], seam_pts);// TODO 需要进行修改
 
-  myBlending();// 先进行图像融合
+  myBlending();// 根据计算的mask进行图像融合
   drawPoints(pano_result, seam_pts);
 }
 
