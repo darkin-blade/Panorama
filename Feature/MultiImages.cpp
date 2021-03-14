@@ -403,6 +403,20 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
 
 /***
   *
+  * 计算APAP的结果
+  *
+  **/
+void MultiImages::getAPAPResult() {
+  assert(matching_pts.empty());
+  matching_pts.resize(img_num);
+  // matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
+  // matching_pts[1].assign(apap_pts[1][0].begin(), apap_pts[1][0].end());
+  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
+  matching_pts[0].assign(apap_pts[0][1].begin(), apap_pts[0][1].end());
+}
+
+/***
+  *
   * 网格优化
   *
   **/
@@ -423,10 +437,13 @@ void MultiImages::meshOptimization() {
     pair_index[m1].emplace_back(m2);
   }
 
+  // 先初始化参考图像
+  int reference_index = 0;
+  matching_pts[reference_index].assign(imgs[reference_index]->vertices.begin(), imgs[reference_index]->vertices.end());
   for (int i = 0; i < img_num; i ++) {
-    if (i == 1) {
+    if (i == reference_index) {
       // 第?张图片为参考图像
-      matching_pts[i].assign(imgs[i]->vertices.begin(), imgs[i]->vertices.end());
+      continue;
     } else {
       // 输入的图像顺序要按拼接的顺序输入
       reserveData(i, triplets, b_vector);
@@ -434,8 +451,6 @@ void MultiImages::meshOptimization() {
       prepareLocalSimilarityTerm(i, triplets, b_vector);
       prepareSensorTerm(i, triplets, b_vector);
       getSolution(i, triplets, b_vector);
-
-      // TODO 用网格优化的结果替代apap网格
     }
   }
 }
@@ -499,12 +514,11 @@ void MultiImages::reserveData(
   // row: 第row个等式, 不会超过equations
   // col: 第col个matching points
   // val: 系数
-  // dim: TODO, x或y
   int triplet_size = 
       alignment_equation.second * 4 // 对齐项: 每个匹配点需要grid的4个顶点
     + edge_neighbor_vertices_count * 4 + edge_count * 2 // 局部相似项: 等式 == edge的2个端点 + 2维 * 2维 * edge的邻接顶点
-    + edge_neighbor_vertices_count * 4// 全局相似项: 等式 == 2维 * 2维 * edge的邻接顶点
-    + sensor_equation.second;// TODO
+    // + edge_neighbor_vertices_count * 4// 全局相似项: 等式 == 2维 * 2维 * edge的邻接顶点, 作废
+    + sensor_equation.second;
   _triplets.reserve(triplet_size);
 
   // b向量不为零的数目
@@ -523,14 +537,13 @@ void MultiImages::prepareAlignmentTerm(
     return;
   }
 
-  // polygon索引
-  const vector<vector<int> > indices_1 = imgs[_m1]->polygons_indices;
-
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
     int m1 = _m1;
     int m2 = pair_index[_m1][i];
 
     // 记录顶点所在polygon索引, 以及在polygon中的分量
+    const vector<vector<int> > indices_1 = imgs[m1]->polygons_indices;
+    const vector<vector<int> > indices_2 = imgs[m2]->polygons_indices;
     vector<int>             index_1(single_mask[m1][m2].size());
     vector<vector<double> > weights_1(single_mask[m1][m2].size());
     vector<int>             index_2(single_mask[m1][m2].size());
@@ -559,19 +572,22 @@ void MultiImages::prepareAlignmentTerm(
 
       for (int dim = 0; dim < 2; dim ++) {
         // dim: x, y
+        double b_sum = 0;
         for (int k = 0; k < 4; k ++) {
           // 目标图像的顶点在自身的分量
           _triplets.emplace_back(alignment_equation.first + eq_count + dim,
             dim + 2 * indices_1[index_1[j]][k],
             alignment_weight * weights_1[j][k]);
+          
+          // 目标图像的匹配点在参考图像的分量, 此时参考图像的顶点位置已经确定, 分量和是一个定值
+          int index_of_m2 = indices_2[index_2[j]][k];
+          if (dim == 0) {// x
+            b_sum += alignment_weight * matching_pts[m2][index_of_m2].x * weights_2[j][k];
+          } else {
+            b_sum += alignment_weight * matching_pts[m2][index_of_m2].y * weights_2[j][k];
+          }
         }
-
-        // 目标图像的匹配点在参考图像的分量, 此时参考图像的顶点位置已经确定
-        if (dim == 0) {// x
-          _b_vector.emplace_back(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].x);
-        } else {// y
-          _b_vector.emplace_back(alignment_equation.first + eq_count + dim, apap_pts[m1][m2][j].y);
-        }
+        _b_vector.emplace_back(alignment_equation.first + eq_count + dim, b_sum);
       }
 
       eq_count += 2;// x, y
@@ -714,6 +730,7 @@ void MultiImages::getSolution(
   lscg.compute(A);
   x = lscg.solve(b);
 
+  LOG("%d is empty %d", _m1, matching_pts[_m1].empty());
   assert(matching_pts[_m1].empty());
   for (int i = 0; i < imgs[_m1]->vertices.size() * 2; i += 2) {
     matching_pts[_m1].emplace_back(x[i], x[i + 1]);

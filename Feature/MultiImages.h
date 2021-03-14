@@ -67,7 +67,7 @@ public:
   /* 网格优化 */
   vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
   double alignment_weight               = 1 * 1;
-  double local_similarity_weight        = 20 * 0.56;
+  double local_similarity_weight        = 5 * 0.56;
   double sensor_weight                  = 1 * 1;
   // 下面3项pair的含义:
   // first: 该部分等式中第一个等式在所有等式中的索引
@@ -160,6 +160,7 @@ public:
   void getSeam();
 
   /* DEBUG */
+  void getAPAPResult();
   void drawPoints(Mat _img, vector<Point2f> _points);
 };
 
