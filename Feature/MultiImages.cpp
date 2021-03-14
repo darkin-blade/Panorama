@@ -225,10 +225,6 @@ void MultiImages::getMeshInfo() {
   single_mask.resize(img_num);
 
   for (int i = 0; i < img_num; i ++) {
-    apap_pts[i].resize(img_num);
-    single_mask[i].resize(img_num);
-    total_mask.resize(imgs[i]->vertices.size());// 初始化为false
-        
     // 图像网格化
     vector<double> col_r, row_r;
 
@@ -244,6 +240,11 @@ void MultiImages::getMeshInfo() {
       row_r.emplace_back((double)i / mesh_size);
     }
     imgs[i]->initVertices(col_r, row_r);
+        
+    // 先要初始化网格, 再初始化变量
+    apap_pts[i].resize(img_num);
+    single_mask[i].resize(img_num);
+    total_mask[i].resize(imgs[i]->vertices.size());// 初始化为false
   }
 
   // apap匹配点
@@ -421,13 +422,14 @@ void MultiImages::meshOptimization() {
     pair_index[m1].emplace_back(m2);
   }
 
-  for (int i = 0; i < img_num; i ++) {
+  // 第0张图片为参考图像
+  for (int i = 0 + 1; i < img_num; i ++) {
     // 输入的图像顺序要按拼接的顺序输入
     reserveData(i, triplets, b_vector);
     prepareAlignmentTerm(i, triplets, b_vector);
     prepareLocalSimilarityTerm(i, triplets, b_vector);
     prepareSensorTerm(i, triplets, b_vector);
-    getSolution(triplets, b_vector);
+    getSolution(i, triplets, b_vector);
 
     // TODO 用网格优化的结果替代apap网格
   }
@@ -681,15 +683,17 @@ void MultiImages::prepareSensorTerm(
   assert(eq_count == sensor_equation.second);
 }
 
-void MultiImages::getSolution(  
+void MultiImages::getSolution(
+    int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
   int equations = alignment_equation.second + local_similarity_equation.second + global_similarity_equation.second + sensor_equation.second;
 
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
-  SparseMatrix<double> A(equations, imgs[0]->vertices.size() * 2);
+  SparseMatrix<double> A(equations, imgs[_m1]->vertices.size() * 2);
   VectorXd b = VectorXd::Zero(equations), x;
 
+  LOG("triplets size %d", _triplets.size());
   A.setFromTriplets(_triplets.begin(), _triplets.end());
   for (int i = 0; i < _b_vector.size(); i ++) {
     b[_b_vector[i].first] = _b_vector[i].second;

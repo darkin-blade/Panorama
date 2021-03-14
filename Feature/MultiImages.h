@@ -129,6 +129,7 @@ public:
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
   void getSolution(
+      int _m1,
       vector<Triplet<double> > & _triplets, 
       vector<pair<int, double> > & _b_vector);
 
