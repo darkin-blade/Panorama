@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
   // 调用自己的方法
   
-  // 读取图片
+  // 读取图片, 先存入multi_images中
   MultiImages multi_images;
   for (int i = 1; i <= 2; i ++) {
     sprintf(img_path, "%s/%d.jpg", app_path, i);

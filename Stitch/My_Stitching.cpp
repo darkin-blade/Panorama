@@ -46,8 +46,15 @@ Mat My_Stitching::getMyResult() {
     // show_img("result", multi_images->pano_result);
   }
 
-  // 读取图像
-  // 特征检测
+  assert(multi_images->imgs.empty());
+  for (int i = 0; i < img_num; i ++) {
+    // 读取图像: 从multi_images到ImageData类中
+    multi_images->imgs.emplace_back(new ImageData());
+    // multi_images->imgs[i]->initData();// 单纯地清空所有数据
+    multi_images->imgs[i]->readImg(multi_images->origin_data[i], 1);
+
+    // 特征检测
+  }
   // apap网格计算
   // 相似变换
   // 网格优化
