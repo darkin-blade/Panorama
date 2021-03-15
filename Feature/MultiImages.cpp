@@ -258,13 +258,6 @@ void MultiImages::getMeshInfo() {
       apap_pts[m1][m2],
       imgs[m1]->homographies
     );
-    Homographies::compute(
-      feature_points[m2][m1],
-      feature_points[m1][m2],
-      imgs[m2]->vertices,
-      apap_pts[m2][m1],
-      imgs[m2]->homographies
-    );
 
     // 获取m1在m2上(未出界)的匹配点
     int pts_num = apap_pts[m1][m2].size();
