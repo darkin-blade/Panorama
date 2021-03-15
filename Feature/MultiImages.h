@@ -43,7 +43,6 @@ public:
   /* 原始数据 */
   int                      img_num;
   vector<Mat>              origin_data;// 未进行缩放的图像数据
-  vector<double>           img_rotations;// 拍摄时的旋转角度
   vector<pair<int, int> >  img_pairs;// 图片的配对信息
   vector<ImageData *>      imgs;
 
@@ -52,17 +51,17 @@ public:
   vector<pair<int, int> >                   feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// RANSAC的特征点, [m1][m2]: m1与m2配对的特征点
 
-  /* 相似变换: 目标图像 */
-  double    scale;
-  double    rotate;// 顺时针(因为坐标系是反的)
-  double    shift_x, shift_y;
-
   /* 网格变换 */
   vector<vector<bool> >               total_mask;// 目标图像在参考图像上未出界的匹配点mask
   vector<vector<vector<bool> > >      single_mask;// [m1][m2][j]: m1的第j个匹配点是否在m2上出界
   vector<vector<vector<Point2f> > >   apap_pts;// apap的结果, [m1][m2]: m1与m2的结果
-  vector<vector<vector<Point2f> > >   similarity_pts;// 相似变换的结果, [m1][m2]
+  vector<vector<Point2f> >            similarity_pts;// 相似变换的结果, [i]: 第i张图片
   vector<vector<Point2f> >            matching_pts;// 最终结果;
+
+  /* 相似变换 */
+  vector<double> rotations;
+  vector<double> scales;
+  vector<double> shift_x, shift_y;
 
   /* 网格优化 */
   int                                 reference_index = 0;
@@ -96,6 +95,9 @@ public:
   /* 图片读取 */
   void readImg(const char *img_path);
 
+  /* 预处理 */
+  void init();
+
   /* 特征匹配 */
   void getFeaturePairs(int _m1, int _m2);
   vector<pair<int, int> > getInitialFeaturePairs(int _m1, int _m2);
@@ -107,7 +109,7 @@ public:
   /* 图像配准 */
   void getFeatureInfo();
   void getMeshInfo();
-  void similarityTransform(int _mode, vector<double> _angles);// 0: 平移; 1: 平移 + 缩放; 2: 平移 + 缩放 + 旋转; 在2条件下_angle参数无效
+  void similarityTransform(int _mode);// 0: 平移; 1: 平移 + 缩放;
 
   /* 网格优化 */
   void meshOptimization();
@@ -168,7 +170,7 @@ public:
   void getSeam();
 
   /* DEBUG */
-  void getAPAPResult();
+  void getTmpResult();
   Mat drawPoints(Mat _img, vector<Point2f> _points);
 };
 
