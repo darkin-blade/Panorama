@@ -169,7 +169,7 @@ public:
 
   /* DEBUG */
   void getAPAPResult();
-  void drawPoints(Mat _img, vector<Point2f> _points);
+  Mat drawPoints(Mat _img, vector<Point2f> _points);
 };
 
 #endif

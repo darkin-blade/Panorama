@@ -599,7 +599,6 @@ void MultiImages::prepareAlignmentTerm(
     }
   }
 
-  LOG("alignment %d", eq_count);
   assert(eq_count == alignment_equation.second);
 }
 
@@ -935,6 +934,7 @@ void MultiImages::getSeam() {
 
     // 描绘接缝线
     drawPoints(result_image, seam_pts);
+    drawPoints(result_image, matching_pts[i]);
   }
 }
 
@@ -977,11 +977,16 @@ void MultiImages::myBlending(
   for (int i = 0; i < 2; i ++) {
     img_origins.emplace_back(0, 0);
   }
+
+  // 不能够使用pano_images
+  vector<Mat> tmp_images;
+  tmp_images.emplace_back(src_image);
+  tmp_images.emplace_back(dst_image);
   
   // 计算融合的图像
   bool ignore_weight_mask = false;
   result_image = Blending(
-    pano_images,
+    tmp_images,
     img_origins,
     pano_size,
     blend_weight_mask,
@@ -989,7 +994,6 @@ void MultiImages::myBlending(
 
   // 计算融合的mask
   result_mask = src_mask | dst_mask;
-  show_img("mask", result_mask);
 }
 
 /***
@@ -998,7 +1002,7 @@ void MultiImages::myBlending(
   *
   **/
 
-void MultiImages::drawPoints(Mat _img, vector<Point2f> _points) {
+Mat MultiImages::drawPoints(Mat _img, vector<Point2f> _points) {
   Mat result;
   vector<Point2f> tmp_points;
   tmp_points.assign(_points.begin(), _points.end());
@@ -1017,4 +1021,5 @@ void MultiImages::drawPoints(Mat _img, vector<Point2f> _points) {
     circle(result, p, 2, color1, -1);// circle_size = 1
   }
   show_img("result", result);
+  return result;
 }
