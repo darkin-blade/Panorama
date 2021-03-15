@@ -74,7 +74,6 @@ public:
   // second: 该部分等式含有的等式的总数
   pair<int, int> alignment_equation;
   pair<int, int> local_similarity_equation;
-  pair<int, int> global_similarity_equation;
   // 传感器数据
   pair<int, int> sensor_equation;
 

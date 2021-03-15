@@ -466,7 +466,6 @@ void MultiImages::reserveData(
 
   alignment_equation.second = 0;
   local_similarity_equation.second = 0;
-  global_similarity_equation.second = 0;
   sensor_equation.second = 0;
 
   // 相似项处理
@@ -504,11 +503,8 @@ void MultiImages::reserveData(
   // 局部相似项
   local_similarity_equation.first = alignment_equation.first + alignment_equation.second;
 
-  // 全局相似项
-  global_similarity_equation.first = local_similarity_equation.first + local_similarity_equation.second;
-
   // 传感器定位
-  sensor_equation.first = global_similarity_equation.first + global_similarity_equation.second;
+  sensor_equation.first = local_similarity_equation.first + local_similarity_equation.second;
 
   // triplet的大小并不对应equations的数目
   // triplet(row, col, val):
@@ -523,7 +519,7 @@ void MultiImages::reserveData(
   _triplets.reserve(triplet_size);
 
   // b向量不为零的数目
-  int b_vector_size = alignment_equation.second + global_similarity_equation.second + sensor_equation.second;
+  int b_vector_size = alignment_equation.second + sensor_equation.second;
   _b_vector.reserve(b_vector_size);
 }
 
@@ -685,7 +681,6 @@ void MultiImages::prepareSensorTerm(
     return;
   }
 
-  // 给非重叠区域的顶点定位
   assert(!similarity_pts.empty());
 
   for (int i = 0; i < total_mask[_m1].size(); i ++) {
@@ -696,11 +691,11 @@ void MultiImages::prepareSensorTerm(
 
     // x: dim = 0, y: dim = 1
     double x = similarity_pts[_m1][i].x;
-    _triplets.emplace_back(global_similarity_equation.first + eq_count + 0, eq_count + 0, 1 * sensor_weight);
-    _b_vector.emplace_back(global_similarity_equation.first + eq_count + 0, x * sensor_weight);
+    _triplets.emplace_back(sensor_equation.first + eq_count + 0, i * 2 + 0, 1 * sensor_weight);// 不要使用eq_count
+    _b_vector.emplace_back(sensor_equation.first + eq_count + 0, x * sensor_weight);
     double y = similarity_pts[_m1][i].y;
-    _triplets.emplace_back(global_similarity_equation.first + eq_count + 1, eq_count + 1, 1 * sensor_weight);
-    _b_vector.emplace_back(global_similarity_equation.first + eq_count + 1, y * sensor_weight);
+    _triplets.emplace_back(sensor_equation.first + eq_count + 1, i * 2 + 1, 1 * sensor_weight);
+    _b_vector.emplace_back(sensor_equation.first + eq_count + 1, y * sensor_weight);
 
     eq_count += 2;
   }
@@ -712,7 +707,7 @@ void MultiImages::getSolution(
     int _m1,
     vector<Triplet<double> > & _triplets, 
     vector<pair<int, double> > & _b_vector) {
-  int equations = alignment_equation.second + local_similarity_equation.second + global_similarity_equation.second + sensor_equation.second;
+  int equations = alignment_equation.second + local_similarity_equation.second + sensor_equation.second;
 
   LeastSquaresConjugateGradient<SparseMatrix<double> > lscg;
   SparseMatrix<double> A(equations, imgs[_m1]->vertices.size() * 2);
