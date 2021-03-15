@@ -342,50 +342,6 @@ void MultiImages::similarityTransform(int _mode, vector<double> _angles) {
       shift_x = solution(1);
       shift_y = solution(2);
 
-    } else {
-      // 计算平移和旋转, 并使用CV方式计算旋转, 未知数为(r, s, x, y)
-      // r: 绕图像(0, 0)逆时针旋转r弧度
-      // s: 以图像(0, 0)为中心放缩图像s倍
-      /*
-        旋转公式: (正常方向下逆时针)
-        x' = x cos - y sin
-        y' = x sin + y cos
-        原方程:
-        s(x1 cos - y1 sin) + x = x2
-        s(x1 sin + y1 cos) + y = y2
-        转换为:
-        a x1 - b y1 + x = x2
-        b x1 + a y1 + y = y2
-        其中:
-        a = s cos
-        b = s sin
-      */
-
-      assert(0);// 该种方法不好用
-      MatrixXd A = MatrixXd::Zero(equations * 2, 4);
-      VectorXd b = VectorXd::Zero(equations * 2);
-      for (int i = 0; i < equations; i ++) {
-        // x1 p - y1 q + x + 0 = x2
-        // y1 p + x1 q + 0 + y = y2
-        A(i*2 + 0, 0) = feature_points[m1][m2][i].x;
-        A(i*2 + 0, 1) = -feature_points[m1][m2][i].y;
-        A(i*2 + 0, 2) = 1;
-        b(i*2 + 0)    = feature_points[m2][m1][i].x;
-        A(i*2 + 1, 0) = feature_points[m1][m2][i].y;
-        A(i*2 + 1, 1) = feature_points[m1][m2][i].x;
-        A(i*2 + 1, 3) = 1;
-        b(i*2 + 1)    = feature_points[m2][m1][i].y;
-      }
-      VectorXd solution = A.colPivHouseholderQr().solve(b);
-      double p = solution(0);
-      double q = solution(1);
-      scale   = sqrt(p*p + q*q);
-      rotate  = acos(p / scale);
-      if (q < 0) {
-        rotate = 2 * M_PI - rotate;
-      }
-      shift_x = solution(1);
-      shift_y = solution(2);
     }
 
     // 存储相似变换结果
