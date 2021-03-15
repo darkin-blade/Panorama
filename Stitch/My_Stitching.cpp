@@ -21,15 +21,17 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
 
   // 相似变换
-  // vector<double> angles;
-  // for (int i = 0; i < img_num; i ++) {
-  //   angles.emplace_back(0);// 负为逆时针
-  // }
-  // multi_images->similarityTransform(1, angles);
+  vector<double> angles;
+  for (int i = 0; i < img_num; i ++) {
+    angles.emplace_back(0);// 负为逆时针
+  }
+  multi_images->similarityTransform(1, angles);
 
   // 网格优化
-  // multi_images->meshOptimization();
-  multi_images->getAPAPResult();
+  multi_images->meshOptimization();
+
+  // 不进行网格优化, 直接计算APAP结果
+  // multi_images->getAPAPResult();
 
   // 接缝线算法
   multi_images->myWarping();

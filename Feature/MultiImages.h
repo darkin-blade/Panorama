@@ -98,7 +98,7 @@ public:
 
   /* 特征匹配 */
   void getFeaturePairs(int _m1, int _m2);
-  vector<pair<int, int> > getInitialFeaturePairs();
+  vector<pair<int, int> > getInitialFeaturePairs(int _m1, int _m2);
   vector<pair<int, int> > getFeaturePairsBySequentialRANSAC(
       const vector<Point2f> & _X,
       const vector<Point2f> & _Y,

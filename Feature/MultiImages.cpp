@@ -25,19 +25,18 @@ void MultiImages::readImg(const char *img_path) {
   *
   **/
 
-vector<pair<int, int> > MultiImages::getInitialFeaturePairs() {  
+vector<pair<int, int> > MultiImages::getInitialFeaturePairs(int _m1, int _m2) {  
   const int nearest_size = 2;
   const bool ratio_test = true;
 
-  int size_1 = imgs[0]->feature_points.size();
-  int size_2 = imgs[1]->feature_points.size();
+  int size_1 = imgs[_m1]->feature_points.size();
+  int size_2 = imgs[_m2]->feature_points.size();
   const int feature_size[2] = { size_1, size_2 };
-  const int pair_match[2] = { 0, 1 };
 
   const int another_feature_size = feature_size[1];
   const int nearest_k = min(nearest_size, another_feature_size);// 只可能为0, 1, 2
-  const vector<vector<Mat> > &feature_descriptors_1 = imgs[pair_match[0]]->descriptors;
-  const vector<vector<Mat> > &feature_descriptors_2 = imgs[pair_match[1]]->descriptors;
+  const vector<vector<Mat> > &feature_descriptors_1 = imgs[_m1]->descriptors;
+  const vector<vector<Mat> > &feature_descriptors_2 = imgs[_m2]->descriptors;
 
   // 对每个点计算最相近的特征点
   vector<FeatureDistance> feature_pairs_result;
@@ -156,7 +155,7 @@ vector<pair<int, int> > MultiImages::getFeaturePairsBySequentialRANSAC(
 void MultiImages::getFeaturePairs(int _m1, int _m2) {
   // 获取feature points下标的配对信息
 
-  vector<pair<int, int> > initial_indices = getInitialFeaturePairs();
+  vector<pair<int, int> > initial_indices = getInitialFeaturePairs(_m1, _m2);
 
   // 将所有成功配对的特征点进行筛选
   const vector<Point2f> & m1_fpts = imgs[_m1]->feature_points;
