@@ -16,6 +16,10 @@ void getSeamPts(
   const Mat & src_mask,
   const Mat & dst_mask,
   vector<Point2f> & seam_pts);
+void getSeamPts(
+  const UMat & src_mask,
+  const UMat & dst_mask,
+  vector<Point2f> & seam_pts);
 
 // 暴力图像扩展
 void getExpandMat(

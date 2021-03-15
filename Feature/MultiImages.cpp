@@ -444,7 +444,6 @@ void MultiImages::meshOptimization() {
   }
 
   // 先初始化参考图像
-  int reference_index = 0;
   matching_pts[reference_index].assign(imgs[reference_index]->vertices.begin(), imgs[reference_index]->vertices.end());
   for (int i = 0; i < img_num; i ++) {
     if (i == reference_index) {
@@ -736,7 +735,6 @@ void MultiImages::getSolution(
   lscg.compute(A);
   x = lscg.solve(b);
 
-  LOG("%d is empty %d", _m1, matching_pts[_m1].empty());
   assert(matching_pts[_m1].empty());
   for (int i = 0; i < imgs[_m1]->vertices.size() * 2; i += 2) {
     matching_pts[_m1].emplace_back(x[i], x[i + 1]);
@@ -863,40 +861,81 @@ void MultiImages::myWarping() {
 
     pano_images.emplace_back(tmp_image);
     pano_masks.emplace_back(tmp_mask);
-    origin_masks.emplace_back(tmp_mask);
+    origin_masks.emplace_back(tmp_mask);// 存储每张图片初始的mask
   }
 }
 
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
-  vector<UMat> pano_images_f(img_num);
-  vector<UMat> pano_masks_gpu(img_num);
+  vector<UMat> pano_images_f(2);
+  vector<UMat> pano_masks_gpu(2);
   // 起点位置
   vector<Point2i> img_origins;
-
-  for (int i = 0; i < img_num; i ++) {
-    // 图像类型转换
-    pano_images[i].convertTo(pano_images_f[i], CV_32F);
-    cvtColor(pano_images_f[i], pano_images_f[i], CV_RGBA2RGB);
-    pano_masks[i].copyTo(pano_masks_gpu[i]);    
-
-    // 记录每个图像最终的起点位置
+  for (int i = 0; i < 2; i ++) {
     img_origins.emplace_back(0, 0);
   }
-  seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
 
-  // 同步Mat和UMat
+  // 存储中间结果
+  // 预处理参考图像
+  Mat result_mask, result_image;
+  pano_images[reference_index].copyTo(result_image);
+  pano_masks[reference_index].copyTo(result_mask);
+
+  // 逐一计算接缝线
   for (int i = 0; i < img_num; i ++) {
-    pano_masks_gpu[i].copyTo(pano_masks[i]);
+    if (i == reference_index) {
+      // 跳过参考图像
+      continue;
+    }
+
+    // 类型转换
+    int _l = 0, _r = 1;
+    // 参考图像
+    result_image.convertTo(pano_images_f[_l], CV_32F);
+    cvtColor(pano_images_f[_l], pano_images_f[_l], CV_RGBA2RGB);
+    result_mask.copyTo(pano_masks_gpu[_l]);
+    // 目标图像
+    pano_images[i].convertTo(pano_images_f[_r], CV_32F);
+    cvtColor(pano_images_f[_r], pano_images_f[_r], CV_RGBA2RGB);
+    pano_masks[i].copyTo(pano_masks_gpu[_r]);
+
+    // 接缝线
+    seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
+
+    // TODO 同步mask的Mat和UMat
+    Mat src_mask, dst_mask;
+    pano_masks_gpu[_l].copyTo(src_mask);
+    pano_masks_gpu[_r].copyTo(dst_mask);
+
+    // 计算接缝线位置
+    vector<Point2f> seam_pts;
+    getSeamPts(src_mask, dst_mask, seam_pts);// TODO 需要进行修改
+
+    // 临时变量
+    Mat src_image, dst_image;
+    result_image.copyTo(src_image);
+    pano_images[i].copyTo(dst_image);
+
+    Mat src_origin, dst_origin;
+    result_mask.copyTo(src_origin);
+    pano_masks[i].copyTo(dst_origin);
+
+    // 根据计算的mask进行图像融合
+    myBlending(
+      src_image,
+      dst_image,
+      src_mask,
+      dst_mask,
+      src_origin,
+      dst_origin,
+      result_image,
+      result_mask
+    );
+
+    // 描绘接缝线
+    drawPoints(result_image, seam_pts);
   }
-
-  // 计算接缝线位置
-  vector<Point2f> seam_pts;
-  getSeamPts(pano_masks[0], pano_masks[1], seam_pts);// TODO 需要进行修改
-
-  myBlending();// 根据计算的mask进行图像融合
-  drawPoints(pano_result, seam_pts);
 }
 
 /***
@@ -905,36 +944,52 @@ void MultiImages::getSeam() {
   *
   **/
 
-void MultiImages::myBlending() {
-  int pano_rows = pano_masks[0].rows;
-  int pano_cols = pano_masks[0].cols;
+void MultiImages::myBlending(
+    Mat src_image, // 参考图像
+    Mat dst_image, // 目标图像
+    Mat src_mask,
+    Mat dst_mask,
+    const Mat src_origin, // 用于扩展
+    const Mat dst_origin,
+    Mat & result_image,
+    Mat & result_mask
+) {
+  assert(src_image.size() == dst_image.size());
+
+  int pano_rows = src_image.rows;
+  int pano_cols = src_image.cols;
 
   // 图像扩充
-  getExpandMat(pano_images[0], pano_images[1], pano_masks[0], pano_masks[1]);
-  getExpandMat(pano_images[1], pano_images[0], pano_masks[1], pano_masks[0]);
+  getExpandMat(src_image, dst_image, src_mask, dst_mask);
+  getExpandMat(dst_image, src_image, dst_mask, src_mask);
 
   // 线性融合mask计算
+  vector<Mat> blend_weight_mask(2);
   getGradualMat(
-    pano_images[0], pano_images[1], 
-    origin_masks[0], origin_masks[1], 
-    pano_masks[0], pano_masks[1]);
+    src_image, dst_image, 
+    src_origin, dst_origin, 
+    src_mask, dst_mask);
+  src_mask.convertTo(blend_weight_mask[0], CV_32FC1);
+  dst_mask.convertTo(blend_weight_mask[1], CV_32FC1);
 
+  // 图像起点, float
   vector<Point2f> img_origins;
-  blend_weight_mask.clear();
-  blend_weight_mask.resize(2);
   for (int i = 0; i < 2; i ++) {
     img_origins.emplace_back(0, 0);
-    // show_img(pano_images[i], "image %d", i);
-    pano_masks[i].convertTo(blend_weight_mask[i], CV_32FC1);
   }
   
+  // 计算融合的图像
   bool ignore_weight_mask = false;
-  pano_result = Blending(
+  result_image = Blending(
     pano_images,
     img_origins,
     pano_size,
     blend_weight_mask,
     ignore_weight_mask);
+
+  // 计算融合的mask
+  result_mask = src_mask | dst_mask;
+  show_img("mask", result_mask);
 }
 
 /***

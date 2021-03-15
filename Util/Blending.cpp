@@ -82,6 +82,18 @@ void getSeamPts(
   }
 }
 
+void getSeamPts(
+  const UMat & src_mask,
+  const UMat & dst_mask,
+  vector<Point2f> & seam_pts// 记录接缝线位置
+)
+{
+  Mat src, dst;
+  src_mask.copyTo(src);
+  dst_mask.copyTo(dst);
+  getSeamPts(src, dst, seam_pts);
+}
+
 void getExpandMat(
   Mat & src_image,
   const Mat & dst_image,

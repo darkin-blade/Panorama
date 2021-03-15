@@ -37,7 +37,7 @@ Mat My_Stitching::getMyResult() {
   multi_images->myWarping();
   multi_images->getSeam();// 图像融合过程内嵌在这个函数中
 
-  return multi_images->pano_result;
+  return Mat();// TODO
 }
 
 void My_Stitching::debug() {

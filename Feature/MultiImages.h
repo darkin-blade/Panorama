@@ -65,6 +65,7 @@ public:
   vector<vector<Point2f> >            matching_pts;// 最终结果;
 
   /* 网格优化 */
+  int                                 reference_index = 0;
   vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
   double alignment_weight               = 1 * 1;
   double local_similarity_weight        = 5 * 0.56;
@@ -79,8 +80,7 @@ public:
   pair<int, int> sensor_equation;
 
   /* 图像融合 */
-  Size2i                  pano_size;
-  vector<Mat>             blend_weight_mask;
+  Size2i                  pano_size;// 最终结果的图像大小
 
   /* 接缝线寻找 */
   vector<Mat>      pano_images;
@@ -153,7 +153,15 @@ public:
   void myWarping();
 
   /* 图像融合 */
-  void myBlending();
+  void myBlending(
+      Mat src_image,
+      Mat dst_image,
+      Mat src_mask,
+      Mat dst_mask,
+      Mat src_origin, // 用于扩展
+      Mat dst_origin,
+      Mat & result_image,
+      Mat & result_mask);
 
   /* 寻找接缝线 */
   void getMask();// 计算接缝线的mask
