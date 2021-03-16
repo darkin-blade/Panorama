@@ -33,25 +33,8 @@ void MySeamFinder::find(
     Sobel(src[i], dx, CV_32F, 1, 0);
     Sobel(src[i], dy, CV_32F, 0, 1);
 
-    // dx += dy;
     convertScaleAbs(dx, dx_[i]);
     convertScaleAbs(dy, dy_[i]);
-    // dx.copyTo(dx_[i]);
-    // dx.copyTo(dy_[i]);
-    // dx_[i].create(src[i].size(), CV_32F);
-    // dy_[i].create(src[i].size(), CV_32F);
-    // for (int y = 0; y < src[i].rows; ++y)
-    // {
-    //   const Point3f* dx_row = dx.ptr<Point3f>(y);
-    //   const Point3f* dy_row = dy.ptr<Point3f>(y);
-    //   float* dx_row_ = dx_[i].ptr<float>(y);
-    //   float* dy_row_ = dy_[i].ptr<float>(y);
-    //   for (int x = 0; x < src[i].cols; ++x)
-    //   {
-    //     dx_row_[x] = normL2(dx_row[x]);
-    //     dy_row_[x] = normL2(dy_row[x]);
-    //   }
-    // }
   }
 
   images_ = src;

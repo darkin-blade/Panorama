@@ -42,7 +42,7 @@ void MultiImages::init() {
     //   base += (1 - base) / 2.5;
     // }
     // col_r.emplace_back(1);
-    int mesh_size = 8;
+    int mesh_size = 5;
     for (int i = 0; i <= mesh_size; i ++) {
       col_r.emplace_back((double)i / mesh_size);
       row_r.emplace_back((double)i / mesh_size);
@@ -331,13 +331,13 @@ void MultiImages::similarityTransform(int _mode) {
         VectorXd b = VectorXd::Zero(equations * 2);
         double rotate = rotations[m1];
         int eq_count = 0;// 检验等式数目是否正确
-        for (int m1 = 0; m1 < feature_points[m1][m2].size(); m1 ++) {
+        for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
           // (x1 cos - y1 sin) * s + x + 0 = x2
           // (x1 sin + y1 cos) * s + 0 + y = y2
-          double x1 = feature_points[m1][m2][m1].x;
-          double y1 = feature_points[m1][m2][m1].y;
-          double _x2 = feature_points[m2][m1][m1].x;
-          double _y2 = feature_points[m2][m1][m1].y;
+          double x1 = feature_points[m1][m2][k].x;
+          double y1 = feature_points[m1][m2][k].y;
+          double _x2 = feature_points[m2][m1][k].x;
+          double _y2 = feature_points[m2][m1][k].y;
           double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
           double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
           A(eq_count + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
@@ -546,6 +546,7 @@ void MultiImages::meshOptimization() {
   vector<pair<int, double> > b_vector;
 
   for (int i = 0; i < img_num; i ++) {
+    LOG("optimization %d", image_order[i]);
     if (i == 0) {
       matching_pts[image_order[i]].assign(imgs[image_order[i]]->vertices.begin(), imgs[image_order[i]]->vertices.end());
     } else {
@@ -957,74 +958,137 @@ void MultiImages::myWarping() {
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
-  vector<UMat> pano_images_f(2);
-  vector<UMat> pano_masks_gpu(2);
-  // 起点位置
-  vector<Point2i> img_origins;
-  for (int i = 0; i < 2; i ++) {
-    img_origins.emplace_back(0, 0);
-  }
-
-  // 存储中间结果
-  // 预处理参考图像
-  Mat result_mask, result_image;
-  pano_images[reference_index].copyTo(result_image);
-  pano_masks[reference_index].copyTo(result_mask);
-
-  // 逐一计算接缝线
-  for (int i = 0; i < img_num; i ++) {
-    if (i == reference_index) {
-      // 跳过参考图像
-      continue;
+  if (0) {
+    vector<UMat> pano_images_f(2);
+    vector<UMat> pano_masks_gpu(2);
+    // 起点位置
+    vector<Point2i> img_origins;
+    for (int i = 0; i < 2; i ++) {
+      img_origins.emplace_back(0, 0);
     }
 
-    // 类型转换
-    int _l = 0, _r = 1;
-    // 参考图像
-    result_image.convertTo(pano_images_f[_l], CV_32F);
-    cvtColor(pano_images_f[_l], pano_images_f[_l], CV_RGBA2RGB);
-    result_mask.copyTo(pano_masks_gpu[_l]);
-    // 目标图像
-    pano_images[i].convertTo(pano_images_f[_r], CV_32F);
-    cvtColor(pano_images_f[_r], pano_images_f[_r], CV_RGBA2RGB);
-    pano_masks[i].copyTo(pano_masks_gpu[_r]);
+    // 存储中间结果
+    // 预处理参考图像
+    Mat result_mask, result_image;
+    pano_images[image_order[0]].copyTo(result_image);
+    pano_masks[image_order[0]].copyTo(result_mask);
 
-    // 接缝线
+    // 逐一计算接缝线
+    for (int i = 0; i < img_num; i ++) {
+      if (i == 0) {
+        // 跳过参考图像
+        continue;
+      }
+      int m1 = image_order[i];
+
+      // 类型转换
+      int _l = 0, _r = 1;
+      // 参考图像
+      result_image.convertTo(pano_images_f[_l], CV_32F);
+      cvtColor(pano_images_f[_l], pano_images_f[_l], CV_RGBA2RGB);
+      result_mask.copyTo(pano_masks_gpu[_l]);
+      // 目标图像
+      pano_images[m1].convertTo(pano_images_f[_r], CV_32F);
+      cvtColor(pano_images_f[_r], pano_images_f[_r], CV_RGBA2RGB);
+      pano_masks[m1].copyTo(pano_masks_gpu[_r]);
+
+      // 接缝线
+      seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
+
+      // TODO 同步mask的Mat和UMat
+      Mat src_mask, dst_mask;
+      pano_masks_gpu[_l].copyTo(src_mask);
+      pano_masks_gpu[_r].copyTo(dst_mask);
+
+      // 计算接缝线位置
+      vector<Point2f> seam_pts;
+      getSeamPts(src_mask, dst_mask, seam_pts);// TODO 需要进行修改
+
+      // 临时变量
+      Mat src_image, dst_image;
+      result_image.copyTo(src_image);
+      pano_images[m1].copyTo(dst_image);
+
+      Mat src_origin, dst_origin;
+      result_mask.copyTo(src_origin);
+      pano_masks[m1].copyTo(dst_origin);
+
+      // 根据计算的mask进行图像融合
+      myBlending(
+        src_image,
+        dst_image,
+        src_mask,
+        dst_mask,
+        src_origin,
+        dst_origin,
+        result_image,
+        result_mask
+      );
+
+      // 描绘接缝线
+      drawPoints(result_image, seam_pts);
+    }
+  } else {
+    vector<UMat> pano_images_f(img_num);
+    vector<UMat> pano_masks_gpu(img_num);
+    // 起点位置
+    vector<Point2i> img_origins;
+    vector<Mat> tmp_mask(img_num);
+    vector<Mat> tmp_image(img_num);
+
+    for (int i = 0; i < img_num; i ++) {
+      img_origins.emplace_back(0, 0);
+      pano_images[i].convertTo(pano_images_f[i], CV_32F);
+      cvtColor(pano_images_f[i], pano_images_f[i], CV_RGBA2RGB);
+      pano_masks[i].copyTo(pano_masks_gpu[i]);
+    }
     seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
+    // 过渡
+    Mat result_mask, result_image, result_origin;
+    pano_images[image_order[0]].copyTo(result_image);
+    pano_masks_gpu[image_order[0]].copyTo(result_mask);
+    pano_masks[image_order[0]].copyTo(result_origin);
+    for (int i = 0; i < img_num; i ++) {
+      if (i == 0) {
+        continue;
+      }
+      Mat src_image;
+      Mat dst_image;
+      Mat src_mask;
+      Mat dst_mask;
+      Mat src_origin;
+      Mat dst_origin;
 
-    // TODO 同步mask的Mat和UMat
-    Mat src_mask, dst_mask;
-    pano_masks_gpu[_l].copyTo(src_mask);
-    pano_masks_gpu[_r].copyTo(dst_mask);
+      result_mask.copyTo(src_mask);
+      pano_masks_gpu[image_order[i]].copyTo(dst_mask);
+      result_image.copyTo(src_image);
+      pano_images[image_order[i]].copyTo(dst_image);
+      result_origin.copyTo(src_origin);
+      pano_masks[image_order[i]].copyTo(dst_origin);
 
-    // 计算接缝线位置
-    vector<Point2f> seam_pts;
-    getSeamPts(src_mask, dst_mask, seam_pts);// TODO 需要进行修改
+      // 计算接缝线位置
+      vector<Point2f> seam_pts;
+      getSeamPts(src_mask, dst_mask, seam_pts);// TODO 需要进行修改
 
-    // 临时变量
-    Mat src_image, dst_image;
-    result_image.copyTo(src_image);
-    pano_images[i].copyTo(dst_image);
+      // 根据计算的mask进行图像融合
+      myBlending(
+        src_image,
+        dst_image,
+        src_mask,
+        dst_mask,
+        src_origin,
+        dst_origin,
+        result_image,
+        result_mask
+      );
 
-    Mat src_origin, dst_origin;
-    result_mask.copyTo(src_origin);
-    pano_masks[i].copyTo(dst_origin);
+      result_origin = src_origin | dst_origin;
 
-    // 根据计算的mask进行图像融合
-    myBlending(
-      src_image,
-      dst_image,
-      src_mask,
-      dst_mask,
-      src_origin,
-      dst_origin,
-      result_image,
-      result_mask
-    );
-
-    // 描绘接缝线
-    drawPoints(result_image, seam_pts);
+      // 描绘接缝线
+      drawPoints(result_image, matching_pts[image_order[i]]);
+    }
   }
+  
 }
 
 /***

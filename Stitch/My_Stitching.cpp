@@ -22,7 +22,7 @@ Mat My_Stitching::getMyResult() {
   multi_images->getFeatureInfo();
 
   // 相似变换
-  multi_images->similarityTransform(0);
+  multi_images->similarityTransform(1);
   multi_images->getImagePairs();
   // 补充特征点匹配
   multi_images->getFeatureInfo();
