@@ -18,6 +18,7 @@ public:
 
   // 从前往后两两配对
   void find(const std::vector<UMat> &src, const std::vector<Point> &corners, std::vector<UMat> &masks);
+  void find(const std::vector<UMat> &src, const std::vector<Point> &corners, std::vector<UMat> &masks, vector<pair<int, int> > img_pairs);
   // 两两计算接缝线
   void findInPair(size_t first, size_t second, Rect roi);
   // 建图

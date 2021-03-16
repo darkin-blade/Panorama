@@ -42,7 +42,7 @@ void MultiImages::init() {
     //   base += (1 - base) / 2.5;
     // }
     // col_r.emplace_back(1);
-    int mesh_size = 5;
+    int mesh_size = 15;
     for (int i = 0; i <= mesh_size; i ++) {
       col_r.emplace_back((double)i / mesh_size);
       row_r.emplace_back((double)i / mesh_size);
@@ -392,7 +392,7 @@ void MultiImages::getImagePairs() {
   vector<int> visited(img_num);
   ImageDistance id = que.top();
   int visited_num = 0;
-  double dis_tresh = id.distance * 1.5;// 距离最近的两张图片的距离
+  double dis_tresh = 300;// TODO 这个值与图像大小相关
   vector<vector<int> > adjList(img_num);// 无向图的邻接列表
 
   // 最小生成树
@@ -437,27 +437,24 @@ void MultiImages::getImagePairs() {
   for (int i = 0; i < img_num; i ++) {
     visited[i] = 0;
   }
-  int depth = 1;
   pair_index.resize(img_num);
   queue<int> q;
   q.push(start_index);
-  visited[start_index] = depth;
+  visited[start_index] = 1;// 1: 入队, 2: 出队, 0: 未访问
   assert(image_order.empty());
   while (!q.empty()) {
     int u = q.front();
-    depth = visited[u] + 1;
+    visited[u] = 2;
     q.pop();
     image_order.emplace_back(u);
     for (int i = 0; i < adjList[u].size(); i ++) {
       int v = adjList[u][i];
-      if (!visited[v]) {
-        visited[v] = depth + 1;
+      if (visited[v] == 0) {
+        visited[v] = 1;
         q.push(v);
-      }
-      // 反向配对
-      if (visited[v] > visited[u]) {
-        LOG("%d %d", v, u);
-        pair_index[v].emplace_back(u);
+      } else if (visited[v] == 2) {
+        LOG("%d %d", u, v);
+        pair_index[u].emplace_back(v);
       }
     }
   }
@@ -958,7 +955,7 @@ void MultiImages::myWarping() {
 void MultiImages::getSeam() {
   Ptr<MySeamFinder> seam_finder = new MySeamFinder(10000, 1000);
 
-  if (0) {
+  if (1) {
     vector<UMat> pano_images_f(2);
     vector<UMat> pano_masks_gpu(2);
     // 起点位置
@@ -1036,13 +1033,21 @@ void MultiImages::getSeam() {
     vector<Mat> tmp_mask(img_num);
     vector<Mat> tmp_image(img_num);
 
+    vector<pair<int, int> > tmp_pair;
     for (int i = 0; i < img_num; i ++) {
       img_origins.emplace_back(0, 0);
       pano_images[i].convertTo(pano_images_f[i], CV_32F);
       cvtColor(pano_images_f[i], pano_images_f[i], CV_RGBA2RGB);
       pano_masks[i].copyTo(pano_masks_gpu[i]);
+      for (int j = 0; j < pair_index[image_order[i]].size(); j ++) {
+        tmp_pair.emplace_back(image_order[i], pair_index[image_order[i]][j]);
+      }
     }
-    seam_finder->find(pano_images_f, img_origins, pano_masks_gpu);
+    seam_finder->find(pano_images_f, img_origins, pano_masks_gpu, tmp_pair);
+    // 查看mask
+    for (int i = 0; i < img_num; i ++) {
+      show_img(pano_masks_gpu[i], "%d", i);
+    }
     // 过渡
     Mat result_mask, result_image, result_origin;
     pano_images[image_order[0]].copyTo(result_image);

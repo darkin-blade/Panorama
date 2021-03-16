@@ -221,7 +221,7 @@ void getGradualMat(
             // 比对色差
             Vec4b pix_1 = i1.at<Vec4b>(next_r, next_c);
             Vec4b pix_2 = i2.at<Vec4b>(next_r, next_c);
-            int color_dis = (abs(pix_1[0] - pix_2[0]) + abs(pix_1[1] - pix_2[1]) + abs(pix_1[2] - pix_2[2])) / 3;
+            int color_dis = (abs(pix_1[0] - pix_2[0]) + abs(pix_1[1] - pix_2[1]) + abs(pix_1[2] - pix_2[2])) / 3;// dis越大, 则递减越快, 图像之间过渡越明显
 
             int next_depth = depth - color_dis;
             if (next_depth <= 0) {

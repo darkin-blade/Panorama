@@ -55,6 +55,45 @@ void MySeamFinder::find(
   }
 }
 
+void MySeamFinder::find(
+    const std::vector<UMat> &src, 
+    const std::vector<Point> &corners,
+    std::vector<UMat> &masks,
+    vector<pair<int, int> > img_pairs) 
+{
+  if (src.size() == 0)
+      return;
+
+  // 计算图像梯度
+  dx_.resize(src.size());
+  dy_.resize(src.size());
+  Mat dx, dy;
+  for (size_t i = 0; i < src.size(); ++i)
+  {
+    CV_Assert(src[i].channels() == 3);
+    Sobel(src[i], dx, CV_32F, 1, 0);
+    Sobel(src[i], dy, CV_32F, 0, 1);
+
+    convertScaleAbs(dx, dx_[i]);
+    convertScaleAbs(dy, dy_[i]);
+  }
+
+  images_ = src;
+  sizes_.resize(src.size());
+  for (size_t i = 0; i < src.size(); ++i)
+    sizes_[i] = src[i].size();
+  corners_ = corners;
+  masks_ = masks;
+
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    Rect roi;
+    overlapRoi(corners_[m1], corners_[m2], sizes_[m1], sizes_[m2], roi);
+    findInPair(m1, m2, roi);
+  }
+}
+
 void MySeamFinder::findInPair(size_t first, size_t second, Rect roi)
 {
   Mat img1 = images_[first].getMat(ACCESS_READ), img2 = images_[second].getMat(ACCESS_READ);
