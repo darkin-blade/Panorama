@@ -364,7 +364,7 @@ void MultiImages::getImagePairs() {
     }
   }
 
-  vector<bool> visited(img_num);
+  vector<int> visited(img_num);
   ImageDistance id = que.top();
   int visited_num = 0;
   double dis_tresh = id.distance * 1.5;// 距离最近的两张图片的距离
@@ -389,11 +389,11 @@ void MultiImages::getImagePairs() {
     }
     // 检查是否访问过
     if (!visited[v]) {
-      visited[v] = true;
+      visited[v] = 1;
       visited_num ++;
     }
     if (!visited[u]) {
-      visited[u] = true;
+      visited[u] = 1;
       visited_num ++;
     }
   }
@@ -410,26 +410,34 @@ void MultiImages::getImagePairs() {
 
   // bfs搜索重新建图
   for (int i = 0; i < img_num; i ++) {
-    visited[i] = false;
+    visited[i] = 0;
   }
+  int depth = 1;
   pair_index.resize(img_num);
   queue<int> q;
   q.push(start_index);
-  visited[start_index] = true;
+  visited[start_index] = depth;
+  assert(image_order.empty());
   while (!q.empty()) {
     int u = q.front();
+    depth = visited[u] + 1;
     q.pop();
+    image_order.emplace_back(u);
     for (int i = 0; i < adjList[u].size(); i ++) {
       int v = adjList[u][i];
-      // 反向配对
-      pair_index[v].emplace_back(u);
-      LOG("%d %d", v, u);
       if (!visited[v]) {
-        visited[v] = true;
+        visited[v] = depth + 1;
         q.push(v);
+      }
+      // 反向配对
+      if (visited[v] > visited[u]) {
+        LOG("%d %d", v, u);
+        pair_index[v].emplace_back(u);
       }
     }
   }
+
+  assert(image_order.size() == img_num);
 }
 
 void MultiImages::getMeshInfo() {
@@ -509,19 +517,16 @@ void MultiImages::meshOptimization() {
   vector<Triplet<double> > triplets;
   vector<pair<int, double> > b_vector;
 
-  // 先初始化参考图像
-  matching_pts[reference_index].assign(imgs[reference_index]->vertices.begin(), imgs[reference_index]->vertices.end());
   for (int i = 0; i < img_num; i ++) {
-    if (i == reference_index) {
-      // 第?张图片为参考图像
-      continue;
+    if (i == 0) {
+      matching_pts[image_order[i]].assign(imgs[image_order[i]]->vertices.begin(), imgs[image_order[i]]->vertices.end());
     } else {
-      // 输入的图像顺序要按拼接的顺序输入
-      reserveData(i, triplets, b_vector);
-      prepareAlignmentTerm(i, triplets, b_vector);
-      prepareLocalSimilarityTerm(i, triplets, b_vector);
-      prepareSensorTerm(i, triplets, b_vector);
-      getSolution(i, triplets, b_vector);
+      // 按顺序添加图片
+      reserveData(image_order[i], triplets, b_vector);
+      prepareAlignmentTerm(image_order[i], triplets, b_vector);
+      prepareLocalSimilarityTerm(image_order[i], triplets, b_vector);
+      prepareSensorTerm(image_order[i], triplets, b_vector);
+      getSolution(image_order[i], triplets, b_vector);
     }
   }
 }
