@@ -18,21 +18,23 @@ Mat My_Stitching::getMyResult() {
   // 初始化
   multi_images->init();
 
-  // 特征检测及特征点匹配
+  // 初步特征点匹配
   multi_images->getFeatureInfo();
 
   // 相似变换
   multi_images->similarityTransform(0);
   multi_images->getImagePairs();
+  // 补充特征点匹配
+  multi_images->getFeatureInfo();
 
   // apap网格计算
-  // multi_images->getMeshInfo();
+  multi_images->getMeshInfo();
 
   // 网格优化
-  // multi_images->meshOptimization();
+  multi_images->meshOptimization();
 
   // 计算中间结果
-  multi_images->getTmpResult();
+  // multi_images->getTmpResult();
 
   // 接缝线算法
   multi_images->myWarping();

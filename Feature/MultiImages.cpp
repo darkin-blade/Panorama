@@ -213,29 +213,54 @@ void MultiImages::getFeaturePairs(int _m1, int _m2) {
   **/
 
 void MultiImages::getFeatureInfo() {
-  // 每张图片检测特征点
-  feature_points.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    feature_points[i].resize(img_num);
+  // 初始化
+  if (feature_points.empty()) {
+    feature_points.resize(img_num);
+    for (int i = 0; i < img_num; i ++) {
+      feature_points[i].resize(img_num);
+    }
 
-    Mat grey_img;
-    cvtColor(imgs[i]->data, grey_img, CV_BGR2GRAY);
-    FeatureController::detect(grey_img,
-                              imgs[i]->feature_points,
-                              imgs[i]->descriptors);
-    LOG("[picture %d] feature points: %ld", i, imgs[i]->feature_points.size());
+    // 每张图片检测特征点
+    for (int i = 0; i < img_num; i ++) {
+      Mat grey_img;
+      cvtColor(imgs[i]->data, grey_img, CV_BGR2GRAY);
+      FeatureController::detect(grey_img,
+                                imgs[i]->feature_points,
+                                imgs[i]->descriptors);
+      LOG("[picture %d] feature points: %ld", i, imgs[i]->feature_points.size());
+    }
   }
 
-  // 没有任何配对信息, 只能从前往后配对
-  for (int i = 1; i < img_num; i ++) {
-    int m1 = i - 1;
-    int m2 = i;
+  vector<pair<int, int> > tmp_pair;
+  if (pair_index.empty()) {
+    // 没有任何配对信息, 只能从前往后配对
+    for (int i = 1; i < img_num; i ++) {
+      tmp_pair.emplace_back(make_pair(i - 1, i));
+    }
+  } else {
+    // 补充配对
+    for (int i = 0; i < img_num; i ++) {
+      for (int j = 0; j < pair_index[i].size(); j ++) {
+        tmp_pair.emplace_back(make_pair(i, pair_index[i][j]));
+      }
+    }
+  }
+
+  for (int i = 0; i < tmp_pair.size(); i ++) {
+    int m1 = tmp_pair[i].first;
+    int m2 = tmp_pair[i].second;
+
+    if (!feature_points[m1][m2].empty()) {
+      // 用于补充配对防重复
+      assert(!feature_points[m2][m1].empty());
+      continue;
+    }
 
     // 每次匹配需要清空临时数据    
     initial_pairs.clear();
     feature_pairs.clear();
 
-    // 特征点匹配
+    // 特征点匹配, TODO 正反都一样
     getFeaturePairs(m1, m2);
 
     // 筛选所有图片的成功匹配的特征点
@@ -454,34 +479,37 @@ void MultiImages::getMeshInfo() {
   }
 
   // apap匹配点
-  assert(!img_pairs.empty());
-  for (int i = 0; i < img_pairs.size(); i ++) {
-    int m1 = img_pairs[i].first;
-    int m2 = img_pairs[i].second;
+  assert(!pair_index.empty());
+
+  for (int i = 0; i < img_num; i ++) {
+    for (int j = 0; j < pair_index[i].size(); j ++) {
+      int m1 = i;
+      int m2 = pair_index[i][j];
     
-    // 计算apap结果
-    Homographies::compute(
-      feature_points[m1][m2],
-      feature_points[m2][m1],
-      imgs[m1]->vertices,
-      apap_pts[m1][m2],
-      imgs[m1]->homographies
-    );
+      // 计算apap匹配点
+      Homographies::compute(
+        feature_points[m1][m2],
+        feature_points[m2][m1],
+        imgs[m1]->vertices,
+        apap_pts[m1][m2],
+        imgs[m1]->homographies
+      );
 
-    // 获取m1在m2上(未出界)的匹配点
-    int pts_num = apap_pts[m1][m2].size();
-    assert(pts_num == imgs[m1]->vertices.size());
-    assert(single_mask[m1][m2].empty());
-    single_mask[m1][m2].resize(pts_num);// 初始化为false
+      // 获取m1在m2上(未出界)的匹配点
+      int pts_num = apap_pts[m1][m2].size();
+      assert(pts_num == imgs[m1]->vertices.size());
+      assert(single_mask[m1][m2].empty());
+      single_mask[m1][m2].resize(pts_num);// 初始化为false
 
-    for (int i = 0; i < pts_num; i ++) {
-      Point2f tmp_point = apap_pts[m1][m2][i];
-      // 此时以m2为参照, m1的坐标可能为负
-      if ( tmp_point.x >= 0 && tmp_point.y >= 0
-        && tmp_point.x <= imgs[m2]->data.cols && tmp_point.y <= imgs[m2]->data.rows) {
-        // 没有出界
-        single_mask[m1][m2][i] = true;
-        total_mask[m1][i] = true;
+      for (int i = 0; i < pts_num; i ++) {
+        Point2f tmp_point = apap_pts[m1][m2][i];
+        // 此时以m2为参照, m1的坐标可能为负
+        if ( tmp_point.x >= 0 && tmp_point.y >= 0
+          && tmp_point.x <= imgs[m2]->data.cols && tmp_point.y <= imgs[m2]->data.rows) {
+          // 没有出界
+          single_mask[m1][m2][i] = true;
+          total_mask[m1][i] = true;
+        }
       }
     }
   }
