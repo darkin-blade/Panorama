@@ -27,10 +27,10 @@ Mat My_Stitching::getMyResult() {
   multi_images->similarityTransform(0);
 
   // 网格优化
-  // multi_images->meshOptimization();
+  multi_images->meshOptimization();
 
   // 计算中间结果
-  multi_images->getTmpResult();
+  // multi_images->getTmpResult();
 
   // 接缝线算法
   multi_images->myWarping();
