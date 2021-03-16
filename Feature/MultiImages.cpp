@@ -26,19 +26,28 @@ void MultiImages::readImg(const char *img_path) {
   **/
 
 void MultiImages::init() {
-  // 重组图像配对信息
-  assert(pair_index.empty());
-  pair_index.resize(img_num);
-  for (int i = 0; i < img_pairs.size(); i ++) {
-    int m1 = img_pairs[i].first;
-    int m2 = img_pairs[i].second;
-    pair_index[m1].emplace_back(m2);
-  }
-
   // 初始化旋转角度
   assert(rotations.empty());
   for (int i = 0; i < img_num; i ++) {
     rotations.emplace_back(0);// 负为逆时针
+  }
+
+  // 图像网格化
+  for (int i = 0; i < img_num; i ++) {
+    vector<double> col_r, row_r;
+
+    // double base = 0;
+    // for (int i = 0; i <= 7; i ++) {
+    //   col_r.emplace_back(base);
+    //   base += (1 - base) / 2.5;
+    // }
+    // col_r.emplace_back(1);
+    int mesh_size = 8;
+    for (int i = 0; i <= mesh_size; i ++) {
+      col_r.emplace_back((double)i / mesh_size);
+      row_r.emplace_back((double)i / mesh_size);
+    }
+    imgs[i]->initVertices(col_r, row_r);
   }
 }
 
@@ -217,11 +226,12 @@ void MultiImages::getFeatureInfo() {
     LOG("[picture %d] feature points: %ld", i, imgs[i]->feature_points.size());
   }
 
-  for (int i = 0; i < img_pairs.size(); i ++) {
-    int m1 = img_pairs[i].first;
-    int m2 = img_pairs[i].second;
+  // 没有任何配对信息, 只能从前往后配对
+  for (int i = 1; i < img_num; i ++) {
+    int m1 = i - 1;
+    int m2 = i;
 
-    // 清空临时数据    
+    // 每次匹配需要清空临时数据    
     initial_pairs.clear();
     feature_pairs.clear();
 
@@ -239,6 +249,189 @@ void MultiImages::getFeatureInfo() {
   }
 }
 
+void MultiImages::similarityTransform(int _mode) {
+  // 必须是弧度
+  assert(!rotations.empty());
+  // 初始化
+  similarity_pts.resize(img_num);
+  scales.resize(img_num);
+  translations.resize(img_num);
+
+  
+  // 没有任何配对信息, 只能从前往后配对
+  for (int i = 0; i < img_num; i ++) {// 第0张图片的位置为(0, 0)
+    if (i == 0) {
+      // 起始图像
+      scales[i] = 1;
+      translations[i].x = 0;
+      translations[i].y = 0;
+    } else {
+      // 其他目标图像
+      int m1 = i;
+      int m2 = i - 1;
+      // 计算等式数目
+      int equations = feature_points[m1][m2].size();// 数目与[m2][m1]相同
+
+      if (_mode == 0) {
+        // 只计算平移, 未知数为(x, y)
+        MatrixXd A = MatrixXd::Zero(equations * 2, 2);// 2个未知数
+        VectorXd b = VectorXd::Zero(equations * 2);
+        double rotate = rotations[m1];
+        int eq_count = 0;// 检验等式数目是否正确
+        for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
+          // x + 0 = x2 - (x1 cos - y1 sin)
+          // 0 + y = y2 - (x1 sin + y1 cos)
+          double x1 = feature_points[m1][m2][k].x;
+          double y1 = feature_points[m1][m2][k].y;
+          double _x2 = feature_points[m2][m1][k].x;
+          double _y2 = feature_points[m2][m1][k].y;
+          double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
+          double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
+          A(eq_count + 0, 0) = 1;
+          b(eq_count + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
+          A(eq_count + 1, 1) = 1;
+          b(eq_count + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
+          eq_count += 2;
+        }
+        assert(eq_count == equations * 2);
+        // 得出结果
+        VectorXd solution = A.colPivHouseholderQr().solve(b);
+        scales[m1]  = 1;
+        translations[m1].x = solution(0);
+        translations[m1].y = solution(1);
+      } else if (_mode == 1) {
+        // 计算平移和缩放, 未知数为(s, x, y)
+        // s: 以图像(0, 0)为中心放缩图像s倍
+        MatrixXd A = MatrixXd::Zero(equations * 2, 3);// 3 个未知数
+        VectorXd b = VectorXd::Zero(equations * 2);
+        double rotate = rotations[m1];
+        int eq_count = 0;// 检验等式数目是否正确
+        for (int m1 = 0; m1 < feature_points[m1][m2].size(); m1 ++) {
+          // (x1 cos - y1 sin) * s + x + 0 = x2
+          // (x1 sin + y1 cos) * s + 0 + y = y2
+          double x1 = feature_points[m1][m2][m1].x;
+          double y1 = feature_points[m1][m2][m1].y;
+          double _x2 = feature_points[m2][m1][m1].x;
+          double _y2 = feature_points[m2][m1][m1].y;
+          double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
+          double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
+          A(eq_count + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
+          A(eq_count + 0, 1) = 1;
+          b(eq_count + 0)    = x2;
+          A(eq_count + 1, 0) = x1 * sin(rotate) + y1 * cos(rotate);
+          A(eq_count + 1, 2) = 1;
+          b(eq_count + 1)    = y2;
+          eq_count += 2;
+        }
+        assert(eq_count == equations * 2);
+        // 得出结果
+        VectorXd solution = A.colPivHouseholderQr().solve(b);
+        scales[m1]  = solution(0);
+        translations[m1].x = solution(1);
+        translations[m1].y = solution(2);
+      }
+    }
+
+    // 计算相似变换后的结果
+    LOG("r=%lf, s=%lf, x=%lf, y=%lf", rotations[i], scales[i], translations[i].x, translations[i].y);
+    for (int j = 0; j < imgs[0]->vertices.size(); j ++) {
+      double x = imgs[i]->vertices[j].x;
+      double y = imgs[i]->vertices[j].y;
+      double new_x = (x * cos(rotations[i]) - y * sin(rotations[i])) * scales[i] + translations[i].x;
+      double new_y = (x * sin(rotations[i]) + y * cos(rotations[i])) * scales[i] + translations[i].y;
+      similarity_pts[i].emplace_back(new_x, new_y);
+    }
+  }
+}
+
+void MultiImages::getImagePairs() {
+  assert(img_pairs.empty());
+
+  vector<vector<double> > img_dis;
+  img_dis.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    img_dis[i].resize(img_num);
+  }
+
+  // 计算所有图片之间的距离
+  priority_queue <ImageDistance> que;
+  for (int i = 0; i < img_num; i ++) {
+    for (int j = i + 1; j < img_num; j ++) {
+      Point2f tmp_dis = translations[i] - translations[j];
+      double dis = norm(tmp_dis);
+      LOG("%d %d %lf", i, j, dis);
+      que.push(ImageDistance(i, j, dis));
+    }
+  }
+
+  vector<bool> visited(img_num);
+  ImageDistance id = que.top();
+  int visited_num = 0;
+  double dis_tresh = id.distance * 1.5;// 距离最近的两张图片的距离
+  vector<vector<int> > adjList(img_num);// 无向图的邻接列表
+
+  // 最小生成树
+  while (!que.empty()) {
+    id = que.top();
+    que.pop();
+    int u = id.u;
+    int v = id.v;
+    double distance = id.distance;
+    if (visited_num < img_num || distance < dis_tresh) {
+      // 未构成连通图, 无条件加边
+      // 或
+      // 距离小于设定的阈值, 添加该边
+      adjList[u].emplace_back(v);
+      adjList[v].emplace_back(u);
+      LOG("add %d %d %lf", u, v, distance);
+    } else {
+      break;
+    }
+    // 检查是否访问过
+    if (!visited[v]) {
+      visited[v] = true;
+      visited_num ++;
+    }
+    if (!visited[u]) {
+      visited[u] = true;
+      visited_num ++;
+    }
+  }
+
+  // 重建图片之间的配对关系
+  int start_index = 0;
+  int max_neibors = -1;
+  for (int i = 0; i < img_num; i ++) {
+    if (adjList[i].size() > max_neibors) {
+      start_index = i;
+      max_neibors = adjList[i].size();
+    }
+  }
+
+  // bfs搜索重新建图
+  for (int i = 0; i < img_num; i ++) {
+    visited[i] = false;
+  }
+  pair_index.resize(img_num);
+  queue<int> q;
+  q.push(start_index);
+  visited[start_index] = true;
+  while (!q.empty()) {
+    int u = q.front();
+    q.pop();
+    for (int i = 0; i < adjList[u].size(); i ++) {
+      int v = adjList[u][i];
+      // 反向配对
+      pair_index[v].emplace_back(u);
+      LOG("%d %d", v, u);
+      if (!visited[v]) {
+        visited[v] = true;
+        q.push(v);
+      }
+    }
+  }
+}
+
 void MultiImages::getMeshInfo() {
   // 初始化数据
   apap_pts.resize(img_num);
@@ -246,22 +439,6 @@ void MultiImages::getMeshInfo() {
   single_mask.resize(img_num);
 
   for (int i = 0; i < img_num; i ++) {
-    // 图像网格化
-    vector<double> col_r, row_r;
-
-    // double base = 0;
-    // for (int i = 0; i <= 7; i ++) {
-    //   col_r.emplace_back(base);
-    //   base += (1 - base) / 2.5;
-    // }
-    // col_r.emplace_back(1);
-    int mesh_size = 8;
-    for (int i = 0; i <= mesh_size; i ++) {
-      col_r.emplace_back((double)i / mesh_size);
-      row_r.emplace_back((double)i / mesh_size);
-    }
-    imgs[i]->initVertices(col_r, row_r);
-        
     // 先要初始化网格, 再初始化变量
     apap_pts[i].resize(img_num);
     single_mask[i].resize(img_num);
@@ -269,6 +446,7 @@ void MultiImages::getMeshInfo() {
   }
 
   // apap匹配点
+  assert(!img_pairs.empty());
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
@@ -296,114 +474,6 @@ void MultiImages::getMeshInfo() {
         // 没有出界
         single_mask[m1][m2][i] = true;
         total_mask[m1][i] = true;
-      }
-    }
-  }
-}
-
-void MultiImages::similarityTransform(int _mode) {
-  // 必须是弧度
-  assert(!rotations.empty());
-  // 初始化
-  similarity_pts.resize(img_num);
-  scales.resize(img_num);
-  shift_x.resize(img_num);
-  shift_y.resize(img_num);
-
-  // 预处理参考图像
-  scales[reference_index] = 1;
-  shift_x[reference_index] = 0;
-  shift_y[reference_index] = 0;
-  
-  for (int i = 0; i < img_num; i ++) {
-    if (i == reference_index) {
-      // 参考图像
-      similarity_pts[i].assign(imgs[i]->vertices.begin(), imgs[i]->vertices.end());
-    } else {
-      // 其他目标图像
-      int neighbor_num = pair_index[i].size();// 与第i张图片邻接的(参考)图片数
-      int equations = 0;// 等式数目
-      for (int j = 0; j < neighbor_num; j ++) {
-        int m1 = i;
-        int m2 = pair_index[i][j];
-        equations += feature_points[m1][m2].size();// 数目与[m2][m1]相同
-      }
-
-      if (_mode == 0) {
-        // 只计算平移, 未知数为(x, y)
-        MatrixXd A = MatrixXd::Zero(equations * 2, 2);// 2个未知数
-        VectorXd b = VectorXd::Zero(equations * 2);
-        double rotate = rotations[i];
-        int eq_count = 0;// 检验等式数目是否正确
-        for (int j = 0; j < neighbor_num; j ++) {
-          int m1 = i;
-          int m2 = pair_index[i][j];
-          for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
-            // x + 0 = x2 - (x1 cos - y1 sin)
-            // 0 + y = y2 - (x1 sin + y1 cos)
-            double x1 = feature_points[m1][m2][k].x;
-            double y1 = feature_points[m1][m2][k].y;
-            double _x2 = feature_points[m2][m1][k].x;
-            double _y2 = feature_points[m2][m1][k].y;
-            double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + shift_x[m2];
-            double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + shift_y[m2];
-            A(eq_count + 0, 0) = 1;
-            b(eq_count + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
-            A(eq_count + 1, 1) = 1;
-            b(eq_count + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
-            eq_count += 2;
-          }
-        }
-        assert(eq_count == equations * 2);
-        // 得出结果
-        VectorXd solution = A.colPivHouseholderQr().solve(b);
-        scales[i]  = 1;
-        shift_x[i] = solution(0);
-        shift_y[i] = solution(1);
-      } else if (_mode == 1) {
-        // 计算平移和缩放, 未知数为(s, x, y)
-        // s: 以图像(0, 0)为中心放缩图像s倍
-        MatrixXd A = MatrixXd::Zero(equations * 2, 3);// 3 个未知数
-        VectorXd b = VectorXd::Zero(equations * 2);
-        double rotate = rotations[i];
-        int eq_count = 0;// 检验等式数目是否正确
-        for (int j = 0; j < neighbor_num; j ++) {
-          int m1 = i;
-          int m2 = pair_index[i][j];
-          for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
-            // (x1 cos - y1 sin) * s + x + 0 = x2
-            // (x1 sin + y1 cos) * s + 0 + y = y2
-            double x1 = feature_points[m1][m2][k].x;
-            double y1 = feature_points[m1][m2][k].y;
-            double _x2 = feature_points[m2][m1][k].x;
-            double _y2 = feature_points[m2][m1][k].y;
-            double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + shift_x[m2];
-            double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + shift_y[m2];
-            A(eq_count + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
-            A(eq_count + 0, 1) = 1;
-            b(eq_count + 0)    = x2;
-            A(eq_count + 1, 0) = x1 * sin(rotate) + y1 * cos(rotate);
-            A(eq_count + 1, 2) = 1;
-            b(eq_count + 1)    = y2;
-            eq_count += 2;
-          }
-        }
-        assert(eq_count == equations * 2);
-        // 得出结果
-        VectorXd solution = A.colPivHouseholderQr().solve(b);
-        scales[i]  = solution(0);
-        shift_x[i] = solution(1);
-        shift_y[i] = solution(2);
-      }
-
-      // 计算相似变换后的结果
-      LOG("r=%lf, s=%lf, x=%lf, y=%lf", rotations[i], scales[i], shift_x[i], shift_y[i]);
-      for (int j = 0; j < imgs[0]->vertices.size(); j ++) {
-        double x = imgs[i]->vertices[j].x;
-        double y = imgs[i]->vertices[j].y;
-        double new_x = (x * cos(rotations[i]) - y * sin(rotations[i])) * scales[i] + shift_x[i];
-        double new_y = (x * sin(rotations[i]) + y * cos(rotations[i])) * scales[i] + shift_y[i];
-        similarity_pts[i].emplace_back(new_x, new_y);
       }
     }
   }
@@ -921,7 +991,6 @@ void MultiImages::getSeam() {
 
     // 描绘接缝线
     drawPoints(result_image, seam_pts);
-    drawPoints(result_image, matching_pts[i]);
   }
 }
 

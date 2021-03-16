@@ -22,17 +22,38 @@ public:
     distance = MAXFLOAT;
   }
 
-  FeatureDistance(const double _distance,
-                  const int _p,
-                  const int _feature_index_1,
-                  const int _feature_index_2) {// 有参构造函数
+  FeatureDistance(
+      const double _distance,
+      const int _p,
+      const int _feature_index_1,
+      const int _feature_index_2) {// 有参构造函数
     distance = _distance;
     feature_index[    _p] = _feature_index_1;
     feature_index[1 - _p] = _feature_index_2;
   }
 
-  bool operator < (const FeatureDistance &fd) const {
-      return distance > fd.distance;
+  bool operator < (const FeatureDistance & fd) const {
+    return distance > fd.distance;
+  }
+};
+
+class ImageDistance {
+public:
+  int u;
+  int v;
+  double distance;
+
+  ImageDistance(
+      const int _u,
+      const int _v,
+      const double _d) {
+    u = _u;
+    v = _v;
+    distance = _d;
+  }
+
+  bool operator < (const ImageDistance & id) const {
+    return distance > id.distance;
   }
 };
 
@@ -43,7 +64,6 @@ public:
   /* 原始数据 */
   int                      img_num;
   vector<Mat>              origin_data;// 未进行缩放的图像数据
-  vector<pair<int, int> >  img_pairs;// 图片的配对信息
   vector<ImageData *>      imgs;
 
   /* 特征匹配 */
@@ -51,17 +71,18 @@ public:
   vector<pair<int, int> >                   feature_pairs;// RANSAC之后的特征点配对信息
   vector<vector<vector<Point2f> > >         feature_points;// RANSAC的特征点, [m1][m2]: m1与m2配对的特征点
 
+  /* 相似变换 */
+  vector<double>           rotations;
+  vector<double>           scales;
+  vector<Point2f>          translations;
+  vector<pair<int, int> >  img_pairs;// 图片的配对信息
+  
   /* 网格变换 */
   vector<vector<bool> >               total_mask;// 目标图像在参考图像上未出界的匹配点mask
   vector<vector<vector<bool> > >      single_mask;// [m1][m2][j]: m1的第j个匹配点是否在m2上出界
   vector<vector<vector<Point2f> > >   apap_pts;// apap的结果, [m1][m2]: m1与m2的结果
   vector<vector<Point2f> >            similarity_pts;// 相似变换的结果, [i]: 第i张图片
   vector<vector<Point2f> >            matching_pts;// 最终结果;
-
-  /* 相似变换 */
-  vector<double> rotations;
-  vector<double> scales;
-  vector<double> shift_x, shift_y;
 
   /* 网格优化 */
   int                                 reference_index = 0;
@@ -109,6 +130,7 @@ public:
   void getFeatureInfo();
   void getMeshInfo();
   void similarityTransform(int _mode);// 0: 平移; 1: 平移 + 缩放;
+  void getImagePairs();// 根据位置关系计算图像之间的配对关系
 
   /* 网格优化 */
   void meshOptimization();
