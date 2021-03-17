@@ -5,6 +5,7 @@ My_Stitching::My_Stitching(MultiImages & _multi_images) {
 }
 
 Mat My_Stitching::getMyResult() {
+  LOG("o_min %d nlevels %d", SIFT_MINIMUM_OCTAVE_INDEX, SIFT_LEVEL_COUNT);
   int img_num = multi_images->img_num;
 
   assert(multi_images->imgs.empty());

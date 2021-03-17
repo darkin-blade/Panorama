@@ -31,6 +31,7 @@ void MultiImages::init() {
   for (int i = 0; i < img_num; i ++) {
     rotations.emplace_back(0);// 负为逆时针
   }
+  rotations[1] = -0.1;
 
   // 图像网格化
   for (int i = 0; i < img_num; i ++) {
@@ -42,7 +43,7 @@ void MultiImages::init() {
     //   base += (1 - base) / 2.5;
     // }
     // col_r.emplace_back(1);
-    int mesh_size = 15;
+    int mesh_size = 8;
     for (int i = 0; i <= mesh_size; i ++) {
       col_r.emplace_back((double)i / mesh_size);
       row_r.emplace_back((double)i / mesh_size);
@@ -780,6 +781,11 @@ void MultiImages::prepareLocalSimilarityTerm(
     // 获取边的两个端点
     const int ind_e1 = edges[i].first;
     const int ind_e2 = edges[i].second;
+    double tmp_weight = local_similarity_weight;
+    if (total_mask[_m1][ind_e1] != total_mask[_m1][ind_e2]) {
+      tmp_weight *= 2;
+    }
+
     const Point2f src = vertices[ind_e1];
     const Point2f dst = vertices[ind_e2];
 
@@ -811,23 +817,23 @@ void MultiImages::prepareLocalSimilarityTerm(
           // local
           _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
             2 * point_ind_set[j] + xy,
-            local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+            tmp_weight * L_W.at<double>(dim, 2 * j + xy));
           _triplets.emplace_back(local_similarity_equation.first + eq_count + dim,
             2 * ind_e1 + xy,
-            -local_similarity_weight * L_W.at<double>(dim, 2 * j + xy));
+            -tmp_weight * L_W.at<double>(dim, 2 * j + xy));
         }
       }
     }
 
     // local: x1, y1, x2, y2 
     _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e2    ,
-      local_similarity_weight);
+      tmp_weight);
     _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e2 + 1,
-      local_similarity_weight);
+      tmp_weight);
     _triplets.emplace_back(local_similarity_equation.first + eq_count    , 2 * ind_e1    ,
-      -local_similarity_weight);
+      -tmp_weight);
     _triplets.emplace_back(local_similarity_equation.first + eq_count + 1, 2 * ind_e1 + 1,
-      -local_similarity_weight);
+      -tmp_weight);
     
     eq_count += 2;
   }
