@@ -57,6 +57,48 @@ public:
   }
 };
 
+class UnionFind {
+public:
+  vector<int> father;// 该节点的父节点
+  vector<int> sizes;// 与该节点连通的节点数
+  int total_size;
+  int cur_size;
+
+  UnionFind(int num) {
+    father.resize(num);
+    sizes.resize(num);
+    for (int i = 0; i < num; i ++) {
+      father[i] = i;
+      sizes[i] = 1;
+    }
+    total_size = num;
+    cur_size = 1;
+  }
+
+  int getFather(int x) {
+    if (father[x] != x) {
+      father[x] = getFather(father[x]);
+    }
+    return father[x];
+  }
+
+  void unionNode(int x, int y) {
+    int father_x = getFather(x);
+    int father_y = getFather(y);
+    if (father_x == father_y) {
+      return;
+    }
+    int size_x = sizes[father_x];
+    int size_y = sizes[father_y];
+    father[father_x] = father_y;
+    sizes[father_y] = size_x + size_y;
+    if (sizes[father_y] > cur_size) {
+      cur_size = sizes[father_y];
+      assert(cur_size <= total_size);
+    }
+  }
+};
+
 class MultiImages {
 public:
   MultiImages();

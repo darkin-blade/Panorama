@@ -31,7 +31,6 @@ void MultiImages::init() {
   for (int i = 0; i < img_num; i ++) {
     rotations.emplace_back(0);// 负为逆时针
   }
-  rotations[1] = -0.1;
 
   // 图像网格化
   for (int i = 0; i < img_num; i ++) {
@@ -390,37 +389,28 @@ void MultiImages::getImagePairs() {
     }
   }
 
-  vector<int> visited(img_num);
   ImageDistance id = que.top();
-  int visited_num = 0;
-  double dis_thresh = 250;// TODO 这个值与图像大小相关
+  double dis_thresh = 200;// TODO 这个值与图像大小相关
   vector<vector<int> > adjList(img_num);// 无向图的邻接列表
 
   // 最小生成树
+  UnionFind *unionFind = new UnionFind(img_num);
   while (!que.empty()) {
     id = que.top();
     que.pop();
     int u = id.u;
     int v = id.v;
     double distance = id.distance;
-    if (visited_num < img_num || distance < dis_thresh) {
+    if (unionFind->cur_size < img_num || distance < dis_thresh) {
       // 未构成连通图, 无条件加边
       // 或
       // 距离小于设定的阈值, 添加该边
       adjList[u].emplace_back(v);
       adjList[v].emplace_back(u);
+      unionFind->unionNode(u, v);
       LOG("add %d %d %lf", u, v, distance);
     } else {
       break;
-    }
-    // 检查是否访问过
-    if (!visited[v]) {
-      visited[v] = 1;
-      visited_num ++;
-    }
-    if (!visited[u]) {
-      visited[u] = 1;
-      visited_num ++;
     }
   }
 
@@ -435,9 +425,7 @@ void MultiImages::getImagePairs() {
   }
 
   // bfs搜索重新建图
-  for (int i = 0; i < img_num; i ++) {
-    visited[i] = 0;
-  }
+  vector<int> visited(img_num);
   pair_index.resize(img_num);
   queue<int> q;
   q.push(start_index);
