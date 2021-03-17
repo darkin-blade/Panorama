@@ -392,7 +392,7 @@ void MultiImages::getImagePairs() {
   vector<int> visited(img_num);
   ImageDistance id = que.top();
   int visited_num = 0;
-  double dis_tresh = 300;// TODO 这个值与图像大小相关
+  double dis_thresh = 250;// TODO 这个值与图像大小相关
   vector<vector<int> > adjList(img_num);// 无向图的邻接列表
 
   // 最小生成树
@@ -402,7 +402,7 @@ void MultiImages::getImagePairs() {
     int u = id.u;
     int v = id.v;
     double distance = id.distance;
-    if (visited_num < img_num || distance < dis_tresh) {
+    if (visited_num < img_num || distance < dis_thresh) {
       // 未构成连通图, 无条件加边
       // 或
       // 距离小于设定的阈值, 添加该边
@@ -491,13 +491,19 @@ void MultiImages::getMeshInfo() {
         apap_pts[m1][m2],
         imgs[m1]->homographies
       );
+      Homographies::compute(
+        feature_points[m2][m1],
+        feature_points[m1][m2],
+        imgs[m2]->vertices,
+        apap_pts[m2][m1],
+        imgs[m2]->homographies
+      );
 
       // 获取m1在m2上(未出界)的匹配点
       int pts_num = apap_pts[m1][m2].size();
       assert(pts_num == imgs[m1]->vertices.size());
       assert(single_mask[m1][m2].empty());
       single_mask[m1][m2].resize(pts_num);// 初始化为false
-
       for (int i = 0; i < pts_num; i ++) {
         Point2f tmp_point = apap_pts[m1][m2][i];
         // 此时以m2为参照, m1的坐标可能为负
@@ -506,6 +512,18 @@ void MultiImages::getMeshInfo() {
           // 没有出界
           single_mask[m1][m2][i] = true;
           total_mask[m1][i] = true;
+        }
+      }
+
+      // 获取m2在mi上的匹配点
+      pts_num = apap_pts[m2][m1].size();
+      single_mask[m2][m1].resize(pts_num);
+      for (int i = 0; i < pts_num; i ++) {
+        Point2f tmp_point = apap_pts[m2][m1][i];
+        if ( tmp_point.x >= 0 && tmp_point.y >= 0
+          && tmp_point.x <= imgs[m1]->data.cols && tmp_point.y <= imgs[m1]->data.rows) {
+          single_mask[m2][m1][i] = true;
+          // TODO 不要记录total_mask
         }
       }
     }
@@ -582,9 +600,15 @@ void MultiImages::reserveData(
     int m1 = _m1;
     int m2 = pair_index[_m1][i];
 
-    // 计算目标图像在参考图像上的未出界顶点数目和(可能与多张图片有重合)
+    // 计算目标图像在参考图像上的未出界匹配点数目和(可能与多张图片有重合)
     for (int j = 0; j < single_mask[m1][m2].size(); j ++) {
       if (single_mask[m1][m2][j]) {
+        alignment_equation.second += 2;
+      }
+    }
+    // 计算参考图像在目标图像上匹配点数目和
+    for (int j = 0; j < single_mask[m2][m1].size(); j ++) {
+      if (single_mask[m2][m1][j]) {
         alignment_equation.second += 2;
       }
     }
@@ -638,15 +662,13 @@ void MultiImages::prepareAlignmentTerm(
   for (int i = 0; i < pair_index[_m1].size(); i ++) {
     int m1 = _m1;
     int m2 = pair_index[_m1][i];
-
-    // 记录顶点所在polygon索引, 以及在polygon中的分量
     const vector<vector<int> > indices_1 = imgs[m1]->polygons_indices;
     const vector<vector<int> > indices_2 = imgs[m2]->polygons_indices;
-    vector<int>             index_1(single_mask[m1][m2].size());
-    vector<vector<double> > weights_1(single_mask[m1][m2].size());
-    vector<int>             index_2(single_mask[m1][m2].size());
-    vector<vector<double> > weights_2(single_mask[m1][m2].size());
 
+    int index_1, index_2;// 记录polygon索引
+    vector<double> weights_1, weights_2;// 记录在polygon中的归一化距离
+
+    // m1匹配点在m2上的分量(定值) == m1顶点在自身的分量
     for (int j = 0; j < single_mask[m1][m2].size(); j ++) {
       if (!single_mask[m1][m2][j]) {
         // 该匹配点出界
@@ -655,18 +677,18 @@ void MultiImages::prepareAlignmentTerm(
 
       int tmp_index;
       vector<double> tmp_weights(4);
-      Point2f point_1 = imgs[m1]->vertices[j];// 原始顶点
+      Point2f point_1 = imgs[m1]->vertices[j];// 顶点
       Point2f point_2 = apap_pts[m1][m2][j];// 匹配点
 
       // 目标图像的顶点在自身的分量
       imgs[m1]->getInterpolateVertex(point_1, tmp_index, tmp_weights);
-      index_1[j] = tmp_index;
-      weights_1[j] = tmp_weights;
+      index_1 = tmp_index;
+      weights_1 = tmp_weights;
 
       // 目标图像的匹配点在参考图像的分量
       imgs[m2]->getInterpolateVertex(point_2, tmp_index, tmp_weights);
-      index_2[j] = tmp_index;
-      weights_2[j] = tmp_weights;
+      index_2 = tmp_index;
+      weights_2 = tmp_weights;
 
       for (int dim = 0; dim < 2; dim ++) {
         // dim: x, y
@@ -674,21 +696,63 @@ void MultiImages::prepareAlignmentTerm(
         for (int k = 0; k < 4; k ++) {
           // 目标图像的顶点在自身的分量
           _triplets.emplace_back(alignment_equation.first + eq_count + dim,
-            dim + 2 * indices_1[index_1[j]][k],
-            alignment_weight * weights_1[j][k]);
+            dim + 2 * indices_1[index_1][k],
+            alignment_weight * weights_1[k]);
           
           // 目标图像的匹配点在参考图像的分量, 此时参考图像的顶点位置已经确定, 分量和是一个定值
-          int index_of_m2 = indices_2[index_2[j]][k];
+          int index_of_m2 = indices_2[index_2][k];
           if (dim == 0) {// x
-            b_sum += alignment_weight * matching_pts[m2][index_of_m2].x * weights_2[j][k];
+            b_sum += alignment_weight * matching_pts[m2][index_of_m2].x * weights_2[k];
           } else {
-            b_sum += alignment_weight * matching_pts[m2][index_of_m2].y * weights_2[j][k];
+            b_sum += alignment_weight * matching_pts[m2][index_of_m2].y * weights_2[k];
           }
         }
         _b_vector.emplace_back(alignment_equation.first + eq_count + dim, b_sum);
       }
 
       eq_count += 2;// x, y
+    }
+
+    // m2匹配点在m1上的分量 == m2顶点在自身的分量(定值)
+    for (int j = 0; j < single_mask[m2][m1].size(); j ++) {
+      if (!single_mask[m2][m1][j]) {
+        continue;
+      }
+
+      int tmp_index;
+      vector<double> tmp_weights(4);
+      Point2f point_1 = imgs[m2]->vertices[j];// 顶点
+      Point2f point_2 = apap_pts[m2][m1][j];// 匹配点
+
+      // 参考图像的匹配点在目标图像上的分量
+      imgs[m1]->getInterpolateVertex(point_2, tmp_index, tmp_weights);
+      index_1 = tmp_index;
+      weights_1 = tmp_weights;
+
+      // 参考图像的顶点在自身的分量
+      imgs[m2]->getInterpolateVertex(point_1, tmp_index, tmp_weights);
+      index_2 = tmp_index;
+      weights_2 = tmp_weights;
+
+      for (int dim = 0; dim < 2; dim ++) {
+        // dim: x, y
+        double b_sum = 0;
+        for (int k = 0; k < 4; k ++) {
+          // 参考图像的匹配点在目标图像的分量
+          _triplets.emplace_back(alignment_equation.first + eq_count + dim,
+            dim + 2 * indices_1[index_1][k],
+            alignment_weight * weights_1[k]);
+        }
+        // 参考图像的匹配点在自身的分量, 此时参考图像的顶点位置已经确定, 是一个定值
+        if (dim == 0) {// x
+          b_sum = alignment_weight * matching_pts[m2][j].x;
+        } else {// y
+          b_sum = alignment_weight * matching_pts[m2][j].y;
+        }
+        _b_vector.emplace_back(alignment_equation.first + eq_count + dim, b_sum);
+      }
+
+      eq_count += 2;
     }
   }
 

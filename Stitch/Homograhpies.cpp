@@ -6,7 +6,7 @@ void Homographies::compute(
     const vector<Point2f> & _src,
     vector<Point2f>       & _dst,
     vector<Mat>           & _homographies) {
-  LOG("%ld %ld", _p_src.size(), _src.size());
+  LOG("APAP %ld %ld", _p_src.size(), _src.size());
 
   vector<Point2f> nf1, nf2, cf1, cf2;
   Mat N1, N2, C1, C2;
