@@ -213,6 +213,7 @@ void MultiImages::getFeaturePairs(int _m1, int _m2) {
   **/
 
 void MultiImages::getFeatureInfo() {
+  assert(!pair_index.empty());
   // 初始化
   if (feature_points.empty()) {
     feature_points.resize(img_num);
@@ -232,17 +233,9 @@ void MultiImages::getFeatureInfo() {
   }
 
   vector<pair<int, int> > tmp_pair;
-  if (pair_index.empty()) {
-    // 没有任何配对信息, 只能从前往后配对
-    for (int i = 1; i < img_num; i ++) {
-      tmp_pair.emplace_back(make_pair(i - 1, i));
-    }
-  } else {
-    // 补充配对
-    for (int i = 0; i < img_num; i ++) {
-      for (int j = 0; j < pair_index[i].size(); j ++) {
-        tmp_pair.emplace_back(make_pair(i, pair_index[i][j]));
-      }
+  for (int i = 0; i < img_num; i ++) {
+    for (int j = 0; j < pair_index[i].size(); j ++) {
+      tmp_pair.emplace_back(make_pair(i, pair_index[i][j]));
     }
   }
 
@@ -277,25 +270,27 @@ void MultiImages::getFeatureInfo() {
 void MultiImages::similarityTransform(int _mode) {
   // 必须是弧度
   assert(!rotations.empty());
+  assert(!image_order.empty());
   // 初始化
   similarity_pts.resize(img_num);
   scales.resize(img_num);
   translations.resize(img_num);
-
   
-  // 没有任何配对信息, 只能从前往后配对
-  for (int i = 0; i < img_num; i ++) {// 第0张图片的位置为(0, 0)
-    if (i == 0) {
+  for (int i = 0; i < img_num; i ++) {
+    int m1 = image_order[i];
+    if (i == 0) {// 参考图片的位置为(0, 0)
       // 起始图像
-      scales[i] = 1;
-      translations[i].x = 0;
-      translations[i].y = 0;
+      scales[m1] = 1;
+      translations[m1].x = 0;
+      translations[m1].y = 0;
     } else {
       // 其他目标图像
-      int m1 = i;
-      int m2 = i - 1;
-      // 计算等式数目
-      int equations = feature_points[m1][m2].size();// 数目与[m2][m1]相同
+      int neighbor_num = pair_index[m1].size();// 与第i张图片邻接的(参考)图片数
+      int equations = 0;// 等式数目
+      for (int j = 0; j < neighbor_num; j ++) {
+        int m2 = pair_index[m1][j];
+        equations += feature_points[m1][m2].size();// 数目与[m2][m1]相同
+      }
 
       if (_mode == 0) {
         // 只计算平移, 未知数为(x, y)
@@ -303,25 +298,28 @@ void MultiImages::similarityTransform(int _mode) {
         VectorXd b = VectorXd::Zero(equations * 2);
         double rotate = rotations[m1];
         int eq_count = 0;// 检验等式数目是否正确
-        for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
-          // x + 0 = x2 - (x1 cos - y1 sin)
-          // 0 + y = y2 - (x1 sin + y1 cos)
-          double x1 = feature_points[m1][m2][k].x;
-          double y1 = feature_points[m1][m2][k].y;
-          double _x2 = feature_points[m2][m1][k].x;
-          double _y2 = feature_points[m2][m1][k].y;
-          double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
-          double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
-          A(eq_count + 0, 0) = 1;
-          b(eq_count + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
-          A(eq_count + 1, 1) = 1;
-          b(eq_count + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
-          eq_count += 2;
+        for (int j = 0; j < neighbor_num; j ++) {
+          int m2 = pair_index[m1][j];
+          for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
+            // x + 0 = x2 - (x1 cos - y1 sin)
+            // 0 + y = y2 - (x1 sin + y1 cos)
+            double x1 = feature_points[m1][m2][k].x;
+            double y1 = feature_points[m1][m2][k].y;
+            double _x2 = feature_points[m2][m1][k].x;
+            double _y2 = feature_points[m2][m1][k].y;
+            double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
+            double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
+            A(eq_count + 0, 0) = 1;
+            b(eq_count + 0)    = x2 - (x1 * cos(rotate) - y1 * sin(rotate));
+            A(eq_count + 1, 1) = 1;
+            b(eq_count + 1)    = y2 - (x1 * sin(rotate) + y1 * cos(rotate));
+            eq_count += 2;
+          }
         }
         assert(eq_count == equations * 2);
         // 得出结果
         VectorXd solution = A.colPivHouseholderQr().solve(b);
-        scales[m1]  = 1;
+        scales[m1]         = 1;
         translations[m1].x = solution(0);
         translations[m1].y = solution(1);
       } else if (_mode == 1) {
@@ -331,27 +329,31 @@ void MultiImages::similarityTransform(int _mode) {
         VectorXd b = VectorXd::Zero(equations * 2);
         double rotate = rotations[m1];
         int eq_count = 0;// 检验等式数目是否正确
-        for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
-          // (x1 cos - y1 sin) * s + x + 0 = x2
-          // (x1 sin + y1 cos) * s + 0 + y = y2
-          double x1 = feature_points[m1][m2][k].x;
-          double y1 = feature_points[m1][m2][k].y;
-          double _x2 = feature_points[m2][m1][k].x;
-          double _y2 = feature_points[m2][m1][k].y;
-          double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
-          double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
-          A(eq_count + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
-          A(eq_count + 0, 1) = 1;
-          b(eq_count + 0)    = x2;
-          A(eq_count + 1, 0) = x1 * sin(rotate) + y1 * cos(rotate);
-          A(eq_count + 1, 2) = 1;
-          b(eq_count + 1)    = y2;
-          eq_count += 2;
+        for (int j = 0; j < neighbor_num; j ++) {
+          int m1 = i;
+          int m2 = pair_index[m1][j];
+          for (int k = 0; k < feature_points[m1][m2].size(); k ++) {
+            // (x1 cos - y1 sin) * s + x + 0 = x2
+            // (x1 sin + y1 cos) * s + 0 + y = y2
+            double x1 = feature_points[m1][m2][k].x;
+            double y1 = feature_points[m1][m2][k].y;
+            double _x2 = feature_points[m2][m1][k].x;
+            double _y2 = feature_points[m2][m1][k].y;
+            double x2 = (_x2 * cos(rotations[m2]) - _y2 * sin(rotations[m2])) * scales[m2] + translations[m2].x;
+            double y2 = (_x2 * sin(rotations[m2]) + _y2 * cos(rotations[m2])) * scales[m2] + translations[m2].y;
+            A(eq_count + 0, 0) = x1 * cos(rotate) - y1 * sin(rotate);
+            A(eq_count + 0, 1) = 1;
+            b(eq_count + 0)    = x2;
+            A(eq_count + 1, 0) = x1 * sin(rotate) + y1 * cos(rotate);
+            A(eq_count + 1, 2) = 1;
+            b(eq_count + 1)    = y2;
+            eq_count += 2;
+          }
         }
         assert(eq_count == equations * 2);
         // 得出结果
         VectorXd solution = A.colPivHouseholderQr().solve(b);
-        scales[m1]  = solution(0);
+        scales[m1]         = solution(0);
         translations[m1].x = solution(1);
         translations[m1].y = solution(2);
       }
@@ -360,11 +362,11 @@ void MultiImages::similarityTransform(int _mode) {
     // 计算相似变换后的结果
     LOG("r=%lf, s=%lf, x=%lf, y=%lf", rotations[i], scales[i], translations[i].x, translations[i].y);
     for (int j = 0; j < imgs[0]->vertices.size(); j ++) {
-      double x = imgs[i]->vertices[j].x;
-      double y = imgs[i]->vertices[j].y;
-      double new_x = (x * cos(rotations[i]) - y * sin(rotations[i])) * scales[i] + translations[i].x;
-      double new_y = (x * sin(rotations[i]) + y * cos(rotations[i])) * scales[i] + translations[i].y;
-      similarity_pts[i].emplace_back(new_x, new_y);
+      double x = imgs[m1]->vertices[j].x;
+      double y = imgs[m1]->vertices[j].y;
+      double new_x = (x * cos(rotations[m1]) - y * sin(rotations[m1])) * scales[m1] + translations[m1].x;
+      double new_y = (x * sin(rotations[m1]) + y * cos(rotations[m1])) * scales[m1] + translations[m1].y;
+      similarity_pts[m1].emplace_back(new_x, new_y);
     }
   }
 }
@@ -387,7 +389,7 @@ void MultiImages::getImagePairs() {
   for (int i = 0; i < img_pairs.size(); i ++) {
     int m1 = img_pairs[i].first;
     int m2 = img_pairs[i].second;
-    que.push(m1, m2, 0);
+    que.push(ImageDistance(m1, m2, 0));
   }
 
   ImageDistance id = que.top();
@@ -425,7 +427,7 @@ void MultiImages::getImagePairs() {
     }
   }
 
-  // bfs搜索重新建图
+  // bfs搜索重新建图: 确定网格优化的顺序, 以及图像之间的依赖顺序
   vector<int> visited(img_num);
   pair_index.resize(img_num);
   queue<int> q;

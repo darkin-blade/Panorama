@@ -25,8 +25,6 @@ Mat My_Stitching::getMyResult() {
 
   // 相似变换
   multi_images->similarityTransform(0);
-  // 补充特征点匹配
-  multi_images->getFeatureInfo();
 
   // apap网格计算
   multi_images->getMeshInfo();
