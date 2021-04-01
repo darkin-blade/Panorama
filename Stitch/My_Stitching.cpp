@@ -18,13 +18,13 @@ Mat My_Stitching::getMyResult() {
 
   // 初始化
   multi_images->init();
+  multi_images->getImagePairs();// TODO
 
   // 初步特征点匹配
   multi_images->getFeatureInfo();
 
   // 相似变换
   multi_images->similarityTransform(0);
-  multi_images->getImagePairs();
   // 补充特征点匹配
   multi_images->getFeatureInfo();
 

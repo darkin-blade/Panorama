@@ -370,6 +370,7 @@ void MultiImages::similarityTransform(int _mode) {
 }
 
 void MultiImages::getImagePairs() {
+  // TODO 用不上
   assert(img_pairs.empty());
 
   vector<vector<double> > img_dis;
@@ -380,17 +381,13 @@ void MultiImages::getImagePairs() {
 
   // 计算所有图片之间的距离
   priority_queue <ImageDistance> que;
-  for (int i = 0; i < img_num; i ++) {
-    for (int j = i + 1; j < img_num; j ++) {
-      Point2f tmp_dis = translations[i] - translations[j];
-      double dis = norm(tmp_dis);
-      LOG("%d %d %lf", i, j, dis);
-      que.push(ImageDistance(i, j, dis));
-    }
+  for (int i = 1; i < img_num; i ++) {
+    double dis = 0;
+    que.push(ImageDistance(i - 1, i, dis));
   }
 
   ImageDistance id = que.top();
-  double dis_thresh = 200;// TODO 这个值与图像大小相关
+  double dis_thresh = 1;// TODO 这个值与图像大小相关
   vector<vector<int> > adjList(img_num);// 无向图的邻接列表
 
   // 最小生成树
