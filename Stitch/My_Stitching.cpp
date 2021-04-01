@@ -47,3 +47,15 @@ Mat My_Stitching::getMyResult() {
 void My_Stitching::debug() {
   assert(0);
 }
+
+void My_Stitching::drawAPAP() {
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    ;
+  }
+}
+
+void My_Stitching::drawFeature() {
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    ;
+  }
+}

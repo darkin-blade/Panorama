@@ -13,4 +13,7 @@ public:
 
   // DEBUG 用
   void debug();
+
+  void drawAPAP();
+  void drawFeature();
 };
