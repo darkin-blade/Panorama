@@ -372,6 +372,9 @@ void MultiImages::similarityTransform(int _mode) {
 void MultiImages::getImagePairs() {
   // TODO 用不上
   assert(img_pairs.empty());
+  for (int i = 1; i < img_num; i ++) {
+    img_pairs.emplace_back(i - 1, i);
+  }
 
   vector<vector<double> > img_dis;
   img_dis.resize(img_num);
@@ -381,9 +384,10 @@ void MultiImages::getImagePairs() {
 
   // 计算所有图片之间的距离
   priority_queue <ImageDistance> que;
-  for (int i = 1; i < img_num; i ++) {
-    double dis = 0;
-    que.push(ImageDistance(i - 1, i, dis));
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    que.push(m1, m2, 0);
   }
 
   ImageDistance id = que.top();

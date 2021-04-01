@@ -117,7 +117,7 @@ public:
   vector<double>           rotations;
   vector<double>           scales;
   vector<Point2f>          translations;
-  vector<pair<int, int> >  img_pairs;// 图片的配对信息
+  vector<pair<int, int> >  img_pairs;// TODO, 图片的配对信息, 没用
   
   /* 网格变换 */
   vector<vector<bool> >               total_mask;// 目标图像在参考图像上未出界的匹配点mask
