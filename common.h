@@ -112,7 +112,7 @@ const int DIMENSION_2D = 2;
 const int HOMOGRAPHY_VARIABLES_COUNT = 9;
 
 /*** vlfeat sift ***/
-const    int SIFT_LEVEL_COUNT          = 2;// nlevels 3
+const    int SIFT_LEVEL_COUNT          = 1;// nlevels 3
 const    int SIFT_MINIMUM_OCTAVE_INDEX = 0;// o_min 0
 const double SIFT_PEAK_THRESH = 0.;
 const double SIFT_EDGE_THRESH = 10.;
@@ -158,8 +158,8 @@ const AUTO_STITCH_WAVE_CORRECTS   WAVE_CORRECT = WAVE_H;
 /* draw image */
 #if defined(UBUNTU)
 
-const int CIRCLE_SIZE = 3;
-const int LINE_SIZE   = 1;
+const int CIRCLE_SIZE = 3;// 3
+const int LINE_SIZE   = 1;// 1
 
 #else
 

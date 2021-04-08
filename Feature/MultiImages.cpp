@@ -42,7 +42,7 @@ void MultiImages::init() {
     //   base += (1 - base) / 2.5;
     // }
     // col_r.emplace_back(1);
-    int mesh_size = 8;
+    int mesh_size = 5;
     for (int i = 0; i <= mesh_size; i ++) {
       col_r.emplace_back((double)i / mesh_size);
       row_r.emplace_back((double)i / mesh_size);
@@ -243,11 +243,7 @@ void MultiImages::getFeatureInfo() {
     int m1 = tmp_pair[i].first;
     int m2 = tmp_pair[i].second;
 
-    if (!feature_points[m1][m2].empty()) {
-      // 用于补充配对防重复
-      assert(!feature_points[m2][m1].empty());
-      continue;
-    }
+    assert(feature_points[m2][m1].empty());
 
     // 每次匹配需要清空临时数据    
     initial_pairs.clear();

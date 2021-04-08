@@ -28,6 +28,10 @@ Mat My_Stitching::getMyResult() {
 
   // apap网格计算
   multi_images->getMeshInfo();
+  
+  // debug
+  drawFeature();
+  drawAPAP();
 
   // 网格优化
   multi_images->meshOptimization();
@@ -48,12 +52,56 @@ void My_Stitching::debug() {
 
 void My_Stitching::drawAPAP() {
   for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
-    ;
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    Mat result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    Mat left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    Mat right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    img1.copyTo(left);
+    img2.copyTo(right);
+
+    Scalar color1(255, 0, 0, 255);
+    Scalar color2(0, 255, 0, 255);
+    Scalar color3(255, 255, 0, 55);
+    for (int j = 0; j < multi_images->single_mask[m1][m2].size(); j ++) {
+      if (!multi_images->single_mask[m1][m2][j]) {
+        // 出界
+        continue;
+      }
+      Point2f src_p = multi_images->imgs[m1]->vertices[j];
+      Point2f dst_p = multi_images->apap_pts[m1][m2][j];
+      line(result, src_p, dst_p + Point2f(img1.cols, 0), color3, LINE_SIZE, LINE_AA);
+      circle(result, src_p, CIRCLE_SIZE, color1, -1);
+      circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+    }
+    show_img("apap", result);
   }
 }
 
 void My_Stitching::drawFeature() {
   for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
-    ;
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    Mat result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    Mat left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    Mat right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    img1.copyTo(left);
+    img2.copyTo(right);
+
+    Scalar color1(255, 0, 0, 255);
+    Scalar color2(0, 255, 0, 255);
+    Scalar color3(255, 255, 0, 55);
+    for (int j = 0; j < multi_images->feature_points[m1][m2].size(); j ++) {
+      Point2f src_p = multi_images->feature_points[m1][m2][j];
+      Point2f dst_p = multi_images->feature_points[m2][m1][j];
+      line(result, src_p, dst_p + Point2f(img1.cols, 0), color3, LINE_SIZE, LINE_AA);
+      circle(result, src_p, CIRCLE_SIZE, color1, -1);
+      circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+    }
+    show_img("feature", result);
   }
 }
