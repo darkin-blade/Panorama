@@ -5,7 +5,7 @@
   把所有点转换成球面向量并求解向量和
   rotations: 外在旋转的顺序, 即切面角->纬度->经度
   ***/
-void setNewCenter(const vector<vector<double> > photo_rotation, vector<double> new_rotations) {
+void angleConvert(const vector<vector<double> > photo_rotation, vector<double> & new_rotations) {
   int photo_num = photo_rotation.size();
 
   double tmp_sphere[3];
@@ -57,7 +57,6 @@ void setNewCenter(const vector<vector<double> > photo_rotation, vector<double> n
 
   // 重新计算所有点的切面旋转角度
   new_rotations.clear();
-  new_rotations.resize(photo_num);
   for (int i = 0; i < photo_num; i ++) {
     vector<double> tmp_rotation = photo_rotation[i];
     tmp_sphere[0] = tmp_rotation[2];// 经度

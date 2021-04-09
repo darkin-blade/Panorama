@@ -3,7 +3,7 @@
 
 #include "../common.h"
 
-void setNewCenter(const vector<vector<double> > rotations);
+void angleConvert(const vector<vector<double> > rotations, vector<double> & new_rotations);
 void sphere2Coordinate(const double sphere[], double coordinate[]);
 void coordinate2Sphere(const double coordinate[], double sphere[]);
 double sphereThetaConvert(const double pointM[], const double sphereP[]);

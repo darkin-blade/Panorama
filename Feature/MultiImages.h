@@ -157,7 +157,6 @@ public:
 
   /* 图片读取 */
   void readImg(const char *img_path);
-  void readAngle(const char *path);
 
   /* 预处理 */
   void init();

@@ -19,20 +19,6 @@ void MultiImages::readImg(const char *img_path) {
   assert(origin_data.size() == img_num);
 }
 
-void MultiImages::readAngle(const char *path) {
-  // 判断角度文件存不存在
-  FILE *fp = fopen(path, "rb");
-  if (!fp) {
-    LOG("%s doesn't exists", path);
-  } else {
-    char angle[128];
-    fgets(angle, 128, fp);
-    LOG("%s %lf", path, atof(angle));
-    rotations.emplace_back(-atof(angle));
-    fclose(fp);
-  }
-}
-
 /***
   *
   * 统一预处理
@@ -41,11 +27,36 @@ void MultiImages::readAngle(const char *path) {
 
 void MultiImages::init() {
   // 初始化旋转角度
-  if (rotations.empty()) {
+
+  char app_path[64] = "../..";
+  char angle_path[128];// 图片路径
+  vector<vector<double> > origin_angles;// 原始欧拉角
+  bool angle_valid = true;// 旋转角度文件是否完整
+
+  origin_angles.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    sprintf(angle_path, "%s/%d.txt", app_path, i + 1);
+    FILE *fp = fopen(angle_path, "r");
+    if (!fp) {
+      angle_valid = false;
+      break;
+    } else {
+      char angle[128];
+      for (int j = 0; j < 3; j ++) {
+        fgets(angle, 128, fp);
+        origin_angles[i].emplace_back(atof(angle));
+        LOG("%d %d %lf", i, j, origin_angles[i][j]);
+      }
+    }
+    fclose(fp);
+  }
+
+  if (!angle_valid) {
     for (int i = 0; i < img_num; i ++) {
       rotations.emplace_back(0);// 负为逆时针
     }
   } else {
+    angleConvert(origin_angles, rotations);
     assert(rotations.size() == img_num);
   }
 
@@ -66,6 +77,99 @@ void MultiImages::init() {
     }
     imgs[i]->initVertices(col_r, row_r);
   }
+}
+
+void MultiImages::getImagePairs() {
+  // TODO 用不上
+  assert(img_pairs.empty());
+  for (int i = 1; i < img_num; i ++) {
+    img_pairs.emplace_back(i - 1, i);
+  }
+
+  vector<vector<double> > img_dis;
+  img_dis.resize(img_num);
+  for (int i = 0; i < img_num; i ++) {
+    img_dis[i].resize(img_num);
+  }
+
+  // 计算所有图片之间的距离
+  priority_queue <ImageDistance> que;
+  for (int i = 0; i < img_pairs.size(); i ++) {
+    int m1 = img_pairs[i].first;
+    int m2 = img_pairs[i].second;
+    que.push(ImageDistance(m1, m2, 0));
+  }
+
+  ImageDistance id = que.top();
+  double dis_thresh = 1;// TODO 这个值与图像大小相关
+  vector<vector<int> > adjList(img_num);// 无向图的邻接列表
+
+  // 最小生成树
+  UnionFind *unionFind = new UnionFind(img_num);
+  while (!que.empty()) {
+    id = que.top();
+    que.pop();
+    int u = id.u;
+    int v = id.v;
+    double distance = id.distance;
+    if (unionFind->cur_size < img_num || distance < dis_thresh) {
+      // 未构成连通图, 无条件加边
+      // 或
+      // 距离小于设定的阈值, 添加该边
+      adjList[u].emplace_back(v);
+      adjList[v].emplace_back(u);
+      unionFind->unionNode(u, v);
+      LOG("add %d %d %lf", u, v, distance);
+    } else {
+      break;
+    }
+  }
+
+  // 重建图片之间的配对关系
+  int start_index = 0;
+  int max_neibors = -1;
+  for (int i = 0; i < img_num; i ++) {
+    if (adjList[i].size() > max_neibors) {
+      start_index = i;
+      max_neibors = adjList[i].size();
+    }
+  }
+
+  // bfs搜索重新建图: 确定网格优化的顺序, 以及图像之间的依赖顺序
+  vector<int> visited(img_num);
+  pair_index.resize(img_num);
+  queue<int> q;
+  q.push(start_index);
+  visited[start_index] = 1;// 1: 入队, 2: 出队, 0: 未访问
+  assert(image_order.empty());
+  while (!q.empty()) {
+    int u = q.front();
+    visited[u] = 2;
+    q.pop();
+    image_order.emplace_back(u);
+    for (int i = 0; i < adjList[u].size(); i ++) {
+      int v = adjList[u][i];
+      if (visited[v] == 0) {
+        visited[v] = 1;
+        q.push(v);
+      } else if (visited[v] == 2) {
+        LOG("%d %d", u, v);
+        pair_index[u].emplace_back(v);
+      }
+    }
+  }
+
+  // 根据参考图像修改旋转角度
+  for (int i = 0; i < img_num; i ++) {
+    rotations[i] = -rotations[i];// 需要旋转的角度和原始数据相反
+  }
+  double ref_angle = rotations[image_order[0]];
+  for (int i = 0; i < img_num; i ++) {
+    rotations[image_order[i]] -= ref_angle;
+    LOG("%d rotation %lf", image_order[i], rotations[image_order[i]]);
+  }
+
+  assert(image_order.size() == img_num);
 }
 
 /***
@@ -382,96 +486,6 @@ void MultiImages::similarityTransform(int _mode) {
       similarity_pts[m1].emplace_back(new_x, new_y);
     }
   }
-}
-
-void MultiImages::getImagePairs() {
-  // TODO 用不上
-  assert(img_pairs.empty());
-  for (int i = 1; i < img_num; i ++) {
-    img_pairs.emplace_back(i - 1, i);
-  }
-
-  vector<vector<double> > img_dis;
-  img_dis.resize(img_num);
-  for (int i = 0; i < img_num; i ++) {
-    img_dis[i].resize(img_num);
-  }
-
-  // 计算所有图片之间的距离
-  priority_queue <ImageDistance> que;
-  for (int i = 0; i < img_pairs.size(); i ++) {
-    int m1 = img_pairs[i].first;
-    int m2 = img_pairs[i].second;
-    que.push(ImageDistance(m1, m2, 0));
-  }
-
-  ImageDistance id = que.top();
-  double dis_thresh = 1;// TODO 这个值与图像大小相关
-  vector<vector<int> > adjList(img_num);// 无向图的邻接列表
-
-  // 最小生成树
-  UnionFind *unionFind = new UnionFind(img_num);
-  while (!que.empty()) {
-    id = que.top();
-    que.pop();
-    int u = id.u;
-    int v = id.v;
-    double distance = id.distance;
-    if (unionFind->cur_size < img_num || distance < dis_thresh) {
-      // 未构成连通图, 无条件加边
-      // 或
-      // 距离小于设定的阈值, 添加该边
-      adjList[u].emplace_back(v);
-      adjList[v].emplace_back(u);
-      unionFind->unionNode(u, v);
-      LOG("add %d %d %lf", u, v, distance);
-    } else {
-      break;
-    }
-  }
-
-  // 重建图片之间的配对关系
-  int start_index = 0;
-  int max_neibors = -1;
-  for (int i = 0; i < img_num; i ++) {
-    if (adjList[i].size() > max_neibors) {
-      start_index = i;
-      max_neibors = adjList[i].size();
-    }
-  }
-
-  // bfs搜索重新建图: 确定网格优化的顺序, 以及图像之间的依赖顺序
-  vector<int> visited(img_num);
-  pair_index.resize(img_num);
-  queue<int> q;
-  q.push(start_index);
-  visited[start_index] = 1;// 1: 入队, 2: 出队, 0: 未访问
-  assert(image_order.empty());
-  while (!q.empty()) {
-    int u = q.front();
-    visited[u] = 2;
-    q.pop();
-    image_order.emplace_back(u);
-    for (int i = 0; i < adjList[u].size(); i ++) {
-      int v = adjList[u][i];
-      if (visited[v] == 0) {
-        visited[v] = 1;
-        q.push(v);
-      } else if (visited[v] == 2) {
-        LOG("%d %d", u, v);
-        pair_index[u].emplace_back(v);
-      }
-    }
-  }
-
-  // 根据参考图像修改旋转角度
-  double ref_angle = rotations[image_order[0]];
-  for (int i = 0; i < img_num; i ++) {
-    rotations[image_order[i]] -= ref_angle;
-    LOG("%d rotation %lf", i, rotations[image_order[i]]);
-  }
-
-  assert(image_order.size() == img_num);
 }
 
 void MultiImages::getMeshInfo() {
