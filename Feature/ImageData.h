@@ -6,6 +6,7 @@
 
 class ImageData {
 public:
+
   /* 图像数据 */
   Mat data;// 原始数据
   Mat grey_data;// 灰度数据
@@ -33,7 +34,7 @@ public:
   vector<double>            polygons_weight;// 每个网格的权重(与含有匹配点的网格之间的最小距离)
 
   void initData();
-  void readImg(const Mat & _img, int mode);
+  void readMat(const Mat & _img, int mode);
   void initVertices(vector<double> _col, vector<double> _row);
 
   void getIndices();

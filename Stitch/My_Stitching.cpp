@@ -13,7 +13,7 @@ Mat My_Stitching::getMyResult() {
     // 读取图像: 从multi_images到ImageData类中
     multi_images->imgs.emplace_back(new ImageData());
     // multi_images->imgs[i]->initData();// 单纯地清空所有数据
-    multi_images->imgs[i]->readImg(multi_images->origin_data[i], 1);
+    multi_images->imgs[i]->readMat(multi_images->origin_data[i], 1);
   }
 
   // 初始化
@@ -30,8 +30,8 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
   
   // debug
-  drawFeature();
-  drawAPAP();
+  // drawFeature();
+  // drawAPAP();
 
   // 网格优化
   multi_images->meshOptimization();

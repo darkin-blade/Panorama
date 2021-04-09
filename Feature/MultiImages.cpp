@@ -19,6 +19,20 @@ void MultiImages::readImg(const char *img_path) {
   assert(origin_data.size() == img_num);
 }
 
+void MultiImages::readAngle(const char *path) {
+  // 判断角度文件存不存在
+  FILE *fp = fopen(path, "rb");
+  if (!fp) {
+    LOG("%s doesn't exists", path);
+  } else {
+    char angle[128];
+    fgets(angle, 128, fp);
+    LOG("%s %lf", path, atof(angle));
+    rotations.emplace_back(-atof(angle));
+    fclose(fp);
+  }
+}
+
 /***
   *
   * 统一预处理
@@ -27,9 +41,12 @@ void MultiImages::readImg(const char *img_path) {
 
 void MultiImages::init() {
   // 初始化旋转角度
-  assert(rotations.empty());
-  for (int i = 0; i < img_num; i ++) {
-    rotations.emplace_back(0);// 负为逆时针
+  if (rotations.empty()) {
+    for (int i = 0; i < img_num; i ++) {
+      rotations.emplace_back(0);// 负为逆时针
+    }
+  } else {
+    assert(rotations.size() == img_num);
   }
 
   // 图像网格化
@@ -445,6 +462,13 @@ void MultiImages::getImagePairs() {
         pair_index[u].emplace_back(v);
       }
     }
+  }
+
+  // 根据参考图像修改旋转角度
+  double ref_angle = rotations[image_order[0]];
+  for (int i = 0; i < img_num; i ++) {
+    rotations[image_order[i]] -= ref_angle;
+    LOG("%d rotation %lf", i, rotations[image_order[i]]);
   }
 
   assert(image_order.size() == img_num);
@@ -1080,8 +1104,9 @@ void MultiImages::getSeam() {
       );
 
       // 描绘接缝线
-      drawPoints(result_image, seam_pts);
+      // drawPoints(result_image, seam_pts);
     }
+    show_img("result", result_image);
   } else {
     vector<UMat> pano_images_f(img_num);
     vector<UMat> pano_masks_gpu(img_num);

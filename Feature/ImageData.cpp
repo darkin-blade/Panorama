@@ -18,7 +18,7 @@ void ImageData::initData() {
   polygons_weight.clear();
 }
 
-void ImageData::readImg(const Mat & _img, int mode) {
+void ImageData::readMat(const Mat & _img, int mode) {
   LOG("origin channels %d", _img.channels());
   _img.copyTo(data);
 

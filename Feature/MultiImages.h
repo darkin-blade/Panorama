@@ -8,6 +8,7 @@
 #include "../GraphCut/SeamFinder.h"
 #include "../Stitch/Homographies.h"
 #include "../Util/Blending.h"
+#include "../Util/Rotation.h"
 #include "../Util/Similarity.h"
 #include "../Util/Statistics.h"
 #include "../Util/Transform.h"
@@ -156,6 +157,7 @@ public:
 
   /* 图片读取 */
   void readImg(const char *img_path);
+  void readAngle(const char *path);
 
   /* 预处理 */
   void init();
