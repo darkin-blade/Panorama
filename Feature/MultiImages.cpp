@@ -598,13 +598,13 @@ void MultiImages::getMeshInfo() {
 void MultiImages::getTmpResult() {
   assert(matching_pts.empty());
   matching_pts.resize(img_num);
-  // matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
-  // matching_pts[1].assign(apap_pts[1][0].begin(), apap_pts[1][0].end());
-  // matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
-  // matching_pts[0].assign(apap_pts[0][1].begin(), apap_pts[0][1].end());
-  for (int i = 0; i < img_num; i ++) {
-    matching_pts[i].assign(similarity_pts[i].begin(), similarity_pts[i].end());
-  }
+  matching_pts[0].assign(imgs[0]->vertices.begin(), imgs[0]->vertices.end());
+  matching_pts[1].assign(apap_pts[1][0].begin(), apap_pts[1][0].end());
+  matching_pts[1].assign(imgs[1]->vertices.begin(), imgs[1]->vertices.end());
+  matching_pts[0].assign(apap_pts[0][1].begin(), apap_pts[0][1].end());
+  // for (int i = 0; i < img_num; i ++) {
+  //   matching_pts[i].assign(similarity_pts[i].begin(), similarity_pts[i].end());
+  // }
 }
 
 /***

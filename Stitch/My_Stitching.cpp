@@ -27,21 +27,23 @@ Mat My_Stitching::getMyResult() {
   multi_images->similarityTransform(0);
 
   // apap网格计算
-  multi_images->getMeshInfo();
-  
-  // debug
-  // drawFeature();
-  drawAPAP();
+  // multi_images->getMeshInfo();
 
   // 网格优化
   multi_images->meshOptimization();
 
   // 计算中间结果
-  // multi_images->getTmpResult();
+  multi_images->getTmpResult();
+
+  // 计算每幅图像的全景位置
+  multi_images->myWarping();
 
   // 接缝线算法
-  multi_images->myWarping();
   multi_images->getSeam();// 图像融合过程内嵌在这个函数中
+  
+  // debug
+  drawFeature();
+  drawAPAP();
 
   return Mat();// TODO
 }
@@ -51,6 +53,7 @@ void My_Stitching::debug() {
 }
 
 void My_Stitching::drawAPAP() {
+  // 绘制原始网格
   for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
     int m1 = multi_images->img_pairs[i].first;
     int m2 = multi_images->img_pairs[i].second;
@@ -63,20 +66,48 @@ void My_Stitching::drawAPAP() {
     img2.copyTo(right);
 
     Scalar color1(255, 0, 0, 255);
-    Scalar color2(0, 255, 0, 255);
-    Scalar color3(255, 255, 0, 55);
+    for (int j = 0; j < multi_images->imgs[m1]->vertices.size(); j ++) {
+      Point2f src_p = multi_images->imgs[m1]->vertices[j];
+      Point2f dst_p = multi_images->imgs[m2]->vertices[j] + Point2f(img1.cols, 0);
+      circle(result, src_p, CIRCLE_SIZE, color1, -1);
+      // circle(result, dst_p, CIRCLE_SIZE, color1, -1);
+    }
+    show_img("initial vertices", result);
+  }
+
+  // 绘制形变后的网格点位置
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    Mat result;
+    multi_images->pano_images[m2].copyTo(result);
+
+    Scalar color1(255, 0, 0, 255);
+    Scalar color2(0, 0, 255, 255);
     for (int j = 0; j < multi_images->single_mask[m1][m2].size(); j ++) {
+      Point2f src_p = multi_images->matching_pts[m1][j];
       if (!multi_images->single_mask[m1][m2][j]) {
         // 出界
-        continue;
+        circle(result, src_p, CIRCLE_SIZE + 2, color1, -1);
+      } else {
+        circle(result, src_p, CIRCLE_SIZE + 2, color2, -1);
       }
-      Point2f src_p = multi_images->imgs[m1]->vertices[j];
-      Point2f dst_p = multi_images->apap_pts[m1][m2][j];
-      line(result, src_p, dst_p + Point2f(img1.cols, 0), color3, LINE_SIZE, LINE_AA);
-      circle(result, src_p, CIRCLE_SIZE, color1, -1);
-      circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
     }
-    show_img("apap", result);
+    show_img("apap vertices", result);
+  }
+
+  // 绘制网格优化后的所有顶点
+  {
+    Mat result = Mat::zeros(multi_images->pano_size, CV_8UC4);
+    for (int i = 0; i < multi_images->matching_pts.size(); i ++) {
+      if (i == 1) continue;
+      Scalar color1(0, 0, 255, 255);// TODO
+      for (int j = 0; j < multi_images->matching_pts[i].size(); j ++) {
+        Point2f src_p = multi_images->matching_pts[i][j];
+        circle(result, src_p, CIRCLE_SIZE + 1, color1, -1);
+      }
+    }
+    show_img("mesh optimization", result);
   }
 }
 

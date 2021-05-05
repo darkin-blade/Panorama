@@ -128,7 +128,7 @@ public:
   vector<vector<Point2f> >            matching_pts;// 最终结果;
 
   /* 调参 */
-  const int MESH_SIZE                   = 50;
+  const int MESH_SIZE                   = 10;
   const int START_INDEX                 = 0;
   const int NEED_CONVERT                = 1;
   /* 网格优化 */

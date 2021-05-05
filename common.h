@@ -158,7 +158,7 @@ const AUTO_STITCH_WAVE_CORRECTS   WAVE_CORRECT = WAVE_H;
 /* draw image */
 #if defined(UBUNTU)
 
-const int CIRCLE_SIZE = 3;// 3
+const int CIRCLE_SIZE = 5;// 3
 const int LINE_SIZE   = 1;// 1
 
 #else
