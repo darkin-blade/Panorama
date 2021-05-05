@@ -129,7 +129,7 @@ public:
 
   /* 调参 */
   const int MESH_SIZE                   = 10;
-  const int START_INDEX                 = 0;
+  const int START_INDEX                 = 0;// 参考图像的索引
   const int NEED_CONVERT                = 1;
   /* 网格优化 */
   vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
