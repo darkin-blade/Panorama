@@ -30,8 +30,8 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
   
   // debug
-  drawFeature();
-  // drawAPAP();
+  // drawFeature();
+  drawAPAP();
 
   // 网格优化
   multi_images->meshOptimization();
@@ -119,7 +119,6 @@ void My_Stitching::drawFeature() {
 
     Scalar color1(255, 0, 0, 255);
     Scalar color2(0, 255, 0, 255);
-    LOG("init size %ld", multi_images->initial_pairs[m1][m2].size());
     for (int j = 0; j < multi_images->initial_pairs[m1][m2].size(); j ++) {
       pair<int, int> tmp_pair =  multi_images->initial_pairs[m1][m2][j];
       Point2f src_p = multi_images->imgs[m1]->features[tmp_pair.first];

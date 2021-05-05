@@ -411,6 +411,10 @@ void MultiImages::getFeatureInfo() {
       matched_points[m2][m1].emplace_back(m2_fpts[it.second]);
       filtered_pairs[m2][m1].emplace_back(make_pair(it.second, it.first));// 反向配对
     }
+    for (int j = 0; j < initial_pairs[m1][m2].size(); j ++) {
+      const pair<int, int> it = initial_pairs[m1][m2][j];
+      initial_pairs[m2][m1].emplace_back(make_pair(it.second, it.first));// 反向配对
+    }
   }
 }
 
@@ -1075,8 +1079,6 @@ void MultiImages::myWarping() {
     pano_masks.emplace_back(tmp_mask);
     origin_masks.emplace_back(tmp_mask);// 存储每张图片初始的mask
   }
-
-  imwrite("../../shit.png", pano_images[0]);
 }
 
 void MultiImages::getSeam() {
