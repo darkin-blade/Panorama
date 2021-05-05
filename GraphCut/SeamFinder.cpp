@@ -187,7 +187,7 @@ void MySeamFinder::setGraphWeightsColor(
   const Size img_size = img1.size();
 
   // Set terminal weights
-  const float beta = 0.0f;
+  const float beta = 0.0f;// 0.02
   LOG("beta is %f", beta);
   for (int y = 0; y < img_size.height; ++y)
   {

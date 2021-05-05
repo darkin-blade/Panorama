@@ -110,9 +110,9 @@ public:
   vector<ImageData *>      imgs;
 
   /* 特征匹配 */
-  vector<pair<int, int> >                   initial_pairs;// debug, RANSAC之前的特征点配对信息
-  vector<pair<int, int> >                   feature_pairs;// RANSAC之后的特征点配对信息
-  vector<vector<vector<Point2f> > >         feature_points;// RANSAC的特征点, [m1][m2]: m1与m2配对的特征点
+  vector<vector<vector<pair<int, int> > > >   initial_pairs;// debug, RANSAC之前的特征点配对信息
+  vector<vector<vector<pair<int, int> > > >   filtered_pairs;// RANSAC之后的特征点配对信息
+  vector<vector<vector<Point2f> > >           matched_points;// RANSAC的特征点, [m1][m2]: m1与m2配对的特征点
 
   /* 相似变换 */
   vector<double>           rotations;
@@ -127,6 +127,10 @@ public:
   vector<vector<Point2f> >            similarity_pts;// 相似变换的结果, [i]: 第i张图片
   vector<vector<Point2f> >            matching_pts;// 最终结果;
 
+  /* 调参 */
+  const int MESH_SIZE                   = 50;
+  const int START_INDEX                 = 0;
+  const int NEED_CONVERT                = 1;
   /* 网格优化 */
   vector<vector<int> >                pair_index;// 记录和第i张图片配对的图片索引
   vector<int>                         image_order;// 添加图片的顺序

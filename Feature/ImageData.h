@@ -14,7 +14,7 @@ public:
 
   /* 特征 */
   vector<vector<Mat> > descriptors;// TODO, 与feature_points数目相等
-  vector<Point2f>      feature_points;// 特征点(全部)
+  vector<Point2f>      features;// 特征点(全部)
 
   /* 网格 */
   int rows, cols;// 网格顶点的行列数目

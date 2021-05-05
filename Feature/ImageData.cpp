@@ -3,7 +3,7 @@
 void ImageData::initData() {
   // 清空所有数据
   descriptors.clear();
-  feature_points.clear();
+  features.clear();
   rows = cols = 0;// 网格顶点的行列数目 
   row_vec.clear(), col_vec.clear();
 

@@ -30,7 +30,7 @@ Mat My_Stitching::getMyResult() {
   multi_images->getMeshInfo();
   
   // debug
-  // drawFeature();
+  drawFeature();
   // drawAPAP();
 
   // 网格优化
@@ -81,6 +81,31 @@ void My_Stitching::drawAPAP() {
 }
 
 void My_Stitching::drawFeature() {
+  // 描绘所有图像的特征点
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    Mat result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    Mat left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    Mat right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    img1.copyTo(left);
+    img2.copyTo(right);
+
+    Scalar color1(255, 0, 0, 255);
+    for (int j = 0; j < multi_images->imgs[m1]->features.size(); j ++) {
+      Point2f src_p = multi_images->imgs[m1]->features[j];
+      circle(result, src_p, CIRCLE_SIZE, color1, -1);
+    }
+    for (int j = 0; j < multi_images->imgs[m2]->features.size(); j ++) {
+      Point2f dst_p = multi_images->imgs[m2]->features[j] + Point2f(img1.cols, 0);
+      circle(result, dst_p, CIRCLE_SIZE, color1, -1);
+    }
+    show_img("feature pts", result);
+  }
+
+  // 绘制初步匹配结果
   for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
     int m1 = multi_images->img_pairs[i].first;
     int m2 = multi_images->img_pairs[i].second;
@@ -94,14 +119,40 @@ void My_Stitching::drawFeature() {
 
     Scalar color1(255, 0, 0, 255);
     Scalar color2(0, 255, 0, 255);
-    Scalar color3(255, 255, 0, 55);
-    for (int j = 0; j < multi_images->feature_points[m1][m2].size(); j ++) {
-      Point2f src_p = multi_images->feature_points[m1][m2][j];
-      Point2f dst_p = multi_images->feature_points[m2][m1][j];
-      line(result, src_p, dst_p + Point2f(img1.cols, 0), color3, LINE_SIZE, LINE_AA);
+    LOG("init size %ld", multi_images->initial_pairs[m1][m2].size());
+    for (int j = 0; j < multi_images->initial_pairs[m1][m2].size(); j ++) {
+      pair<int, int> tmp_pair =  multi_images->initial_pairs[m1][m2][j];
+      Point2f src_p = multi_images->imgs[m1]->features[tmp_pair.first];
+      Point2f dst_p = multi_images->imgs[m2]->features[tmp_pair.second] + Point2f(img1.cols, 0);
+      line(result, src_p, dst_p, color2, LINE_SIZE, LINE_AA);
       circle(result, src_p, CIRCLE_SIZE, color1, -1);
-      circle(result, dst_p + Point2f(img1.cols, 0), CIRCLE_SIZE, color2, -1);
+      circle(result, dst_p, CIRCLE_SIZE, color1, -1);
     }
-    show_img("feature", result);
+    show_img("init pair", result);
+  }
+
+  // 绘制RANSAC之后的结果
+  for (int i = 0; i < multi_images->img_pairs.size(); i ++) {
+    int m1 = multi_images->img_pairs[i].first;
+    int m2 = multi_images->img_pairs[i].second;
+    Mat img1 = multi_images->imgs[m1]->data;
+    Mat img2 = multi_images->imgs[m2]->data;
+    Mat result = Mat::zeros(max(img1.rows, img2.rows), img1.cols + img2.cols, CV_8UC3);
+    Mat left  = Mat(result, Rect(0, 0, img1.cols, img1.rows));
+    Mat right = Mat(result, Rect(img1.cols, 0, img2.cols, img2.rows));
+    img1.copyTo(left);
+    img2.copyTo(right);
+
+    Scalar color1(255, 0, 0, 255);
+    Scalar color2(0, 255, 0, 255);
+    for (int j = 0; j < multi_images->filtered_pairs[m1][m2].size(); j ++) {
+      pair<int, int> tmp_pair =  multi_images->filtered_pairs[m1][m2][j];
+      Point2f src_p = multi_images->imgs[m1]->features[tmp_pair.first];
+      Point2f dst_p = multi_images->imgs[m2]->features[tmp_pair.second] + Point2f(img1.cols, 0);
+      line(result, src_p, dst_p, color2, LINE_SIZE, LINE_AA);
+      circle(result, src_p, CIRCLE_SIZE, color1, -1);
+      circle(result, dst_p, CIRCLE_SIZE, color1, -1);
+    }
+    show_img("after RANSAC", result);
   }
 }
